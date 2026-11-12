@@ -1,0 +1,10 @@
+[project]
+name = "sayman"
+version = "0.0.1"
+description = "Sayman: Yapay Zekâ Destekli Finans Asistanı"
+requires-python = ">=3.11,<3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"

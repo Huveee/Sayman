@@ -1,0 +1,327 @@
+{
+  "olcum_zamani": "2026-11-12T17:26:47+03:00",
+  "kural": {
+    "aciklama": "Ön bellek ısındıktan sonra 5 araç çağırma turunun her birini en fazla 30 saniyede bitiren ve 5 sorunun 5'inde geçerli araç çağrısı üreten en büyük model seçilir.",
+    "sure_esigi_s": 30.0,
+    "gereken_gecerli": 5
+  },
+  "ayarlar": {
+    "num_ctx": 8192,
+    "num_batch": 64,
+    "temperature": 0,
+    "seed": 42,
+    "think": false,
+    "arac_sayisi": 15,
+    "isinma_uretim_siniri": 32,
+    "tur_uretim_siniri": 512,
+    "bugun": "2026-11-12",
+    "sistem_istemi": "Sen Sayman'sın: bir şirketin yapay zekâ destekli finans asistanısın. Sorulara cevap vermek için gereken veriyi her zaman verilen araçlardan al; rakam uydurma. Tarihleri YYYY-MM-DD biçiminde yaz. Bugünün tarihi 2026-11-12."
+  },
+  "makine": {
+    "islemci": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+    "toplam_bellek_gb": 15.7,
+    "fis_takili": true,
+    "isletim_sistemi": "Windows-10-10.0.26200-SP0",
+    "ollama_surumu": "0.40.11",
+    "python": "3.11.9",
+    "ollama_python": "0.6.3"
+  },
+  "adaylar": [
+    {
+      "model": "qwen3.5:4b",
+      "parametre_milyar": 4.0,
+      "ozet": "d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+      "boyut_gb": 3.32,
+      "nicemleme": "Q4_K_M",
+      "bos_bellek_once_gb": 8.82,
+      "bos_bellek_yuklu_gb": 5.19,
+      "en_dusuk_bos_bellek_gb": 5.11,
+      "bellekteki_boyut_gb": 2.99,
+      "gpu_bellegi_gb": 0.0,
+      "yukleme_s": 7.374,
+      "soguk_tur_s": 39.453,
+      "soguk_istem_token": 2180,
+      "soguk_istem_s": 35.732,
+      "istem_isleme_tps": 61.01,
+      "aracsiz_istem_token": 102,
+      "arac_blogu_token_yaklasik": 2078,
+      "isinma_tur_s": 3.871,
+      "isinma_istem_token": 2180,
+      "turlar": [
+        {
+          "kimlik": "s1_nakit",
+          "soru": "Şu an bankalarda toplam ne kadar nakitimiz var?",
+          "sure_s": 5.859,
+          "istem_token": 2180,
+          "istem_s": 1.984,
+          "uretim_token": 34,
+          "uretim_s": 3.847,
+          "cagrilar": [
+            {
+              "ad": "nakit_pozisyonu",
+              "argumanlar": {
+                "para_birimi": "hepsi"
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        },
+        {
+          "kimlik": "s2_geciken",
+          "soru": "60 günden fazla gecikmiş alacakları listeler misin?",
+          "sure_s": 6.125,
+          "istem_token": 2183,
+          "istem_s": 2.209,
+          "uretim_token": 33,
+          "uretim_s": 3.894,
+          "cagrilar": [
+            {
+              "ad": "geciken_alacaklar",
+              "argumanlar": {
+                "min_gun": 60
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        },
+        {
+          "kimlik": "s3_odemeler",
+          "soru": "Önümüzdeki 14 gün içinde hangi ödemelerimiz var?",
+          "sure_s": 6.413,
+          "istem_token": 2183,
+          "istem_s": 2.323,
+          "uretim_token": 34,
+          "uretim_s": 4.058,
+          "cagrilar": [
+            {
+              "ad": "yaklasan_odemeler",
+              "argumanlar": {
+                "gun_sayisi": 14
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        },
+        {
+          "kimlik": "s4_kur",
+          "soru": "Bugün dolar kuru kaç?",
+          "sure_s": 5.868,
+          "istem_token": 2174,
+          "istem_s": 2.046,
+          "uretim_token": 32,
+          "uretim_s": 3.786,
+          "cagrilar": [
+            {
+              "ad": "doviz_kuru",
+              "argumanlar": {
+                "para_birimi": "USD"
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        },
+        {
+          "kimlik": "s5_belge",
+          "soru": "Tedarikçi sözleşmelerimizde gecikme cezası maddesi ne diyor?",
+          "sure_s": 9.489,
+          "istem_token": 2188,
+          "istem_s": 2.533,
+          "uretim_token": 58,
+          "uretim_s": 6.927,
+          "cagrilar": [
+            {
+              "ad": "belge_ara",
+              "argumanlar": {
+                "sorgu": "tedarikçi sözleşmeleri gecikme cezası",
+                "belge_turu": "sozlesme"
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        }
+      ],
+      "uretim_tps": 8.48,
+      "en_uzun_tur_s": 9.489,
+      "ortanca_tur_s": 6.125,
+      "gecerli_sayisi": 5,
+      "dogru_cagri_sayisi": 5,
+      "baglam_yetti": true,
+      "dusunme_kapali": true,
+      "isinma_dogrulandi": true,
+      "kural_saglandi": true
+    },
+    {
+      "model": "qwen3.5:9b",
+      "parametre_milyar": 9.0,
+      "ozet": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90",
+      "boyut_gb": 6.55,
+      "nicemleme": "Q4_K_M",
+      "bos_bellek_once_gb": 8.94,
+      "bos_bellek_yuklu_gb": 2.31,
+      "en_dusuk_bos_bellek_gb": 2.18,
+      "bellekteki_boyut_gb": 5.79,
+      "gpu_bellegi_gb": 0.0,
+      "yukleme_s": 11.393,
+      "soguk_tur_s": 86.283,
+      "soguk_istem_token": 2180,
+      "soguk_istem_s": 80.041,
+      "istem_isleme_tps": 27.24,
+      "aracsiz_istem_token": 102,
+      "arac_blogu_token_yaklasik": 2078,
+      "isinma_tur_s": 7.673,
+      "isinma_istem_token": 2180,
+      "turlar": [
+        {
+          "kimlik": "s1_nakit",
+          "soru": "Şu an bankalarda toplam ne kadar nakitimiz var?",
+          "sure_s": 6.999,
+          "istem_token": 2180,
+          "istem_s": 3.573,
+          "uretim_token": 18,
+          "uretim_s": 3.397,
+          "cagrilar": [
+            {
+              "ad": "nakit_pozisyonu",
+              "argumanlar": {}
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        },
+        {
+          "kimlik": "s2_geciken",
+          "soru": "60 günden fazla gecikmiş alacakları listeler misin?",
+          "sure_s": 10.236,
+          "istem_token": 2183,
+          "istem_s": 3.9,
+          "uretim_token": 33,
+          "uretim_s": 6.308,
+          "cagrilar": [
+            {
+              "ad": "geciken_alacaklar",
+              "argumanlar": {
+                "min_gun": 60
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        },
+        {
+          "kimlik": "s3_odemeler",
+          "soru": "Önümüzdeki 14 gün içinde hangi ödemelerimiz var?",
+          "sure_s": 10.138,
+          "istem_token": 2183,
+          "istem_s": 3.51,
+          "uretim_token": 34,
+          "uretim_s": 6.6,
+          "cagrilar": [
+            {
+              "ad": "yaklasan_odemeler",
+              "argumanlar": {
+                "gun_sayisi": 14
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        },
+        {
+          "kimlik": "s4_kur",
+          "soru": "Bugün dolar kuru kaç?",
+          "sure_s": 14.057,
+          "istem_token": 2174,
+          "istem_s": 3.153,
+          "uretim_token": 54,
+          "uretim_s": 10.877,
+          "cagrilar": [
+            {
+              "ad": "doviz_kuru",
+              "argumanlar": {
+                "para_birimi": "USD"
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": "Dolar kuru için TCMB'nin bugünkü alış ve satış kurunu kontrol ediyorum."
+        },
+        {
+          "kimlik": "s5_belge",
+          "soru": "Tedarikçi sözleşmelerimizde gecikme cezası maddesi ne diyor?",
+          "sure_s": 15.412,
+          "istem_token": 2188,
+          "istem_s": 4.013,
+          "uretim_token": 58,
+          "uretim_s": 11.371,
+          "cagrilar": [
+            {
+              "ad": "belge_ara",
+              "argumanlar": {
+                "sorgu": "tedarikçi sözleşmesi gecikme cezası",
+                "belge_turu": "sozlesme"
+              }
+            }
+          ],
+          "gecerli": true,
+          "neden": "geçerli",
+          "dogru_cagri": true,
+          "dusunme_bos": true,
+          "sinira_takildi": false,
+          "metin": ""
+        }
+      ],
+      "uretim_tps": 5.11,
+      "en_uzun_tur_s": 15.412,
+      "ortanca_tur_s": 10.236,
+      "gecerli_sayisi": 5,
+      "dogru_cagri_sayisi": 5,
+      "baglam_yetti": true,
+      "dusunme_kapali": true,
+      "isinma_dogrulandi": true,
+      "kural_saglandi": true
+    }
+  ],
+  "secilen_model": "qwen3.5:9b",
+  "uyarilar": []
+}

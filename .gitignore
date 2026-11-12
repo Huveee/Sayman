@@ -1,0 +1,19 @@
+# Python ortamı ve önbellekler
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Gizli anahtarlar: asla git'e girmez
+.env
+
+# Büyük ham veri dosyaları (indirme betikleri yeniden üretir)
+data/raw/
+
+# Kişisel ve hocaya sunulan dokümanlar, faz planı: bilgisayarda durur, repoya girmez
+docs/ozet/
+FAZLAR.md
+
+# Proje dışı eski dosyalar (önceki çalışmalardan kalan kopyalar)
+Entertech_LLM_RAG_Proje_Onerileri.xlsx
+Entertech_Teknokent_Firmalari.xlsx
