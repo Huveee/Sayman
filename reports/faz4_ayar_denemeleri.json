@@ -73,6 +73,24 @@
       "kacan_olay": "Tohum 44 E03 (mükerrer ödeme). Aynı tohumdaki nakit sıkışması olayı E02, ileri tarihli ödemeleri 7 Temmuz 2025'e çekerken mükerrer ödemenin kopyasını da 28 Temmuz'dan 7 Temmuz'a çekmiş; cevap anahtarı olayın gününü 28 Temmuz olarak bırakmış. Kural mükerreri, aslı ödendiği gün (25 Temmuz) yakaladı; bu, anahtardaki pencerenin 3 gün öncesi. Puanlama değiştirilmedi; sonuç 11/12 olarak raporlanır.",
       "karar": "Kural değiştirilmedi.",
       "sonradan": "Ayrılmış ölçümden sonra kurallar.py'de yalnızca uyarı açıklamalarının metni değişti (müşteri ve tedarikçi adı, ondalık virgül, veri 12 aydan kısayken 'son N ayın'). Altı veri setinin hepsinde uyarı kimlikleri, ölçümler, eşikler ve kaynak kayıtlar değişiklikten önce ve sonra bayt bayt aynı çıktı. Rapor betiği --ayrilmis ile iki kez daha çalıştı (olay etkileşimi notunu ve yeni metinleri rapora yazmak için); sayılar aynı kaldı."
+    },
+    {
+      "no": 9,
+      "tur": "uretici_duzeltmesi",
+      "degisiklik": "Kurallar (src/sayman/izleme/) ve puanlama (tests/faz4_puanlama.py) değişmedi; üretici (src/sayman/veri/olaylar.py) düzeltildi. Nakit sıkışması olayı artık başka bir olaya ait ödemeyi öne çekmiyor: her olaydan sonra etkilediği ödemeler ('etkilenen.odemeler') kullanılanlar kümesine ('olay_odemesi', kimlik) etiketiyle girer ve nakit sıkışmasının adaylarından çıkarılır. Mükerrer ödemenin aslı zaten düz kimlikle dışarıdaydı; açık kalan, kopyasıydı. Düz kimlik yerine etiket kullanıldı: düz kimlik sonraki mükerrer ödeme olaylarının aday listesini de daraltır ve tohum 42'yi değiştirebilirdi.",
+      "neden": "Deneme 8'de kaçan olay kuralın değil üreticinin hatasıydı. Tohum 44'te nakit sıkışması, mükerrer ödemenin kopyasını (O6BBA15DB) 28 Temmuz'dan 7 Temmuz 2025'e çekmiş; cevap anahtarı ise olayın gününü 28 Temmuz olarak bırakmıştı. Anahtar ile veri birbirini tutmuyordu. Ayrılmış veri bu düzeltme yüzünden değişti. Düzeltme ayrılmış sonuca bakıldıktan sonra yapıldı.",
+      "veri_setleri": {
+        "tohum42": "aynı: 2ade2e96a9c6… (Faz 1 raporuyla aynı; scripts/faz4_veri_uret.py kontrol etti)",
+        "tohum43": "aynı: edc00f857371…",
+        "tohum44": "değişti: 0524a3603558… -> 7dec9b02961c…",
+        "olaysiz_ikizler": "üçü de aynı (olaylar kapalı): 70fcb3e3d6c8…, 5258df028060…, 1d10e636abab…"
+      },
+      "tohum44_olay_degisimi": "Kopya aday olmayınca 7 Temmuz 2025'teki nakit sıkışması kurulamadı ('öne çekilecek tedarikçi ödemesi yetmiyor'). Üretici her zamanki gibi başka bir gün denedi; sıkışma 26 Eylül 2025'e düştü (23 ödeme öne çekildi, bitiş 1 Aralık 2025). Önceki sıkışma 29 ödemeyi 7 Temmuz'a çekiyordu. Mükerrer ödeme 28 Temmuz'da kaldı. Diğer 10 olay aynı. Olay kimlikleri tarih sırasıyla verildiği için E02-E05 yeniden numaralandı: mükerrer ödeme artık E02, yeni sıkışma E05.",
+      "olay_etkilesimleri": {"tohum42": [], "tohum43": [], "tohum44": []},
+      "tohum43": {"yakalanan": "12/12", "aylik_yanlis_alarm": 1.843, "kurala_gore": {"eslesmeyen_birikim": 1, "karsiliksiz_cek": 35, "musteri_gecikmesi": 7}, "not": "Veri aynı; sonuç deneme 8 ile aynı."},
+      "tohum44": {"yakalanan": "12/12", "onceki_yakalanan": "11/12", "aylik_yanlis_alarm": 1.286, "kurala_gore": {"karsiliksiz_cek": 24, "musteri_gecikmesi": 6}, "mukerrer_odeme_E02_gun_sonra": 0, "yeni_nakit_sikismasi_E05_gun_sonra": 6, "olaya_denk_gelmeyen_alarm": "31 -> 30"},
+      "bulgu": "Mükerrer uyarısı artık olayın gününde (28 Temmuz) çıkıyor; eskiden aslı ödendiği gün (25 Temmuz), pencerenin dışında çıkıyor ve olaya denk gelmeyen alarm sayılıyordu. Olaysız ikizler değişmediği için yanlış alarm oranları aynı.",
+      "karar": "Kural değiştirilmedi. Veri değiştiği için rapor betiği --ayrilmis ile bir kez daha çalıştırıldı. Tohum 44'ün 12/12'si, üretici hatası ayrılmış veride görüldükten sonra düzeltilmiş veriye aittir; 26 Eylül'deki yeni nakit sıkışması kuralların ayarı sırasında hiç görülmedi."
     }
   ]
 }

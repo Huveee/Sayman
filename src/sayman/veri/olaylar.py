@@ -252,8 +252,12 @@ def nakit_sikismasi(u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, 
     def pencere_degeri(g):
         return (gunluk_iki[g][1] if g == gun else gunluk[g]) - dusus[g]
 
+    # Başka bir olaya ait ödeme aday değildir: asıl ödemeler kullanılanlarda düz kimlikle, olayların etkilediği
+    # ödemeler (ör. mükerrer ödemenin kopyası) ("olay_odemesi", kimlik) etiketiyle durur. Öne çekilselerdi o olayın
+    # cevap anahtarındaki tarihi verideki tarihle uyuşmazdı.
     adaylar = sorted((o for o in kayitlar["odemeler"]
-                      if o["tur"] == "tedarikci" and pencere_son < o["tarih"] <= ufuk and o["odeme_id"] not in kullanilan),
+                      if o["tur"] == "tedarikci" and pencere_son < o["tarih"] <= ufuk and o["odeme_id"] not in kullanilan
+                      and ("olay_odemesi", o["odeme_id"]) not in kullanilan),
                      key=lambda o: (o["tarih"], o["odeme_id"]))
     secilen, toplam = [], 0
     for o in adaylar:
@@ -328,8 +332,11 @@ def uygula(u, kayitlar: dict, acilis: dict[str, int]) -> dict:
             if deneme:
                 gun, en_erken, sinir = _gun_sec(u, rng, sonra)
             try:
-                sonuclar.append((tur, OLAY_FONKSIYONLARI[tur](
-                    u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik)))
+                sonuc = OLAY_FONKSIYONLARI[tur](u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik)
+                sonuclar.append((tur, sonuc))
+                # Olayın etkilediği ödemeler etiketle işaretlenir; sonraki nakit sıkışmaları onları öne çekmez.
+                # Düz kimlik değil etiket: düz kimlik, sonraki mükerrer ödeme olaylarının aday listesini de daraltırdı.
+                kullanilan.update(("olay_odemesi", i) for i in sonuc["etkilenen"].get("odemeler", []))
                 break
             except AdayYok:
                 if deneme == 19:

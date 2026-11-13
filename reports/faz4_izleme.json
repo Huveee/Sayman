@@ -36,7 +36,7 @@
         "klasor": "data/uretilen",
         "veri_hash": "2ade2e96a9c627c2aa9f02912b5d5cdaf89476cbe8e60ab56622ac3cd45c8e9e",
         "baslangic": "2024-12-03",
-        "sure_s": 0.9,
+        "sure_s": 0.92,
         "uyari": 117,
         "uyari_kurala_gore": {
           "buyuk_cikis/uyari": 2,
@@ -245,7 +245,7 @@
         "klasor": "data/izleme_veri/tohum42_temiz",
         "veri_hash": "70fcb3e3d6c83c92bb4e9d88147953c83ba1f703e7ed6cada078c162d5b5185f",
         "baslangic": "2024-12-03",
-        "sure_s": 0.94,
+        "sure_s": 0.91,
         "uyari": 105,
         "uyari_kurala_gore": {
           "karsiliksiz_cek/bilgi": 71,
@@ -1022,9 +1022,9 @@
       "ayrilmis": true,
       "olayli": {
         "klasor": "data/izleme_veri/tohum44",
-        "veri_hash": "0524a36035583ce981999c2905a960834dbcfb7a3d6f9341ee27ab980ac12ded",
+        "veri_hash": "7dec9b02961c25aef4021de53a8e9cf9ea7dab57f01adc86a836e28924270f0a",
         "baslangic": "2024-12-03",
-        "sure_s": 0.92,
+        "sure_s": 0.93,
         "uyari": 115,
         "uyari_kurala_gore": {
           "buyuk_cikis/uyari": 2,
@@ -1035,11 +1035,11 @@
           "musteri_gecikmesi/uyari": 8,
           "nakit_esigi/uyari": 2
         },
-        "uyari_ozeti": "a313d71f701a2fc823517658b32232ddf6ea71bc2451d408545724b3c1f81928",
+        "uyari_ozeti": "6fbdbf8dd5e52dfbb0b60d2986f93f380883aca7845b69fa52633471dd0ee13f",
         "puan": {
           "olay": 12,
-          "yakalanan": 11,
-          "geri_cagirma": 0.9167,
+          "yakalanan": 12,
+          "geri_cagirma": 1.0,
           "olaylar": [
             {
               "olay_id": "E01",
@@ -1055,30 +1055,18 @@
             },
             {
               "olay_id": "E02",
-              "tur": "nakit_sikismasi",
-              "tarih": "2025-07-07",
-              "pencere": [
-                "2025-07-07",
-                "2025-08-29"
-              ],
-              "yakalandi": true,
-              "uyari_id": "U1e86d3cede50",
-              "gun_sonra": 0
-            },
-            {
-              "olay_id": "E03",
               "tur": "mukerrer_odeme",
               "tarih": "2025-07-28",
               "pencere": [
                 "2025-07-28",
                 "2025-08-11"
               ],
-              "yakalandi": false,
-              "uyari_id": null,
-              "gun_sonra": null
+              "yakalandi": true,
+              "uyari_id": "U8e02bc370824",
+              "gun_sonra": 0
             },
             {
-              "olay_id": "E04",
+              "olay_id": "E03",
               "tur": "buyuk_musteri_gecikmesi",
               "tarih": "2025-08-07",
               "pencere": [
@@ -1090,7 +1078,7 @@
               "gun_sonra": 28
             },
             {
-              "olay_id": "E05",
+              "olay_id": "E04",
               "tur": "eslesmeyen_tahsilat_birikimi",
               "tarih": "2025-08-11",
               "pencere": [
@@ -1100,6 +1088,18 @@
               "yakalandi": true,
               "uyari_id": "U0d6c49062d2d",
               "gun_sonra": 4
+            },
+            {
+              "olay_id": "E05",
+              "tur": "nakit_sikismasi",
+              "tarih": "2025-09-26",
+              "pencere": [
+                "2025-09-26",
+                "2025-12-01"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U5e48edac06b0",
+              "gun_sonra": 6
             },
             {
               "olay_id": "E06",
@@ -1187,10 +1187,9 @@
             }
           ],
           "alarm": 42,
-          "olaya_denk_gelmeyen_alarm": 31,
+          "olaya_denk_gelmeyen_alarm": 30,
           "olaya_denk_gelmeyen_kurala_gore": {
             "karsiliksiz_cek": 24,
-            "mukerrer_odeme": 1,
             "musteri_gecikmesi": 6
           }
         },
@@ -1223,16 +1222,7 @@
             "onem": "uyari"
           }
         ],
-        "olay_etkilesimleri": [
-          {
-            "olay_id": "E03",
-            "tur": "mukerrer_odeme",
-            "odeme_id": "O6BBA15DB",
-            "cekan_olay": "E02",
-            "anahtardaki_gun": "2025-07-28",
-            "verideki_gun": "2025-07-07"
-          }
-        ],
+        "olay_etkilesimleri": [],
         "yakalama_gecikmesi_gun": {
           "en_az": 0,
           "ortanca": 0,
