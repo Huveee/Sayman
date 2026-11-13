@@ -48,6 +48,21 @@ yeniden indirmek için gerekir; bunların sonuçları `data/kaynak/` klasöründ
 Tablolar `data/uretilen/`, olayların cevap anahtarı ayrı olarak `data/anahtar/`, simülasyon saati
 `data/saat.json`, özet ve denetim sonuçları `reports/faz1_veri.json` dosyasına yazılır.
 
+## Faz 2: veri ambarı ve metrikler
+
+Üretilen tablolar tek bir DuckDB dosyasına yüklenir. Yedi metrik SQL ile, verilen gün itibarıyla
+hesaplanır: nakit pozisyonu, alacak yaşlandırma, DSO, geciken alacaklar, yaklaşan ödemeler, kur riski ve
+13 haftalık nakit akış tahmini. Her metrik yalnızca o güne kadarki kayıtları kullanır.
+
+```bash
+.venv/Scripts/python -I scripts/faz2_ambar_kur.py
+```
+
+Ambar `data/ambar/sayman.duckdb`, "şimdi" için metrik özetleri `reports/faz2_metrikler.json` dosyasına
+yazılır. Testler her metriği bağımsız bir pandas hesabıyla, elle hesaplanmış küçük bir veriyle ve Faz 1
+hesaplarıyla karşılaştırır. Nakit akış tahmini yalnızca bilinen kalemleri içerir (açık alacaklar, çekler,
+POS valörleri, ödenmemiş alış faturaları); maaş, vergi ve henüz kesilmemiş satışlar dahil değildir.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -62,7 +77,7 @@ Tablolar `data/uretilen/`, olayların cevap anahtarı ayrı olarak `data/anahtar
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu |
+| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler) |
 | `tests` | Yazılım testleri ve kabul testleri |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
 | `reports` | Ölçüm sonuçları |

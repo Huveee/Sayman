@@ -1,0 +1,328 @@
+{
+  "veri_hash": "2ade2e96a9c627c2aa9f02912b5d5cdaf89476cbe8e60ab56622ac3cd45c8e9e",
+  "ambar": "data/ambar/sayman.duckdb",
+  "ambar_kurulum_s": 2.41,
+  "tarih": "2026-09-01",
+  "nakit_pozisyonu": {
+    "tarih": "2026-09-01",
+    "hesaplar": [
+      {
+        "hesap_id": "A_TRY",
+        "banka": "Banka A",
+        "para_birimi": "TRY",
+        "bakiye_kurus": 7420508337,
+        "kur": "1.000000",
+        "bakiye_try_kurus": 7420508337
+      },
+      {
+        "hesap_id": "B_EUR",
+        "banka": "Banka B",
+        "para_birimi": "EUR",
+        "bakiye_kurus": 1790483,
+        "kur": "55.865200",
+        "bakiye_try_kurus": 100025691
+      },
+      {
+        "hesap_id": "B_TRY",
+        "banka": "Banka B",
+        "para_birimi": "TRY",
+        "bakiye_kurus": 20239401,
+        "kur": "1.000000",
+        "bakiye_try_kurus": 20239401
+      },
+      {
+        "hesap_id": "C_USD",
+        "banka": "Banka C",
+        "para_birimi": "USD",
+        "bakiye_kurus": 869797,
+        "kur": "48.174500",
+        "bakiye_try_kurus": 41902036
+      }
+    ],
+    "toplam_try_kurus": 7582675465
+  },
+  "yaslandirma_toplam": {
+    "vadesi_gelmemis_kurus": 3953583317,
+    "gecikme_1_30_kurus": 1174320033,
+    "gecikme_31_60_kurus": 745529025,
+    "gecikme_61_90_kurus": 363894642,
+    "gecikme_91_180_kurus": 584750861,
+    "gecikme_180_ustu_kurus": 911591734,
+    "eslesmemis_tahsilat_kurus": -175645044,
+    "toplam_kurus": 7558024568
+  },
+  "yaslandirma_musteri_sayisi": 1290,
+  "dso": {
+    "tarih": "2026-09-01",
+    "gun": 365,
+    "alacak_kurus": 7558024568,
+    "satis_kurus": 54955987984,
+    "dso_gun": "50.20"
+  },
+  "dso_2025_yil_sonu": {
+    "tarih": "2025-12-31",
+    "gun": 365,
+    "alacak_kurus": 7053810091,
+    "satis_kurus": 49093135229,
+    "dso_gun": "52.44"
+  },
+  "geciken_alacaklar": {
+    "fatura_sayisi": 1194,
+    "toplam_try_kurus": 3780086295,
+    "en_buyuk_5": [
+      {
+        "fatura_id": "F032047",
+        "musteri_id": "M00067",
+        "ad": "Bright Trading Co Pty Ltd",
+        "fatura_tarihi": "2026-06-17",
+        "vade_tarihi": "2026-07-17",
+        "gecikme_gun": 46,
+        "para_birimi": "USD",
+        "acik_kurus": 3050853,
+        "acik_try_kurus": 140987544
+      },
+      {
+        "fatura_id": "F024508",
+        "musteri_id": "M01740",
+        "ad": "Green Home Store Ltd",
+        "fatura_tarihi": "2026-01-16",
+        "vade_tarihi": "2026-02-15",
+        "gecikme_gun": 198,
+        "para_birimi": "EUR",
+        "acik_kurus": 1933284,
+        "acik_try_kurus": 96963086
+      },
+      {
+        "fatura_id": "F033750",
+        "musteri_id": "M01740",
+        "ad": "Green Home Store Ltd",
+        "fatura_tarihi": "2026-07-21",
+        "vade_tarihi": "2026-08-20",
+        "gecikme_gun": 12,
+        "para_birimi": "EUR",
+        "acik_kurus": 1309013,
+        "acik_try_kurus": 70492183
+      },
+      {
+        "fatura_id": "F013945",
+        "musteri_id": "M01740",
+        "ad": "Green Home Store Ltd",
+        "fatura_tarihi": "2025-08-20",
+        "vade_tarihi": "2025-09-19",
+        "gecikme_gun": 347,
+        "para_birimi": "EUR",
+        "acik_kurus": 1445788,
+        "acik_try_kurus": 68927220
+      },
+      {
+        "fatura_id": "F027181",
+        "musteri_id": "M03296",
+        "ad": "Vadi Mavi Dekorasyon Ltd. Şti.",
+        "fatura_tarihi": "2026-03-19",
+        "vade_tarihi": "2026-03-19",
+        "gecikme_gun": 166,
+        "para_birimi": "TRY",
+        "acik_kurus": 59232928,
+        "acik_try_kurus": 59232928
+      }
+    ]
+  },
+  "yaklasan_odemeler": {
+    "fatura_sayisi": 22,
+    "toplam_kurus": 4351010056
+  },
+  "kur_riski": {
+    "tarih": "2026-09-01",
+    "dovizler": [
+      {
+        "para_birimi": "EUR",
+        "alacak_doviz_kurus": 36516725,
+        "banka_doviz_kurus": 1790483,
+        "toplam_doviz_kurus": 38307208,
+        "kur": "55.865200",
+        "toplam_try_kurus": 2140039836,
+        "yuzde_10_etki_kurus": 214003984,
+        "alacak_kur_farki_kurus": 118449781
+      },
+      {
+        "para_birimi": "USD",
+        "alacak_doviz_kurus": 9849136,
+        "banka_doviz_kurus": 869797,
+        "toplam_doviz_kurus": 10718933,
+        "kur": "48.174500",
+        "toplam_try_kurus": 516379238,
+        "yuzde_10_etki_kurus": 51637924,
+        "alacak_kur_farki_kurus": 9946276
+      }
+    ],
+    "toplam_try_kurus": 2656419074
+  },
+  "nakit_akis_tahmini": {
+    "tarih": "2026-09-01",
+    "hafta_sayisi": 13,
+    "acilis_kurus": 7582675465,
+    "haftalar": [
+      {
+        "hafta": 1,
+        "bas": "2026-09-02",
+        "bit": "2026-09-08",
+        "alacak_girisi_kurus": 1376328531,
+        "cek_girisi_kurus": 85665397,
+        "pos_girisi_kurus": 147002296,
+        "tedarikci_cikisi_kurus": 723802042,
+        "net_kurus": 885194182,
+        "bilinen_kalemlerle_bakiye_kurus": 8467869647
+      },
+      {
+        "hafta": 2,
+        "bas": "2026-09-09",
+        "bit": "2026-09-15",
+        "alacak_girisi_kurus": 403655703,
+        "cek_girisi_kurus": 179537795,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 4543826,
+        "net_kurus": 578649672,
+        "bilinen_kalemlerle_bakiye_kurus": 9046519319
+      },
+      {
+        "hafta": 3,
+        "bas": "2026-09-16",
+        "bit": "2026-09-22",
+        "alacak_girisi_kurus": 572531576,
+        "cek_girisi_kurus": 118844844,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 1020796388,
+        "net_kurus": -329419968,
+        "bilinen_kalemlerle_bakiye_kurus": 8717099351
+      },
+      {
+        "hafta": 4,
+        "bas": "2026-09-23",
+        "bit": "2026-09-29",
+        "alacak_girisi_kurus": 666023957,
+        "cek_girisi_kurus": 71008265,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 2034420465,
+        "net_kurus": -1297388243,
+        "bilinen_kalemlerle_bakiye_kurus": 7419711108
+      },
+      {
+        "hafta": 5,
+        "bas": "2026-09-30",
+        "bit": "2026-10-06",
+        "alacak_girisi_kurus": 463720466,
+        "cek_girisi_kurus": 69480341,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 1985891564,
+        "net_kurus": -1452690757,
+        "bilinen_kalemlerle_bakiye_kurus": 5967020351
+      },
+      {
+        "hafta": 6,
+        "bas": "2026-10-07",
+        "bit": "2026-10-13",
+        "alacak_girisi_kurus": 402007134,
+        "cek_girisi_kurus": 60024349,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 527674913,
+        "net_kurus": -65643430,
+        "bilinen_kalemlerle_bakiye_kurus": 5901376921
+      },
+      {
+        "hafta": 7,
+        "bas": "2026-10-14",
+        "bit": "2026-10-20",
+        "alacak_girisi_kurus": 549682091,
+        "cek_girisi_kurus": 59090540,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 0,
+        "net_kurus": 608772631,
+        "bilinen_kalemlerle_bakiye_kurus": 6510149552
+      },
+      {
+        "hafta": 8,
+        "bas": "2026-10-21",
+        "bit": "2026-10-27",
+        "alacak_girisi_kurus": 199907393,
+        "cek_girisi_kurus": 80438335,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 418626978,
+        "net_kurus": -138281250,
+        "bilinen_kalemlerle_bakiye_kurus": 6371868302
+      },
+      {
+        "hafta": 9,
+        "bas": "2026-10-28",
+        "bit": "2026-11-03",
+        "alacak_girisi_kurus": 249962456,
+        "cek_girisi_kurus": 33883208,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 121509857,
+        "net_kurus": 162335807,
+        "bilinen_kalemlerle_bakiye_kurus": 6534204109
+      },
+      {
+        "hafta": 10,
+        "bas": "2026-11-04",
+        "bit": "2026-11-10",
+        "alacak_girisi_kurus": 202288449,
+        "cek_girisi_kurus": 5233532,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 0,
+        "net_kurus": 207521981,
+        "bilinen_kalemlerle_bakiye_kurus": 6741726090
+      },
+      {
+        "hafta": 11,
+        "bas": "2026-11-11",
+        "bit": "2026-11-17",
+        "alacak_girisi_kurus": 77447751,
+        "cek_girisi_kurus": 1142995,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 0,
+        "net_kurus": 78590746,
+        "bilinen_kalemlerle_bakiye_kurus": 6820316836
+      },
+      {
+        "hafta": 12,
+        "bas": "2026-11-18",
+        "bit": "2026-11-24",
+        "alacak_girisi_kurus": 176649756,
+        "cek_girisi_kurus": 0,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 151887322,
+        "net_kurus": 24762434,
+        "bilinen_kalemlerle_bakiye_kurus": 6845079270
+      },
+      {
+        "hafta": 13,
+        "bas": "2026-11-25",
+        "bit": "2026-12-01",
+        "alacak_girisi_kurus": 72153246,
+        "cek_girisi_kurus": 3090978,
+        "pos_girisi_kurus": 0,
+        "tedarikci_cikisi_kurus": 0,
+        "net_kurus": 75244224,
+        "bilinen_kalemlerle_bakiye_kurus": 6920323494
+      }
+    ],
+    "ufuk_disi_giris_kurus": 88122276,
+    "ufuk_disi_cikis_kurus": 0,
+    "supheli_alacak_kurus": 1418499261,
+    "dahil_olmayanlar": [
+      "Henüz kesilmemiş satışlar ve onlardan gelecek tahsilatlar (peşin satışlar ve POS dahil)",
+      "Maaş, SGK ve vergi ödemeleri ile alış faturası olmayan diğer ödemeler",
+      "Müşterilere yapılacak iade ödemeleri ve banka masrafları",
+      "Hesaplar arası virman ve döviz bozdurma (şirketin toplam nakdini değiştirmez)"
+    ]
+  },
+  "metrik_suresi_s": {
+    "nakit_pozisyonu": 0.027,
+    "yaslandirma": 0.144,
+    "dso": 0.145,
+    "geciken_alacaklar": 0.085,
+    "yaklasan_odemeler": 0.019,
+    "kur_riski": 0.098,
+    "nakit_akis_tahmini": 0.206
+  }
+}
