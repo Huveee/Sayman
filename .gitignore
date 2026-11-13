@@ -7,8 +7,13 @@ __pycache__/
 # Gizli anahtarlar: asla git'e girmez
 .env
 
-# Büyük ham veri dosyaları (indirme betikleri yeniden üretir)
-data/raw/
+# İndirilen ve üretilen veri (betikler aynı tohumla birebir yeniden üretir).
+# data/kaynak/ git'e girer: TCMB kurları ve kalibrasyon bantları küçüktür ve elle doğrulandı.
+data/ham/
+data/ara/
+data/uretilen/
+data/anahtar/
+data/saat.json
 
 # Kişisel ve hocaya sunulan dokümanlar, faz planı: bilgisayarda durur, repoya girmez
 docs/ozet/

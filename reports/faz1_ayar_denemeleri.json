@@ -1,0 +1,724 @@
+[
+ {
+  "sira": 1,
+  "zaman": "2026-11-13T16:00:47",
+  "not": "ilk ölçüm: varsayılan ayarlar, gerçek veri",
+  "degisiklik": {},
+  "sonuclar": [
+   {
+    "tohum": 42,
+    "veri_hash": "fbab6f6a296321bc583a678432d5f1ec78a6df5cbf5feeaf91305d6776442425",
+    "olcum": {
+     "dso_gun": 67.88,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3827,
+     "olgun_fatura_sayisi": 22815,
+     "gecikme_dagilimi": {
+      "1-30": 0.5161,
+      "31-60": 0.2457,
+      "61-90": 0.1284,
+      "90+": 0.1098
+     },
+     "gec_kapanan_fatura_sayisi": 8326
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 67.88,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": false
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3827,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5161,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2457,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.1284,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1098,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": false
+   }
+  ],
+  "sure_s": 16.2
+ },
+ {
+  "sira": 2,
+  "zaman": "2026-11-13T16:02:07",
+  "not": "vade kısaltıldı: yurt içi ortalama 46,5 -> 37,5 gün, ihracat 45 -> 39 gün",
+  "degisiklik": {
+   "vade_yurtici": [
+    [
+     30,
+     0.6
+    ],
+    [
+     45,
+     0.2
+    ],
+    [
+     60,
+     0.15
+    ],
+    [
+     90,
+     0.05
+    ]
+   ],
+   "vade_ihracat": [
+    [
+     30,
+     0.7
+    ],
+    [
+     60,
+     0.3
+    ]
+   ]
+  },
+  "sonuclar": [
+   {
+    "tohum": 42,
+    "veri_hash": "7a9ee28d52f937c7c669fc1b478329cb7a79e276cb0583ea3107573ae5c1db89",
+    "olcum": {
+     "dso_gun": 61.21,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3825,
+     "olgun_fatura_sayisi": 23080,
+     "gecikme_dagilimi": {
+      "1-30": 0.5163,
+      "31-60": 0.2453,
+      "61-90": 0.129,
+      "90+": 0.1094
+     },
+     "gec_kapanan_fatura_sayisi": 8418
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 61.21,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": false
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3825,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5163,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2453,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.129,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1094,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": false
+   }
+  ],
+  "sure_s": 15.7
+ },
+ {
+  "sira": 3,
+  "zaman": "2026-11-13T16:03:45",
+  "not": "kod: peşin satış aynı gün ödenebilir. Yurt içine %20 peşin müşteri (ortalama vade 32,25 gün), ihracat ortalaması 36 gün, batık payı %3",
+  "degisiklik": {
+   "vade_yurtici": [
+    [
+     0,
+     0.2
+    ],
+    [
+     30,
+     0.5
+    ],
+    [
+     45,
+     0.15
+    ],
+    [
+     60,
+     0.1
+    ],
+    [
+     90,
+     0.05
+    ]
+   ],
+   "vade_ihracat": [
+    [
+     30,
+     0.8
+    ],
+    [
+     60,
+     0.2
+    ]
+   ],
+   "batik_musteri_payi": 0.03
+  },
+  "sonuclar": [
+   {
+    "tohum": 42,
+    "veri_hash": "669a483d681b332e229f21d1f6d2561f1db9b3e883d529b5e5dd95f8d9ed9635",
+    "olcum": {
+     "dso_gun": 54.28,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.399,
+     "olgun_fatura_sayisi": 23426,
+     "gecikme_dagilimi": {
+      "1-30": 0.5385,
+      "31-60": 0.2339,
+      "61-90": 0.1231,
+      "90+": 0.1045
+     },
+     "gec_kapanan_fatura_sayisi": 8939
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 54.28,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": true
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.399,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5385,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2339,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.1231,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1045,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": true
+   }
+  ],
+  "sure_s": 16.1
+ },
+ {
+  "sira": 4,
+  "zaman": "2026-11-13T16:04:33",
+  "not": "deneme 3 + yurt içi %25 peşin (ortalama 30,75 gün), zamanında ödeyen müşteri payı %40 -> %45; üç tohum",
+  "degisiklik": {
+   "vade_yurtici": [
+    [
+     0,
+     0.25
+    ],
+    [
+     30,
+     0.45
+    ],
+    [
+     45,
+     0.15
+    ],
+    [
+     60,
+     0.1
+    ],
+    [
+     90,
+     0.05
+    ]
+   ],
+   "vade_ihracat": [
+    [
+     30,
+     0.8
+    ],
+    [
+     60,
+     0.2
+    ]
+   ],
+   "batik_musteri_payi": 0.03,
+   "profiller": [
+    [
+     "zamaninda",
+     0.45,
+     0.1
+    ],
+    [
+     "ara_sira",
+     0.33,
+     0.4
+    ],
+    [
+     "sik",
+     0.17,
+     0.75
+    ],
+    [
+     "kronik",
+     0.05,
+     0.95
+    ]
+   ]
+  },
+  "sonuclar": [
+   {
+    "tohum": 42,
+    "veri_hash": "670d3cabaa9766aee1c1af0f45cdebd0742811ef8c3d0667a7f14f8682cc9a09",
+    "olcum": {
+     "dso_gun": 52.46,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3778,
+     "olgun_fatura_sayisi": 23486,
+     "gecikme_dagilimi": {
+      "1-30": 0.5413,
+      "31-60": 0.2348,
+      "61-90": 0.119,
+      "90+": 0.1049
+     },
+     "gec_kapanan_fatura_sayisi": 8465
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 52.46,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": true
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3778,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5413,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2348,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.119,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1049,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": true
+   },
+   {
+    "tohum": 43,
+    "veri_hash": "e42c85e74697eb758f859ab7058db3a8aa4a5b6f08da3e62e77b9e1b34917985",
+    "olcum": {
+     "dso_gun": 47.81,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3882,
+     "olgun_fatura_sayisi": 23533,
+     "gecikme_dagilimi": {
+      "1-30": 0.5543,
+      "31-60": 0.2292,
+      "61-90": 0.111,
+      "90+": 0.1055
+     },
+     "gec_kapanan_fatura_sayisi": 8778
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 47.81,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": true
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3882,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5543,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2292,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.111,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1055,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": true
+   },
+   {
+    "tohum": 44,
+    "veri_hash": "631097763ffb2cd9a4b7589500487c32e6d24184d2c5761ffffdc5eb975b15a3",
+    "olcum": {
+     "dso_gun": 52.89,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3747,
+     "olgun_fatura_sayisi": 23477,
+     "gecikme_dagilimi": {
+      "1-30": 0.541,
+      "31-60": 0.2346,
+      "61-90": 0.1166,
+      "90+": 0.1078
+     },
+     "gec_kapanan_fatura_sayisi": 8434
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 52.89,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": true
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3747,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.541,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2346,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.1166,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1078,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": true
+   }
+  ],
+  "sure_s": 28.5
+ },
+ {
+  "sira": 5,
+  "zaman": "2026-11-13T16:06:42",
+  "not": "kod: peşin müşteri çek kullanmaz. Ayarlar deneme 4 ile aynı (artık varsayılan); üç tohum",
+  "degisiklik": {},
+  "sonuclar": [
+   {
+    "tohum": 42,
+    "veri_hash": "2ade2e96a9c627c2aa9f02912b5d5cdaf89476cbe8e60ab56622ac3cd45c8e9e",
+    "olcum": {
+     "dso_gun": 52.44,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3774,
+     "olgun_fatura_sayisi": 23486,
+     "gecikme_dagilimi": {
+      "1-30": 0.5415,
+      "31-60": 0.2346,
+      "61-90": 0.1192,
+      "90+": 0.1047
+     },
+     "gec_kapanan_fatura_sayisi": 8450
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 52.44,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": true
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3774,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5415,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2346,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.1192,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1047,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": true
+   },
+   {
+    "tohum": 43,
+    "veri_hash": "edc00f857371be34b98c647b481a7e9fa928379a38eabaad5067d4fb05f10218",
+    "olcum": {
+     "dso_gun": 47.77,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3877,
+     "olgun_fatura_sayisi": 23533,
+     "gecikme_dagilimi": {
+      "1-30": 0.5554,
+      "31-60": 0.2282,
+      "61-90": 0.1112,
+      "90+": 0.1052
+     },
+     "gec_kapanan_fatura_sayisi": 8761
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 47.77,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": true
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3877,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5554,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2282,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.1112,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1052,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": true
+   },
+   {
+    "tohum": 44,
+    "veri_hash": "0524a36035583ce981999c2905a960834dbcfb7a3d6f9341ee27ab980ac12ded",
+    "olcum": {
+     "dso_gun": 52.81,
+     "dso_yili": 2025,
+     "gec_odenen_fatura_orani": 0.3739,
+     "olgun_fatura_sayisi": 23477,
+     "gecikme_dagilimi": {
+      "1-30": 0.5428,
+      "31-60": 0.2332,
+      "61-90": 0.1164,
+      "90+": 0.1077
+     },
+     "gec_kapanan_fatura_sayisi": 8405
+    },
+    "bantlar": [
+     {
+      "ad": "dso_gun",
+      "deger": 52.81,
+      "alt": 32.4,
+      "ust": 57.6,
+      "tamam": true
+     },
+     {
+      "ad": "gec_odenen_fatura_orani",
+      "deger": 0.3739,
+      "alt": 0.228,
+      "ust": 0.496,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_1-30",
+      "deger": 0.5428,
+      "alt": 0.43,
+      "ust": 0.63,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_31-60",
+      "deger": 0.2332,
+      "alt": 0.14,
+      "ust": 0.34,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_61-90",
+      "deger": 0.1164,
+      "alt": 0.02,
+      "ust": 0.22,
+      "tamam": true
+     },
+     {
+      "ad": "gecikme_90+",
+      "deger": 0.1077,
+      "alt": 0.01,
+      "ust": 0.21,
+      "tamam": true
+     }
+    ],
+    "hepsi_bantta": true
+   }
+  ],
+  "sure_s": 33.7
+ }
+]

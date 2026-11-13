@@ -1,0 +1,359 @@
+{
+  "girdi_sha256": {
+    "uci_ham": "541fa3b6f5f32e8343dc886a99bf117bad3ac8576aebd9557476d2c48f25aa23",
+    "tcmb_kurlar": "5ca47c89ab895e9ed27a3cf58d90aa18dbd3221a9e27d84081d632bc0a2adcda",
+    "kalibrasyon": "fb935a75c1f7c1da66708a555389995a47f967ca52570c7ec606ffdd754a017b"
+  },
+  "ayarlar": {
+    "tohum": 42,
+    "kaydirma_yil": 15,
+    "veri_bitis": "2026-11-12",
+    "simdi": "2026-09-01",
+    "olaylar_acik": true,
+    "olay_sayilari": [
+      [
+        "buyuk_musteri_gecikmesi",
+        2
+      ],
+      [
+        "karsiliksiz_cek",
+        3
+      ],
+      [
+        "mukerrer_odeme",
+        2
+      ],
+      [
+        "olagandisi_buyuk_cikis",
+        2
+      ],
+      [
+        "eslesmeyen_tahsilat_birikimi",
+        1
+      ],
+      [
+        "nakit_sikismasi",
+        2
+      ]
+    ],
+    "simdiden_sonra_olay": [
+      "buyuk_musteri_gecikmesi",
+      "karsiliksiz_cek",
+      "olagandisi_buyuk_cikis"
+    ],
+    "profiller": [
+      [
+        "zamaninda",
+        0.45,
+        0.1
+      ],
+      [
+        "ara_sira",
+        0.33,
+        0.4
+      ],
+      [
+        "sik",
+        0.17,
+        0.75
+      ],
+      [
+        "kronik",
+        0.05,
+        0.95
+      ]
+    ],
+    "gecikme_dilimleri": [
+      [
+        1,
+        30,
+        0.53
+      ],
+      [
+        31,
+        60,
+        0.24
+      ],
+      [
+        61,
+        90,
+        0.12
+      ],
+      [
+        91,
+        180,
+        0.11
+      ]
+    ],
+    "batik_musteri_payi": 0.03,
+    "vade_yurtici": [
+      [
+        0,
+        0.25
+      ],
+      [
+        30,
+        0.45
+      ],
+      [
+        45,
+        0.15
+      ],
+      [
+        60,
+        0.1
+      ],
+      [
+        90,
+        0.05
+      ]
+    ],
+    "vade_ihracat": [
+      [
+        30,
+        0.8
+      ],
+      [
+        60,
+        0.2
+      ]
+    ],
+    "cekle_odeyen_musteri": 0.35,
+    "cekle_odeme_olasiligi": 0.8,
+    "karsiliksiz_orani": 0.02,
+    "eslesmeyen_havale_orani": 0.004,
+    "kismi_odeme_orani": 0.1,
+    "pos_komisyon": "0.02",
+    "alis_orani": "0.72",
+    "maas_orani": "0.10",
+    "sgk_orani": "0.375",
+    "vergi_orani": "0.20",
+    "kur_makasi": "0.005",
+    "acilis_tamponu": "1.00",
+    "hesap_ucreti_kurus": 25000
+  },
+  "kaydirma_gun": 5481,
+  "veri_baslangic": "2024-12-03",
+  "bitisten_sonra_kalan_kalem": 84497,
+  "temizleme": {
+    "girdi": 1067371,
+    "tutulan": {
+      "satis": 790278,
+      "iade": 17993,
+      "perakende": 228425,
+      "perakende_iade": 388
+    },
+    "atilan": {
+      "gecersiz_fiyat": 6014,
+      "satis_disi_kod": 1744,
+      "duzeltme_faturasi": 6,
+      "sayfa_tekrari": 22523
+    },
+    "mutabakat": true
+  },
+  "tablo_satirlari": {
+    "musteriler": 5736,
+    "faturalar": 41314,
+    "pos_islemleri": 3000,
+    "tahsilatlar": 33592,
+    "cekler": 5767,
+    "cek_hareketleri": 16463,
+    "tedarikciler": 45,
+    "alis_faturalari": 420,
+    "odemeler": 3148,
+    "banka_hesaplari": 4,
+    "banka_hareketleri": 37551,
+    "doviz_kurlari": 1464
+  },
+  "veri_hash": "2ade2e96a9c627c2aa9f02912b5d5cdaf89476cbe8e60ab56622ac3cd45c8e9e",
+  "tablo_hashleri": {
+    "alis_faturalari": "a2a3e1366a4415434c42313090fb814497b6d950195ee86d7c3c4d543c66e317",
+    "banka_hareketleri": "3fe048da6cb99eb1eadfe5becfe73f9a80e207edecf7fa370005f4c7b4b61870",
+    "banka_hesaplari": "89de8e880e98004249fd5c72fa539407c7627bfbd0dee2b4e5e4965ff695d7a6",
+    "cek_hareketleri": "771d38ae44d6d246dd1fd836ecfb7f3304ab7d49b728e5882aa1b88e63bbb5f8",
+    "cekler": "16e5c5a7fc91a144aa68832a3086d9ebf1f06616251822d0770be4763288b271",
+    "doviz_kurlari": "3fcf2dc57fc73d0336626d9d57c6bdee5c43e7da45cbbb9c0699b89b2cb1197e",
+    "faturalar": "c8ee97d37e67474e00a67a9738f9fee4d032f0cff2b8272952a73aed6c609734",
+    "musteriler": "4d8b7f0d3288d544da90f8a1507f668ef1d3fbc0fa2d0f88a792e05333130d93",
+    "odemeler": "9330ae0981b8dfffc48bf1f6f1f3b19c665d27159aff49032bd00c1c61519d8e",
+    "pos_islemleri": "b0f1c7762d5c19ccf92edc671b155b6925ceb16d4bee2a80df76dd1966e10a0e",
+    "tahsilatlar": "83f88d8df5105c6b77362bbb1dee2ee9db15bccedc3f045acbda131509370517",
+    "tedarikciler": "2d9a75ef35b8768fa1eb34a236f65fffb7cab668de3e06c53e801a6936273456"
+  },
+  "olaylar": [
+    {
+      "olay_id": "E01",
+      "tur": "olagandisi_buyuk_cikis",
+      "tarih": "2025-06-02",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E02",
+      "tur": "mukerrer_odeme",
+      "tarih": "2025-06-13",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E03",
+      "tur": "nakit_sikismasi",
+      "tarih": "2025-06-18",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E04",
+      "tur": "buyuk_musteri_gecikmesi",
+      "tarih": "2025-08-11",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E05",
+      "tur": "karsiliksiz_cek",
+      "tarih": "2025-09-01",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E06",
+      "tur": "nakit_sikismasi",
+      "tarih": "2026-01-21",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E07",
+      "tur": "eslesmeyen_tahsilat_birikimi",
+      "tarih": "2026-04-23",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E08",
+      "tur": "mukerrer_odeme",
+      "tarih": "2026-07-09",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E09",
+      "tur": "karsiliksiz_cek",
+      "tarih": "2026-07-10",
+      "simdiden_sonra": false
+    },
+    {
+      "olay_id": "E10",
+      "tur": "olagandisi_buyuk_cikis",
+      "tarih": "2026-09-14",
+      "simdiden_sonra": true
+    },
+    {
+      "olay_id": "E11",
+      "tur": "karsiliksiz_cek",
+      "tarih": "2026-09-16",
+      "simdiden_sonra": true
+    },
+    {
+      "olay_id": "E12",
+      "tur": "buyuk_musteri_gecikmesi",
+      "tarih": "2026-10-09",
+      "simdiden_sonra": true
+    }
+  ],
+  "denetimler": {
+    "para_tamsayi_kurus": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "sema_disi_alan_yok": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "tahsilat_faturaya_bagli_ya_da_bilerek_eslesmemis": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "fazla_tahsilat_yok": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "iade_faturalari_dogru": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "cekler_tutarli": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "banka_bakiye_acilis_arti_hareket": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "her_tahsilat_ve_odeme_bankada_bir_kez": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "olay_sayisi_ayardaki_kadar": {
+      "gecti": true,
+      "hatalar": []
+    },
+    "gorunum_gelecegi_gizler": {
+      "gecti": true,
+      "hatalar": []
+    }
+  },
+  "kalibrasyon": {
+    "olcum": {
+      "dso_gun": 52.44,
+      "dso_yili": 2025,
+      "gec_odenen_fatura_orani": 0.3774,
+      "olgun_fatura_sayisi": 23486,
+      "gecikme_dagilimi": {
+        "1-30": 0.5415,
+        "31-60": 0.2346,
+        "61-90": 0.1192,
+        "90+": 0.1047
+      },
+      "gec_kapanan_fatura_sayisi": 8450
+    },
+    "bantlar": [
+      {
+        "ad": "dso_gun",
+        "deger": 52.44,
+        "alt": 32.4,
+        "ust": 57.6,
+        "tamam": true
+      },
+      {
+        "ad": "gec_odenen_fatura_orani",
+        "deger": 0.3774,
+        "alt": 0.228,
+        "ust": 0.496,
+        "tamam": true
+      },
+      {
+        "ad": "gecikme_1-30",
+        "deger": 0.5415,
+        "alt": 0.43,
+        "ust": 0.63,
+        "tamam": true
+      },
+      {
+        "ad": "gecikme_31-60",
+        "deger": 0.2346,
+        "alt": 0.14,
+        "ust": 0.34,
+        "tamam": true
+      },
+      {
+        "ad": "gecikme_61-90",
+        "deger": 0.1192,
+        "alt": 0.02,
+        "ust": 0.22,
+        "tamam": true
+      },
+      {
+        "ad": "gecikme_90+",
+        "deger": 0.1047,
+        "alt": 0.01,
+        "ust": 0.21,
+        "tamam": true
+      }
+    ]
+  },
+  "sure_s": 19.0
+}

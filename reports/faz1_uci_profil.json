@@ -1,0 +1,705 @@
+{
+  "toplam_satir": 1067371,
+  "sayfalar": {
+    "Year 2009-2010": {
+      "satir": 525461,
+      "ilk": "2009-12-01 07:45:00",
+      "son": "2010-12-09 20:01:00"
+    },
+    "Year 2010-2011": {
+      "satir": 541910,
+      "ilk": "2010-12-01 08:26:00",
+      "son": "2011-12-09 12:50:00"
+    }
+  },
+  "fatura_on_ekleri": {
+    "rakam": 1047871,
+    "C": 19494,
+    "A": 6
+  },
+  "c_olmayan_eksi_ya_da_sifir_miktar": 3457,
+  "arti_miktarli_c": 1,
+  "sifir_ya_da_eksi_fiyat": 6207,
+  "musterisiz_satir": 243007,
+  "birden_cok_ulkeli_musteri": 13,
+  "ulkeler_ilk_20": {
+    "United Kingdom": 981330,
+    "EIRE": 17866,
+    "Germany": 17624,
+    "France": 14330,
+    "Netherlands": 5140,
+    "Spain": 3811,
+    "Switzerland": 3189,
+    "Belgium": 3123,
+    "Portugal": 2620,
+    "Australia": 1913,
+    "Channel Islands": 1664,
+    "Italy": 1534,
+    "Norway": 1455,
+    "Sweden": 1364,
+    "Cyprus": 1176,
+    "Finland": 1049,
+    "Austria": 938,
+    "Denmark": 817,
+    "Unspecified": 756,
+    "Greece": 663
+  },
+  "urun_kodu_olmayan_stok_kodlari": {
+    "POST": {
+      "satir": 2122,
+      "c_faturasi": 229,
+      "musterili": 2019,
+      "tutar_gbp": "112341.00",
+      "aciklamalar": {
+        "POSTAGE": 2115,
+        "": 7
+      },
+      "satis_disi_listesinde": false
+    },
+    "DOT": {
+      "satir": 1446,
+      "c_faturasi": 3,
+      "musterili": 16,
+      "tutar_gbp": "322647.47",
+      "aciklamalar": {
+        "DOTCOM POSTAGE": 1444,
+        "": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "M": {
+      "satir": 1426,
+      "c_faturasi": 538,
+      "musterili": 1115,
+      "tutar_gbp": "-82781.27",
+      "aciklamalar": {
+        "Manual": 1426
+      },
+      "satis_disi_listesinde": true
+    },
+    "C2": {
+      "satir": 282,
+      "c_faturasi": 7,
+      "musterili": 259,
+      "tutar_gbp": "13386",
+      "aciklamalar": {
+        "CARRIAGE": 279,
+        "": 3
+      },
+      "satis_disi_listesinde": false
+    },
+    "D": {
+      "satir": 177,
+      "c_faturasi": 172,
+      "musterili": 174,
+      "tutar_gbp": "-13484.54",
+      "aciklamalar": {
+        "Discount": 177
+      },
+      "satis_disi_listesinde": false
+    },
+    "S": {
+      "satir": 104,
+      "c_faturasi": 101,
+      "musterili": 0,
+      "tutar_gbp": "-6065.80",
+      "aciklamalar": {
+        "SAMPLES": 104
+      },
+      "satis_disi_listesinde": true
+    },
+    "BANK CHARGES": {
+      "satir": 102,
+      "c_faturasi": 67,
+      "musterili": 38,
+      "tutar_gbp": "-35562.629",
+      "aciklamalar": {
+        "Bank Charges": 96,
+        " Bank Charges": 6
+      },
+      "satis_disi_listesinde": true
+    },
+    "ADJUST": {
+      "satir": 67,
+      "c_faturasi": 31,
+      "musterili": 61,
+      "tutar_gbp": "6835.24",
+      "aciklamalar": {
+        "Adjustment by john on 26/01/2010 16": 38,
+        "Adjustment by john on 26/01/2010 17": 26,
+        "Adjustment by Peter on 24/05/2010 1": 3
+      },
+      "satis_disi_listesinde": true
+    },
+    "AMAZONFEE": {
+      "satir": 43,
+      "c_faturasi": 39,
+      "musterili": 0,
+      "tutar_gbp": "-260763.58",
+      "aciklamalar": {
+        "AMAZON FEE": 43
+      },
+      "satis_disi_listesinde": true
+    },
+    "DCGS0058": {
+      "satir": 31,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "34.82",
+      "aciklamalar": {
+        "MISO PRETTY  GUM": 30,
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_20": {
+      "satir": 29,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "471.06",
+      "aciklamalar": {
+        "Dotcomgiftshop Gift Voucher £20.00": 26,
+        "": 2,
+        "to push order througha s stock was ": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_30": {
+      "satir": 29,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "610.09",
+      "aciklamalar": {
+        "Dotcomgiftshop Gift Voucher £30.00": 24,
+        "": 5
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGSSGIRL": {
+      "satir": 25,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "295.63",
+      "aciklamalar": {
+        "GIRLS PARTY BAG": 23,
+        "": 1,
+        "update": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGSSBOY": {
+      "satir": 23,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "251.35",
+      "aciklamalar": {
+        "BOYS PARTY BAG": 21,
+        "": 1,
+        "update": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "PADS": {
+      "satir": 19,
+      "c_faturasi": 1,
+      "musterili": 19,
+      "tutar_gbp": "-36.583",
+      "aciklamalar": {
+        "PADS TO MATCH ALL CUSHIONS": 19
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_10": {
+      "satir": 16,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "126.21",
+      "aciklamalar": {
+        "Dotcomgiftshop Gift Voucher £10.00": 14,
+        "": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "CRUK": {
+      "satir": 16,
+      "c_faturasi": 16,
+      "musterili": 16,
+      "tutar_gbp": "-7933.43",
+      "aciklamalar": {
+        "CRUK Commission": 16
+      },
+      "satis_disi_listesinde": true
+    },
+    "DCGS0076": {
+      "satir": 15,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "292.09",
+      "aciklamalar": {
+        "SUNJAR LED NIGHT NIGHT LIGHT": 15
+      },
+      "satis_disi_listesinde": false
+    },
+    "TEST001": {
+      "satir": 15,
+      "c_faturasi": 4,
+      "musterili": 15,
+      "tutar_gbp": "202.5",
+      "aciklamalar": {
+        "This is a test product.": 15
+      },
+      "satis_disi_listesinde": true
+    },
+    "DCGS0003": {
+      "satir": 14,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "32.59",
+      "aciklamalar": {
+        "BOXED GLASS ASHTRAY": 13,
+        "ebay": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_50": {
+      "satir": 8,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "253.59",
+      "aciklamalar": {
+        "Dotcomgiftshop Gift Voucher £50.00": 6,
+        "": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_40": {
+      "satir": 7,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "166.09",
+      "aciklamalar": {
+        "Dotcomgiftshop Gift Voucher £40.00": 5,
+        "": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0069": {
+      "satir": 6,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "80.31",
+      "aciklamalar": {
+        "OOH LA LA DOGS COLLAR": 5,
+        "ebay": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "B": {
+      "satir": 6,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "-147614.08",
+      "aciklamalar": {
+        "Adjust bad debt": 6
+      },
+      "satis_disi_listesinde": true
+    },
+    "DCGS0004": {
+      "satir": 5,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "67.94",
+      "aciklamalar": {
+        "HAYNES CAMPER SHOULDER BAG": 4,
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_80": {
+      "satir": 4,
+      "c_faturasi": 1,
+      "musterili": 0,
+      "tutar_gbp": "0.00",
+      "aciklamalar": {
+        "": 2,
+        "Dotcomgiftshop Gift Voucher £80.00": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0072": {
+      "satir": 4,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "20.68",
+      "aciklamalar": {
+        "CAT CAMOUFLAGUE COLLAR": 3,
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0066N": {
+      "satir": 4,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "17.30",
+      "aciklamalar": {
+        "NAVY CUDDLES DOG HOODIE": 2,
+        "": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0068": {
+      "satir": 3,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "17.12",
+      "aciklamalar": {
+        "DOGS NIGHT COLLAR": 2,
+        "ebay": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_70": {
+      "satir": 3,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "59.57",
+      "aciklamalar": {
+        "": 2,
+        "Dotcomgiftshop Gift Voucher £70.00": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0070": {
+      "satir": 3,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "25.44",
+      "aciklamalar": {
+        "CAMOUFLAGE DOG COLLAR": 2,
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "ADJUST2": {
+      "satir": 3,
+      "c_faturasi": 0,
+      "musterili": 3,
+      "tutar_gbp": "731.05",
+      "aciklamalar": {
+        "Adjustment by Peter on Jun 25 2010 ": 3
+      },
+      "satis_disi_listesinde": true
+    },
+    "SP1002": {
+      "satir": 3,
+      "c_faturasi": 0,
+      "musterili": 2,
+      "tutar_gbp": "14.75",
+      "aciklamalar": {
+        "KID'S CHALKBOARD/EASEL": 2,
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "TEST002": {
+      "satir": 2,
+      "c_faturasi": 0,
+      "musterili": 1,
+      "tutar_gbp": "1",
+      "aciklamalar": {
+        "This is a test product.": 1,
+        "": 1
+      },
+      "satis_disi_listesinde": true
+    },
+    "GIFT_0001_60": {
+      "satir": 2,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT_0001_90": {
+      "satir": 2,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 2
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0062": {
+      "satir": 2,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "2.51",
+      "aciklamalar": {
+        "": 1,
+        "ROAD-RAGE CAR FRESHENER": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0037": {
+      "satir": 2,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "12.72",
+      "aciklamalar": {
+        "": 1,
+        "KEY-RING CORKSCREW": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0044": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "2.57",
+      "aciklamalar": {
+        "HANDZ-OFF CAR FRESHENER": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0006": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0016": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0027": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0036": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0039": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0060": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0056": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0059": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "GIFT": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGSLBOY": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0053": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGSLGIRL": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0075": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "12.72",
+      "aciklamalar": {
+        "CAMOUFLAGUE DOG LEAD": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0041": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "5.06",
+      "aciklamalar": {
+        "HAYNES MINI-COOPER PLAYING CARDS": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "C3": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0055": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0074": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0057": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0073": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "ebay": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0071": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0066P": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "": 1
+      },
+      "satis_disi_listesinde": false
+    },
+    "DCGS0067": {
+      "satir": 1,
+      "c_faturasi": 0,
+      "musterili": 0,
+      "tutar_gbp": "0",
+      "aciklamalar": {
+        "ebay": 1
+      },
+      "satis_disi_listesinde": false
+    }
+  },
+  "temizleme": {
+    "girdi": 1067371,
+    "tutulan": {
+      "satis": 790278,
+      "iade": 17993,
+      "perakende": 228425,
+      "perakende_iade": 388
+    },
+    "atilan": {
+      "gecersiz_fiyat": 6014,
+      "satis_disi_kod": 1744,
+      "duzeltme_faturasi": 6,
+      "sayfa_tekrari": 22523
+    },
+    "mutabakat": true
+  }
+}

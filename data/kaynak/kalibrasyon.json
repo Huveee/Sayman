@@ -1,0 +1,89 @@
+{
+  "olusturulma": "2026-11-12",
+  "dso_gun": {
+    "kaynak": "TCMB Sektör Bilançoları, Alacak Devir Hızı, NACE 46 Toptan Ticaret (EVDS)",
+    "seriler": {
+      "TP.SEKBILAC02A.46": {
+        "2024": 9.0,
+        "2025": 7.6
+      },
+      "TP.SEKBILAC02A.G": {
+        "2024": 11.5,
+        "2025": 10.5
+      },
+      "TP.SEKBILAC02A.GENEL": {
+        "2024": 9.9,
+        "2025": 9.1
+      }
+    },
+    "toptan_ticaret_dso_gun": {
+      "2024": 40.56,
+      "2025": 48.03
+    },
+    "bant": [
+      32.4,
+      57.6
+    ],
+    "turetme": "DSO = 365 / alacak devir hızı. Bant, 2024-2025 toptan ticaret değerlerinin en küçüğünün %80'i ile en büyüğünün %120'si arası. Pay, tek bir şirketin sektör ortalamasından sapabilmesi için bırakılmış bir tasarım kararıdır.",
+    "hesap": "365 x (yıl sonu açık ticari alacak) / (yıllık net satış), TRY karşılıklarıyla"
+  },
+  "gec_odenen_fatura_orani": {
+    "kaynak": "Atradius Payment Practices Barometer Türkiye 2026, sayfa 4",
+    "url": "https://atradius.de/dam/jcr:b1f513aa-5b1e-4ed0-bb09-b1d3fe4eece2/payment-practices-barometer-central-and-eastern-europe-2026-turkiye-en.pdf",
+    "katilimci_dagilimi": [
+      {
+        "aralik": [
+          0.0,
+          0.0
+        ],
+        "katilimci_payi": 0.14
+      },
+      {
+        "aralik": [
+          0.01,
+          0.3
+        ],
+        "katilimci_payi": 0.32
+      },
+      {
+        "aralik": [
+          0.31,
+          0.6
+        ],
+        "katilimci_payi": 0.35
+      },
+      {
+        "aralik": [
+          0.61,
+          1.0
+        ],
+        "katilimci_payi": 0.19
+      }
+    ],
+    "metindeki_ifade": "over one third of invoices overdue",
+    "bant": [
+      0.228,
+      0.496
+    ],
+    "nokta_tahmini": 0.362,
+    "turetme": "Katılımcı payıyla ağırlıklı ortalama, aralıkların alt sınırları kullanılınca en az, üst sınırları kullanılınca en çok bu değeri alır; bant bu iki değerdir.",
+    "hesap": "Vadesinden 180 gün geçmiş satış faturalarından vadesinden sonra kapanan ya da hiç kapanmayanların payı (adet)"
+  },
+  "gecikme_dagilimi": {
+    "kaynak": "Atradius Payment Practices Barometer Türkiye 2026, sayfa 4, Breakdown of past due payments",
+    "url": "https://atradius.de/dam/jcr:b1f513aa-5b1e-4ed0-bb09-b1d3fe4eece2/payment-practices-barometer-central-and-eastern-europe-2026-turkiye-en.pdf",
+    "paylar": {
+      "1-30": 0.53,
+      "31-60": 0.24,
+      "61-90": 0.12,
+      "90+": 0.11
+    },
+    "tolerans": 0.1,
+    "turetme": "Her gecikme diliminin payı kaynaktaki paydan en çok 10 puan sapabilir (tasarım kararı).",
+    "hesap": "Geç kapanan faturaların, son tahsilatın vadeden kaç gün sonra geldiğine göre dağılımı"
+  },
+  "karsiliksiz_cek_orani": {
+    "kaynak": null,
+    "not": "EVDS3'te karşılıksız çek serisi bulunamadı (yalnızca tahsile alınan senetler var). Oran sentetik varsayımdır."
+  }
+}
