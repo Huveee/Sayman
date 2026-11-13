@@ -104,3 +104,12 @@ def test_saat_ileri_sarilir_ama_veri_bitisini_gecmez(tmp_path):
         Saat(dt.date(2026, 12, 1), dt.date(2026, 11, 6))
     saat_yaz(saat, tmp_path / "saat.json")
     assert saat_oku(tmp_path / "saat.json") == saat
+
+
+def test_metin_dosyasi_ozeti_satir_sonundan_bagimsiz(tmp_path):
+    from sayman.veri.cikti import dosya_hash
+
+    (tmp_path / "lf.csv").write_bytes(b"a,b\n1,2\n")
+    (tmp_path / "crlf.csv").write_bytes(b"a,b\r\n1,2\r\n")
+    assert dosya_hash(tmp_path / "lf.csv", metin=True) == dosya_hash(tmp_path / "crlf.csv", metin=True)
+    assert dosya_hash(tmp_path / "lf.csv") != dosya_hash(tmp_path / "crlf.csv")

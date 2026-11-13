@@ -2,7 +2,7 @@
   "girdi_sha256": {
     "uci_ham": "541fa3b6f5f32e8343dc886a99bf117bad3ac8576aebd9557476d2c48f25aa23",
     "tcmb_kurlar": "5ca47c89ab895e9ed27a3cf58d90aa18dbd3221a9e27d84081d632bc0a2adcda",
-    "kalibrasyon": "fb935a75c1f7c1da66708a555389995a47f967ca52570c7ec606ffdd754a017b"
+    "kalibrasyon": "b055662926530d1ad8d8159ad1d99e7e6fd9fb5da1eb60b516c111fdede1800e"
   },
   "ayarlar": {
     "tohum": 42,
@@ -355,5 +355,5 @@
       }
     ]
   },
-  "sure_s": 19.0
+  "sure_s": 17.1
 }

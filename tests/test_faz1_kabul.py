@@ -47,7 +47,7 @@ def test_diskteki_tablolarin_hashi_raporla_ayni(T, rapor):
 def test_girdi_dosyalari_degismemis(rapor):
     for ad, yol in (("uci_ham", "data/ara/uci_ham.csv.gz"), ("tcmb_kurlar", "data/kaynak/tcmb_kurlar.csv"),
                     ("kalibrasyon", "data/kaynak/kalibrasyon.json")):
-        assert dosya_hash(KOK / yol) == rapor["girdi_sha256"][ad], ad
+        assert dosya_hash(KOK / yol, metin=not yol.endswith(".gz")) == rapor["girdi_sha256"][ad], ad
 
 
 def test_ayni_tohum_ayri_surecte_ayni_hash(rapor):

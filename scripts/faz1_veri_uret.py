@@ -79,7 +79,8 @@ def main() -> int:
     saat_yaz(Saat(ayarlar.simdi, ayarlar.veri_bitis), KOK / "data" / "saat.json")
 
     rapor = {
-        "girdi_sha256": {ad: dosya_hash(yol) for ad, yol in GIRDILER.items()},
+        # .csv ve .json metin dosyaları satır sonundan bağımsız özetlenir; .gz bayt bayt.
+        "girdi_sha256": {ad: dosya_hash(yol, metin=yol.suffix in (".csv", ".json")) for ad, yol in GIRDILER.items()},
         "ayarlar": dataclasses.asdict(ayarlar),
         "kaydirma_gun": uretim.kaydirma_gun,
         "veri_baslangic": uretim.veri_baslangic,

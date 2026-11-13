@@ -73,7 +73,11 @@ def veri_hash(tablolar: dict[str, list[dict]]) -> tuple[str, dict[str, str]]:
     return h.hexdigest(), tablo_hashleri
 
 
-def dosya_hash(yol: Path) -> str:
+def dosya_hash(yol: Path, metin: bool = False) -> str:
+    """Dosyanın SHA-256 özeti. metin=True ise satır sonu (CRLF ya da LF) özeti değiştirmez: git, Windows'ta
+    metin dosyalarını CRLF ile yazabilir, ama içerik aynıdır."""
+    if metin:
+        return hashlib.sha256(Path(yol).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     h = hashlib.sha256()
     with open(yol, "rb") as f:
         for parca in iter(lambda: f.read(1 << 20), b""):
