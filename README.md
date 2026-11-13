@@ -81,6 +81,36 @@ Ollama açıksa `--token` ile token sayısını da ölçer. Sunucuyu bir MCP ist
 `.venv/Scripts/python -I scripts/faz3_sunucu.py` komutuyla başlatır. Roller ve araç izinleri
 `src/sayman/araclar/roller.json` dosyasındadır; kullanıcılar kurgusaldır.
 
+## Faz 4: izleme ve uyarılar
+
+Uyarıyı kurallar verir; model (Faz 6) yalnızca uyarıyı açıklar. Altı kural her gün yalnızca o güne kadar
+görünen kayıtlara bakar ve bir sorun başladığında bir kez uyarır:
+
+| Kural | Ne zaman uyarır |
+| --- | --- |
+| `nakit_esigi` | Ana TL hesabının gün içi en düşük bakiyesi, son 12 ayın ortalama aylık satışının %10'unun altına indi |
+| `buyuk_cikis` | Daha önce ödeme yapılmamış bir karşı tarafa, faturasız ve son 12 ayın tedarikçi ödemelerinin %95'inden büyük ödeme |
+| `mukerrer_odeme` | Bir tedarikçi faturasına tutarından fazla ödendi |
+| `karsiliksiz_cek` | Bir müşteri çeki karşılıksız çıktı (tutarı son 12 ayın çeklerinin üst çeyreğindeyse uyarı, değilse bilgi) |
+| `eslesmeyen_birikim` | Son 14 günde faturası belli olmayan tahsilat sayısı, geçmişe göre şansla açıklanamayacak kadar yüksek |
+| `musteri_gecikmesi` | En büyük 20 müşteriden birinin havale ile ödenen faturalarından, kendi alışkanlığına göre şansla açıklanamayacak kadar çoğu açık kaldı |
+
+Her uyarı kuralın adını, ölçülen değeri, eşiği, dayandığı kayıtların numaralarını ve Türkçe bir açıklamayı
+taşır. Zamanlayıcı saatin gösterdiği güne kadar tarar ve yeni uyarıları `data/izleme/` deposuna ekler;
+aynı saatle ikinci çalışma hiçbir şey eklemez, saat geri alınamaz.
+
+```bash
+.venv/Scripts/python -I scripts/faz4_veri_uret.py
+.venv/Scripts/python -I scripts/faz4_izleme_olc.py --ayrilmis
+.venv/Scripts/python -I scripts/faz4_izle.py --gun 2026-10-15
+```
+
+İlk betik ölçüm için ek veri setleri üretir: projenin şirketinin olaysız ikizi ve kuralların ayarında hiç
+kullanılmayan iki tohum (43, 44). İkincisi kuralları olaylı ve olaysız veride çalıştırıp
+`reports/faz4_izleme.json` dosyasını yazar. Üçüncüsü zamanlayıcıyı çalıştırır. Kural ayarının her denemesi
+`reports/faz4_ayar_denemeleri.json` dosyasındadır. Olaylar ve kurallar aynı kişi tarafından yazıldı; yüksek
+yakalama oranı kuralların olay türlerini bildiğini gösterir, gerçek dünyadaki başarısını göstermez.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -95,9 +125,11 @@ Ollama açıksa `--token` ile token sayısını da ölçer. Sunucuyu bir MCP ist
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu) |
+| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı) |
 | `tests` | Yazılım testleri ve kabul testleri |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
 | `reports` | Ölçüm sonuçları |
 | `data/kaynak` | Kaynaklardan indirilen küçük dosyalar (kurlar, kalibrasyon bantları) |
 | `data/denetim` | Araç çağrılarının denetim kaydı (git'e girmez) |
+| `data/izleme` | Zamanlayıcının uyarı deposu (git'e girmez) |
+| `data/izleme_veri` | Faz 4 ölçümü için ek veri setleri (git'e girmez) |

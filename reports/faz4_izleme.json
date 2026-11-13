@@ -1,0 +1,1433 @@
+{
+  "aciklama": "Faz 4 izleme ölçümü. Olaylar ve kurallar aynı kişi tarafından yazıldı: yüksek yakalama oranı kuralların olay türlerini bildiğini gösterir, gerçek dünyadaki başarısını göstermez. Bunu biraz dengelemek için kurallar tohum 42'de ayarlandı, tohum 43 ve 44'te bir kez ölçüldü.",
+  "veri_bitis": "2026-11-12",
+  "ayarlar": {
+    "isinma_gun": 30,
+    "gecmis_gun": 365,
+    "nakit_hesabi": "A_TRY",
+    "asgari_nakit_orani": 0.1,
+    "nakit_birlestirme": 7,
+    "cikis_yuzdeligi": 0.95,
+    "cikis_en_az_gecmis": 20,
+    "cek_yuzdeligi": 0.75,
+    "cek_en_az_gecmis": 20,
+    "birikim_pencere": 14,
+    "birikim_p": 0.001,
+    "birikim_en_az": 5,
+    "birikim_en_az_gecmis": 60,
+    "birikim_birlestirme": 14,
+    "buyuk_musteri_sayisi": 20,
+    "gecikme_pencere": 45,
+    "gecikme_p": 0.01,
+    "gecikme_fatura_sayisi": 2,
+    "gecikme_en_az_gecmis": 10,
+    "gecikme_birlestirme": 30
+  },
+  "kabul": {
+    "geri_cagirma_en_az": 0.9,
+    "aylik_yanlis_alarm_en_cok": 2.0
+  },
+  "ayni_gun_iki_calisma_ayni": true,
+  "setler": {
+    "tohum42": {
+      "tohum": 42,
+      "ayrilmis": false,
+      "olayli": {
+        "klasor": "data/uretilen",
+        "veri_hash": "2ade2e96a9c627c2aa9f02912b5d5cdaf89476cbe8e60ab56622ac3cd45c8e9e",
+        "baslangic": "2024-12-03",
+        "sure_s": 0.9,
+        "uyari": 117,
+        "uyari_kurala_gore": {
+          "buyuk_cikis/uyari": 2,
+          "eslesmeyen_birikim/uyari": 1,
+          "karsiliksiz_cek/bilgi": 71,
+          "karsiliksiz_cek/uyari": 31,
+          "mukerrer_odeme/uyari": 2,
+          "musteri_gecikmesi/uyari": 8,
+          "nakit_esigi/uyari": 2
+        },
+        "uyari_ozeti": "6e1540ec54e22658eb6fb9060f4d0bcc50748c15639d9158ab3955c0f1c45ab2",
+        "puan": {
+          "olay": 12,
+          "yakalanan": 12,
+          "geri_cagirma": 1.0,
+          "olaylar": [
+            {
+              "olay_id": "E01",
+              "tur": "olagandisi_buyuk_cikis",
+              "tarih": "2025-06-02",
+              "pencere": [
+                "2025-06-02",
+                "2025-06-05"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Udf75da55165c",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E02",
+              "tur": "mukerrer_odeme",
+              "tarih": "2025-06-13",
+              "pencere": [
+                "2025-06-13",
+                "2025-06-27"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U389b453deba7",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E03",
+              "tur": "nakit_sikismasi",
+              "tarih": "2025-06-18",
+              "pencere": [
+                "2025-06-18",
+                "2025-08-22"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U8c342f921937",
+              "gun_sonra": 8
+            },
+            {
+              "olay_id": "E04",
+              "tur": "buyuk_musteri_gecikmesi",
+              "tarih": "2025-08-11",
+              "pencere": [
+                "2025-08-11",
+                "2025-10-08"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U215f690b9a7c",
+              "gun_sonra": 36
+            },
+            {
+              "olay_id": "E05",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2025-09-01",
+              "pencere": [
+                "2025-09-01",
+                "2025-09-04"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U2c9027e4e4d8",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E06",
+              "tur": "nakit_sikismasi",
+              "tarih": "2026-01-21",
+              "pencere": [
+                "2026-01-21",
+                "2026-04-08"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U9962ccd276a0",
+              "gun_sonra": 9
+            },
+            {
+              "olay_id": "E07",
+              "tur": "eslesmeyen_tahsilat_birikimi",
+              "tarih": "2026-04-23",
+              "pencere": [
+                "2026-04-23",
+                "2026-05-13"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Uccf20d64a91c",
+              "gun_sonra": 5
+            },
+            {
+              "olay_id": "E08",
+              "tur": "mukerrer_odeme",
+              "tarih": "2026-07-09",
+              "pencere": [
+                "2026-07-09",
+                "2026-07-23"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Ub5502b1d9807",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E09",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2026-07-10",
+              "pencere": [
+                "2026-07-10",
+                "2026-07-13"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U4e07570bf531",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E10",
+              "tur": "olagandisi_buyuk_cikis",
+              "tarih": "2026-09-14",
+              "pencere": [
+                "2026-09-14",
+                "2026-09-17"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Uf8b9eb395c18",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E11",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2026-09-16",
+              "pencere": [
+                "2026-09-16",
+                "2026-09-19"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U4835276e07b4",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E12",
+              "tur": "buyuk_musteri_gecikmesi",
+              "tarih": "2026-10-09",
+              "pencere": [
+                "2026-10-09",
+                "2026-11-12"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U7d9931938ff2",
+              "gun_sonra": 26
+            }
+          ],
+          "alarm": 46,
+          "olaya_denk_gelmeyen_alarm": 34,
+          "olaya_denk_gelmeyen_kurala_gore": {
+            "karsiliksiz_cek": 28,
+            "musteri_gecikmesi": 6
+          }
+        },
+        "cek_olaylari": [
+          {
+            "olay_id": "E05",
+            "cek_id": "C011882",
+            "tutar_tl": "102899.99",
+            "kural_esigi_tl": "23445.60",
+            "butun_donem_esigi_tl": "26723.94",
+            "pay": "4.389",
+            "onem": "uyari"
+          },
+          {
+            "olay_id": "E09",
+            "cek_id": "C032256",
+            "tutar_tl": "47613.44",
+            "kural_esigi_tl": "26646.57",
+            "butun_donem_esigi_tl": "26723.94",
+            "pay": "1.787",
+            "onem": "uyari"
+          },
+          {
+            "olay_id": "E11",
+            "cek_id": "C035590",
+            "tutar_tl": "41262.81",
+            "kural_esigi_tl": "27282.57",
+            "butun_donem_esigi_tl": "26723.94",
+            "pay": "1.512",
+            "onem": "uyari"
+          }
+        ],
+        "olay_etkilesimleri": [],
+        "yakalama_gecikmesi_gun": {
+          "en_az": 0,
+          "ortanca": 0,
+          "en_cok": 36
+        }
+      },
+      "temiz": {
+        "klasor": "data/izleme_veri/tohum42_temiz",
+        "veri_hash": "70fcb3e3d6c83c92bb4e9d88147953c83ba1f703e7ed6cada078c162d5b5185f",
+        "baslangic": "2024-12-03",
+        "sure_s": 0.94,
+        "uyari": 105,
+        "uyari_kurala_gore": {
+          "karsiliksiz_cek/bilgi": 71,
+          "karsiliksiz_cek/uyari": 28,
+          "musteri_gecikmesi/uyari": 6
+        },
+        "uyari_ozeti": "d82e0e14185f23545950f66094dd8f14d3471f2d59922c9ac7fe8cc8a42210f4",
+        "yanlis_alarm": {
+          "alarm": 34,
+          "ay": 23.33,
+          "aylik": 1.458,
+          "kurala_gore": {
+            "karsiliksiz_cek": 28,
+            "musteri_gecikmesi": 6
+          },
+          "bilgi": 71
+        },
+        "karsiliksiz_cek_hareketi": 99,
+        "alarmlar": [
+          {
+            "gun": "2025-01-03",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C000269"
+          },
+          {
+            "gun": "2025-02-04",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C000554"
+          },
+          {
+            "gun": "2025-04-20",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01288",
+            "musteri_profili": "zamaninda",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2025-06-06",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C008469"
+          },
+          {
+            "gun": "2025-07-02",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C008222"
+          },
+          {
+            "gun": "2025-08-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C011256"
+          },
+          {
+            "gun": "2025-09-02",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C008970"
+          },
+          {
+            "gun": "2025-09-12",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C012581"
+          },
+          {
+            "gun": "2025-09-29",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C012967"
+          },
+          {
+            "gun": "2025-10-02",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01740",
+            "musteri_profili": "ara_sira",
+            "odemeyi_kesti": "2025-08-20"
+          },
+          {
+            "gun": "2025-10-20",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C012673"
+          },
+          {
+            "gun": "2025-10-21",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C010056"
+          },
+          {
+            "gun": "2025-10-28",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C016939"
+          },
+          {
+            "gun": "2025-11-10",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C014799"
+          },
+          {
+            "gun": "2025-11-21",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C016649"
+          },
+          {
+            "gun": "2025-11-23",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M05317",
+            "musteri_profili": "sik",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-01-02",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C022884"
+          },
+          {
+            "gun": "2026-01-16",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C020717"
+          },
+          {
+            "gun": "2026-01-21",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M02469",
+            "musteri_profili": "ara_sira",
+            "odemeyi_kesti": "2025-12-08"
+          },
+          {
+            "gun": "2026-01-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C022492"
+          },
+          {
+            "gun": "2026-02-02",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M00712",
+            "musteri_profili": "zamaninda",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-02-23",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C023622"
+          },
+          {
+            "gun": "2026-02-24",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C025325"
+          },
+          {
+            "gun": "2026-04-14",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01740",
+            "musteri_profili": "ara_sira",
+            "odemeyi_kesti": "2025-08-20"
+          },
+          {
+            "gun": "2026-05-12",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C028612"
+          },
+          {
+            "gun": "2026-06-18",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C031007"
+          },
+          {
+            "gun": "2026-07-03",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C030561"
+          },
+          {
+            "gun": "2026-07-10",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C031835"
+          },
+          {
+            "gun": "2026-08-06",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C033375"
+          },
+          {
+            "gun": "2026-08-17",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C033738"
+          },
+          {
+            "gun": "2026-08-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C031976"
+          },
+          {
+            "gun": "2026-09-03",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C034589"
+          },
+          {
+            "gun": "2026-09-22",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C035099"
+          },
+          {
+            "gun": "2026-10-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C034312"
+          }
+        ]
+      },
+      "ornek_uyarilar": {
+        "buyuk_cikis": {
+          "uyari_id": "Udf75da55165c",
+          "kural": "buyuk_cikis",
+          "gun": "2025-06-02",
+          "onem": "uyari",
+          "baslik": "Yeni bir karşı tarafa olağandışı büyük ödeme",
+          "aciklama": "10.007.371,77 TL tutarında, bir faturaya bağlı olmayan ödeme (EFT GİDEN Polar Sedef San. ve Tic. Ltd. Şti. GAYRİMENKUL KAPORASI). Bu karşı tarafa daha önce ödeme yapılmamış; tutar son 6 ayın tedarikçi ödemelerinin %95'inden (4.719.971,04 TL) büyük.",
+          "olcum": {
+            "tutar_tl": "10007371.77",
+            "kat": "2.12"
+          },
+          "esik": {
+            "tedarikci_odemeleri_yuzde_95_tl": "4719971.04"
+          }
+        },
+        "eslesmeyen_birikim": {
+          "uyari_id": "Uccf20d64a91c",
+          "kural": "eslesmeyen_birikim",
+          "gun": "2026-04-28",
+          "onem": "uyari",
+          "baslik": "Faturası belli olmayan tahsilatlar birikti",
+          "aciklama": "Son 14 günde faturası belli olmayan 8 tahsilat geldi; son 12 ayın ortalamasına göre beklenen 1,8. Bu kadarının şansla gelme olasılığı 0,00047.",
+          "olcum": {
+            "tahsilat_sayisi": 8
+          },
+          "esik": {
+            "beklenen": "1.75",
+            "olasilik": "0.000468",
+            "p_esigi": "0.001"
+          }
+        },
+        "karsiliksiz_cek": {
+          "uyari_id": "U2c9027e4e4d8",
+          "kural": "karsiliksiz_cek",
+          "gun": "2025-09-01",
+          "onem": "uyari",
+          "baslik": "Müşteri çeki karşılıksız çıktı",
+          "aciklama": "İnci Palmiye Dekorasyon San. ve Tic. Ltd. Şti. müşterisinin Banka H çeki (102.899,99 TL, vade 2025-09-01) karşılıksız çıktı; son 9 ayın çeklerinin üst çeyreği 23.445,60 TL'den başlıyor.",
+          "olcum": {
+            "tutar_tl": "102899.99"
+          },
+          "esik": {
+            "ust_ceyrek_tl": "23445.60"
+          }
+        },
+        "mukerrer_odeme": {
+          "uyari_id": "U389b453deba7",
+          "kural": "mukerrer_odeme",
+          "gun": "2025-06-13",
+          "onem": "uyari",
+          "baslik": "Tedarikçi faturasına fazla ödeme",
+          "aciklama": "Kartal Kağıt A.Ş. tedarikçisinin A000090 numaralı 2.843.142,68 TL tutarındaki faturasına toplam 5.686.285,36 TL ödendi (2 ödeme); fazla ödenen 2.843.142,68 TL.",
+          "olcum": {
+            "odenen_tl": "5686285.36",
+            "fazla_tl": "2843142.68"
+          },
+          "esik": {
+            "fatura_tutari_tl": "2843142.68"
+          }
+        },
+        "musteri_gecikmesi": {
+          "uyari_id": "U215f690b9a7c",
+          "kural": "musteri_gecikmesi",
+          "gun": "2025-09-16",
+          "onem": "uyari",
+          "baslik": "Büyük bir müşteri alışılmışın dışında gecikiyor",
+          "aciklama": "Atlas Başak Kırtasiye San. ve Tic. Ltd. Şti. son 9 ayın en büyük 20 müşterisinden biri. Vadesi son 45 günde dolan ve çekle karşılanmamış 11 faturasından 11 tanesi hâlâ açık. Müşterinin havale ile ödediği önceki 12 faturasındaki alışkanlığına göre beklenen 7,5; bu kadarının şansla açık kalma olasılığı 0,0094.",
+          "olcum": {
+            "acik_fatura": 11,
+            "incelenen_fatura": 11
+          },
+          "esik": {
+            "beklenen_acik": "7.50",
+            "olasilik": "0.009371",
+            "p_esigi": "0.01",
+            "taban_fatura": 12
+          }
+        },
+        "nakit_esigi": {
+          "uyari_id": "U8c342f921937",
+          "kural": "nakit_esigi",
+          "gun": "2025-06-26",
+          "onem": "uyari",
+          "baslik": "Ana hesapta nakit güvenlik eşiğinin altına indi",
+          "aciklama": "A_TRY hesabının gün içi en düşük bakiyesi 2.696.311,21 TL; güvenlik eşiği 3.194.586,93 TL (son 7 ayın ortalama aylık satışı 31.945.869,34 TL'nin %10'u).",
+          "olcum": {
+            "en_dusuk_bakiye_tl": "2696311.21"
+          },
+          "esik": {
+            "guvenlik_esigi_tl": "3194586.93",
+            "ortalama_aylik_satis_tl": "31945869.34"
+          }
+        }
+      }
+    },
+    "tohum43": {
+      "tohum": 43,
+      "ayrilmis": true,
+      "olayli": {
+        "klasor": "data/izleme_veri/tohum43",
+        "veri_hash": "edc00f857371be34b98c647b481a7e9fa928379a38eabaad5067d4fb05f10218",
+        "baslangic": "2024-12-03",
+        "sure_s": 0.91,
+        "uyari": 123,
+        "uyari_kurala_gore": {
+          "buyuk_cikis/uyari": 2,
+          "eslesmeyen_birikim/uyari": 2,
+          "karsiliksiz_cek/bilgi": 67,
+          "karsiliksiz_cek/uyari": 38,
+          "mukerrer_odeme/uyari": 2,
+          "musteri_gecikmesi/uyari": 10,
+          "nakit_esigi/uyari": 2
+        },
+        "uyari_ozeti": "b0056743a78220935333a340a0f5fd18e22815cab746001e0f91530f43114f4b",
+        "puan": {
+          "olay": 12,
+          "yakalanan": 12,
+          "geri_cagirma": 1.0,
+          "olaylar": [
+            {
+              "olay_id": "E01",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2025-03-25",
+              "pencere": [
+                "2025-03-25",
+                "2025-03-28"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Uc4f7f599e7b8",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E02",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2025-04-09",
+              "pencere": [
+                "2025-04-09",
+                "2025-04-12"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Ue4a00b63fc90",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E03",
+              "tur": "olagandisi_buyuk_cikis",
+              "tarih": "2025-04-28",
+              "pencere": [
+                "2025-04-28",
+                "2025-05-01"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Uab0e159b65f0",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E04",
+              "tur": "mukerrer_odeme",
+              "tarih": "2025-05-19",
+              "pencere": [
+                "2025-05-19",
+                "2025-06-02"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Uf92accf2ea6e",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E05",
+              "tur": "eslesmeyen_tahsilat_birikimi",
+              "tarih": "2025-07-08",
+              "pencere": [
+                "2025-07-08",
+                "2025-07-31"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U1029b2784540",
+              "gun_sonra": 6
+            },
+            {
+              "olay_id": "E06",
+              "tur": "nakit_sikismasi",
+              "tarih": "2025-07-28",
+              "pencere": [
+                "2025-07-28",
+                "2025-09-23"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U59e2a7fb8843",
+              "gun_sonra": 3
+            },
+            {
+              "olay_id": "E07",
+              "tur": "nakit_sikismasi",
+              "tarih": "2025-10-09",
+              "pencere": [
+                "2025-10-09",
+                "2025-12-05"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Uef3be5d570d7",
+              "gun_sonra": 1
+            },
+            {
+              "olay_id": "E08",
+              "tur": "buyuk_musteri_gecikmesi",
+              "tarih": "2026-02-19",
+              "pencere": [
+                "2026-02-19",
+                "2026-05-03"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U32609d9a28f6",
+              "gun_sonra": 3
+            },
+            {
+              "olay_id": "E09",
+              "tur": "mukerrer_odeme",
+              "tarih": "2026-03-02",
+              "pencere": [
+                "2026-03-02",
+                "2026-03-16"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U22983d9ae7e9",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E10",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2026-09-24",
+              "pencere": [
+                "2026-09-24",
+                "2026-09-27"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U978d459ea9a5",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E11",
+              "tur": "buyuk_musteri_gecikmesi",
+              "tarih": "2026-09-30",
+              "pencere": [
+                "2026-09-30",
+                "2026-11-12"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Ua0a50ebac46d",
+              "gun_sonra": 6
+            },
+            {
+              "olay_id": "E12",
+              "tur": "olagandisi_buyuk_cikis",
+              "tarih": "2026-10-05",
+              "pencere": [
+                "2026-10-05",
+                "2026-10-08"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U72a5d19b387b",
+              "gun_sonra": 0
+            }
+          ],
+          "alarm": 56,
+          "olaya_denk_gelmeyen_alarm": 44,
+          "olaya_denk_gelmeyen_kurala_gore": {
+            "eslesmeyen_birikim": 1,
+            "karsiliksiz_cek": 35,
+            "musteri_gecikmesi": 8
+          }
+        },
+        "cek_olaylari": [
+          {
+            "olay_id": "E01",
+            "cek_id": "C004416",
+            "tutar_tl": "108723.77",
+            "kural_esigi_tl": "20588.79",
+            "butun_donem_esigi_tl": "25285.45",
+            "pay": "5.281",
+            "onem": "uyari"
+          },
+          {
+            "olay_id": "E02",
+            "cek_id": "C004801",
+            "tutar_tl": "28972.99",
+            "kural_esigi_tl": "20803.11",
+            "butun_donem_esigi_tl": "25285.45",
+            "pay": "1.393",
+            "onem": "uyari"
+          },
+          {
+            "olay_id": "E10",
+            "cek_id": "C033690",
+            "tutar_tl": "44706.36",
+            "kural_esigi_tl": "26919.63",
+            "butun_donem_esigi_tl": "25285.45",
+            "pay": "1.661",
+            "onem": "uyari"
+          }
+        ],
+        "olay_etkilesimleri": [],
+        "yakalama_gecikmesi_gun": {
+          "en_az": 0,
+          "ortanca": 0,
+          "en_cok": 6
+        }
+      },
+      "temiz": {
+        "klasor": "data/izleme_veri/tohum43_temiz",
+        "veri_hash": "5258df028060e464fe504bc73174c856e72e97c48297b5dead5619d55067d0eb",
+        "baslangic": "2024-12-03",
+        "sure_s": 0.92,
+        "uyari": 110,
+        "uyari_kurala_gore": {
+          "eslesmeyen_birikim/uyari": 1,
+          "karsiliksiz_cek/bilgi": 67,
+          "karsiliksiz_cek/uyari": 35,
+          "musteri_gecikmesi/uyari": 7
+        },
+        "uyari_ozeti": "e3e1f22e597be6a03230f96cabac7b7ccaa1c581155a386fb4392f6629a12d51",
+        "yanlis_alarm": {
+          "alarm": 43,
+          "ay": 23.33,
+          "aylik": 1.843,
+          "kurala_gore": {
+            "eslesmeyen_birikim": 1,
+            "karsiliksiz_cek": 35,
+            "musteri_gecikmesi": 7
+          },
+          "bilgi": 67
+        },
+        "karsiliksiz_cek_hareketi": 102,
+        "alarmlar": [
+          {
+            "gun": "2025-03-20",
+            "kural": "eslesmeyen_birikim",
+            "varlik": "tahsilatlar"
+          },
+          {
+            "gun": "2025-03-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C001864"
+          },
+          {
+            "gun": "2025-04-01",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C002137"
+          },
+          {
+            "gun": "2025-05-30",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C007782"
+          },
+          {
+            "gun": "2025-06-19",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C007228"
+          },
+          {
+            "gun": "2025-06-20",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C008978"
+          },
+          {
+            "gun": "2025-07-05",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M00129",
+            "musteri_profili": "ara_sira",
+            "odemeyi_kesti": "2025-05-14"
+          },
+          {
+            "gun": "2025-09-15",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C010721"
+          },
+          {
+            "gun": "2025-10-08",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C013990"
+          },
+          {
+            "gun": "2025-10-13",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C015659"
+          },
+          {
+            "gun": "2025-10-17",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C015990"
+          },
+          {
+            "gun": "2025-10-24",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C015509"
+          },
+          {
+            "gun": "2025-11-03",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C015798"
+          },
+          {
+            "gun": "2025-11-03",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C017316"
+          },
+          {
+            "gun": "2025-11-07",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C017399"
+          },
+          {
+            "gun": "2025-11-11",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C015670"
+          },
+          {
+            "gun": "2025-11-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C007892"
+          },
+          {
+            "gun": "2025-12-01",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C014703"
+          },
+          {
+            "gun": "2025-12-15",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C019521"
+          },
+          {
+            "gun": "2025-12-30",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C022129"
+          },
+          {
+            "gun": "2026-01-01",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M02217",
+            "musteri_profili": "zamaninda",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-01-07",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C022783"
+          },
+          {
+            "gun": "2026-01-16",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C021440"
+          },
+          {
+            "gun": "2026-01-19",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C020024"
+          },
+          {
+            "gun": "2026-01-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C018775"
+          },
+          {
+            "gun": "2026-02-02",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01740",
+            "musteri_profili": "sik",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-02-11",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C020247"
+          },
+          {
+            "gun": "2026-02-24",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C024893"
+          },
+          {
+            "gun": "2026-03-03",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C024649"
+          },
+          {
+            "gun": "2026-04-16",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01288",
+            "musteri_profili": "sik",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-05-08",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C028711"
+          },
+          {
+            "gun": "2026-05-19",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C027279"
+          },
+          {
+            "gun": "2026-06-12",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C030510"
+          },
+          {
+            "gun": "2026-07-02",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C031206"
+          },
+          {
+            "gun": "2026-07-02",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C031616"
+          },
+          {
+            "gun": "2026-08-21",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C034122"
+          },
+          {
+            "gun": "2026-08-28",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C034604"
+          },
+          {
+            "gun": "2026-09-16",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C035490"
+          },
+          {
+            "gun": "2026-09-24",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C032727"
+          },
+          {
+            "gun": "2026-10-05",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01881",
+            "musteri_profili": "zamaninda",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-10-23",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M02469",
+            "musteri_profili": "ara_sira",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-11-02",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C038409"
+          },
+          {
+            "gun": "2026-11-07",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M05408",
+            "musteri_profili": "sik",
+            "odemeyi_kesti": null
+          }
+        ]
+      },
+      "ornek_uyarilar": null
+    },
+    "tohum44": {
+      "tohum": 44,
+      "ayrilmis": true,
+      "olayli": {
+        "klasor": "data/izleme_veri/tohum44",
+        "veri_hash": "0524a36035583ce981999c2905a960834dbcfb7a3d6f9341ee27ab980ac12ded",
+        "baslangic": "2024-12-03",
+        "sure_s": 0.92,
+        "uyari": 115,
+        "uyari_kurala_gore": {
+          "buyuk_cikis/uyari": 2,
+          "eslesmeyen_birikim/uyari": 1,
+          "karsiliksiz_cek/bilgi": 73,
+          "karsiliksiz_cek/uyari": 27,
+          "mukerrer_odeme/uyari": 2,
+          "musteri_gecikmesi/uyari": 8,
+          "nakit_esigi/uyari": 2
+        },
+        "uyari_ozeti": "a313d71f701a2fc823517658b32232ddf6ea71bc2451d408545724b3c1f81928",
+        "puan": {
+          "olay": 12,
+          "yakalanan": 11,
+          "geri_cagirma": 0.9167,
+          "olaylar": [
+            {
+              "olay_id": "E01",
+              "tur": "olagandisi_buyuk_cikis",
+              "tarih": "2025-05-21",
+              "pencere": [
+                "2025-05-21",
+                "2025-05-24"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Ucfd85c16c9e3",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E02",
+              "tur": "nakit_sikismasi",
+              "tarih": "2025-07-07",
+              "pencere": [
+                "2025-07-07",
+                "2025-08-29"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U1e86d3cede50",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E03",
+              "tur": "mukerrer_odeme",
+              "tarih": "2025-07-28",
+              "pencere": [
+                "2025-07-28",
+                "2025-08-11"
+              ],
+              "yakalandi": false,
+              "uyari_id": null,
+              "gun_sonra": null
+            },
+            {
+              "olay_id": "E04",
+              "tur": "buyuk_musteri_gecikmesi",
+              "tarih": "2025-08-07",
+              "pencere": [
+                "2025-08-07",
+                "2025-10-25"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U47582f4ce6a9",
+              "gun_sonra": 28
+            },
+            {
+              "olay_id": "E05",
+              "tur": "eslesmeyen_tahsilat_birikimi",
+              "tarih": "2025-08-11",
+              "pencere": [
+                "2025-08-11",
+                "2025-08-29"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U0d6c49062d2d",
+              "gun_sonra": 4
+            },
+            {
+              "olay_id": "E06",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2026-02-03",
+              "pencere": [
+                "2026-02-03",
+                "2026-02-06"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U53949c1918bc",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E07",
+              "tur": "nakit_sikismasi",
+              "tarih": "2026-02-23",
+              "pencere": [
+                "2026-02-23",
+                "2026-05-01"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U3885967fc423",
+              "gun_sonra": 4
+            },
+            {
+              "olay_id": "E08",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2026-04-17",
+              "pencere": [
+                "2026-04-17",
+                "2026-04-20"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U9537e98c6185",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E09",
+              "tur": "mukerrer_odeme",
+              "tarih": "2026-06-09",
+              "pencere": [
+                "2026-06-09",
+                "2026-06-23"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U73c806cb57c8",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E10",
+              "tur": "olagandisi_buyuk_cikis",
+              "tarih": "2026-10-02",
+              "pencere": [
+                "2026-10-02",
+                "2026-10-05"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U49af36bcbd60",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E11",
+              "tur": "karsiliksiz_cek",
+              "tarih": "2026-10-09",
+              "pencere": [
+                "2026-10-09",
+                "2026-10-12"
+              ],
+              "yakalandi": true,
+              "uyari_id": "U5b94269a7fe9",
+              "gun_sonra": 0
+            },
+            {
+              "olay_id": "E12",
+              "tur": "buyuk_musteri_gecikmesi",
+              "tarih": "2026-10-23",
+              "pencere": [
+                "2026-10-23",
+                "2026-11-12"
+              ],
+              "yakalandi": true,
+              "uyari_id": "Uef0c445b1c6b",
+              "gun_sonra": 11
+            }
+          ],
+          "alarm": 42,
+          "olaya_denk_gelmeyen_alarm": 31,
+          "olaya_denk_gelmeyen_kurala_gore": {
+            "karsiliksiz_cek": 24,
+            "mukerrer_odeme": 1,
+            "musteri_gecikmesi": 6
+          }
+        },
+        "cek_olaylari": [
+          {
+            "olay_id": "E06",
+            "cek_id": "C019659",
+            "tutar_tl": "59872.55",
+            "kural_esigi_tl": "22943.66",
+            "butun_donem_esigi_tl": "24824.95",
+            "pay": "2.610",
+            "onem": "uyari"
+          },
+          {
+            "olay_id": "E08",
+            "cek_id": "C027279",
+            "tutar_tl": "31214.25",
+            "kural_esigi_tl": "23617.25",
+            "butun_donem_esigi_tl": "24824.95",
+            "pay": "1.322",
+            "onem": "uyari"
+          },
+          {
+            "olay_id": "E11",
+            "cek_id": "C036759",
+            "tutar_tl": "36805.34",
+            "kural_esigi_tl": "26190.61",
+            "butun_donem_esigi_tl": "24824.95",
+            "pay": "1.405",
+            "onem": "uyari"
+          }
+        ],
+        "olay_etkilesimleri": [
+          {
+            "olay_id": "E03",
+            "tur": "mukerrer_odeme",
+            "odeme_id": "O6BBA15DB",
+            "cekan_olay": "E02",
+            "anahtardaki_gun": "2025-07-28",
+            "verideki_gun": "2025-07-07"
+          }
+        ],
+        "yakalama_gecikmesi_gun": {
+          "en_az": 0,
+          "ortanca": 0,
+          "en_cok": 28
+        }
+      },
+      "temiz": {
+        "klasor": "data/izleme_veri/tohum44_temiz",
+        "veri_hash": "1d10e636abab6595b71145d50543a5e458cc8107260ff78a8cd08dcc9002fdd9",
+        "baslangic": "2024-12-03",
+        "sure_s": 0.93,
+        "uyari": 103,
+        "uyari_kurala_gore": {
+          "karsiliksiz_cek/bilgi": 73,
+          "karsiliksiz_cek/uyari": 24,
+          "musteri_gecikmesi/uyari": 6
+        },
+        "uyari_ozeti": "518fe81eed7cc9e8397e2fbb79447d3db4c99026c11de06d4ec328aae881bf6c",
+        "yanlis_alarm": {
+          "alarm": 30,
+          "ay": 23.33,
+          "aylik": 1.286,
+          "kurala_gore": {
+            "karsiliksiz_cek": 24,
+            "musteri_gecikmesi": 6
+          },
+          "bilgi": 73
+        },
+        "karsiliksiz_cek_hareketi": 97,
+        "alarmlar": [
+          {
+            "gun": "2025-01-07",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C001452"
+          },
+          {
+            "gun": "2025-02-21",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C000013"
+          },
+          {
+            "gun": "2025-04-04",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C005132"
+          },
+          {
+            "gun": "2025-07-14",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C010879"
+          },
+          {
+            "gun": "2025-09-10",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M04258",
+            "musteri_profili": "zamaninda",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2025-09-11",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C012352"
+          },
+          {
+            "gun": "2025-10-17",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C014020"
+          },
+          {
+            "gun": "2025-10-20",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C016132"
+          },
+          {
+            "gun": "2025-11-05",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M04209",
+            "musteri_profili": "zamaninda",
+            "odemeyi_kesti": "2025-06-06"
+          },
+          {
+            "gun": "2025-11-06",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M00712",
+            "musteri_profili": "zamaninda",
+            "odemeyi_kesti": "2025-08-04"
+          },
+          {
+            "gun": "2025-12-02",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01740",
+            "musteri_profili": "ara_sira",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2025-12-05",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C016785"
+          },
+          {
+            "gun": "2025-12-12",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C020016"
+          },
+          {
+            "gun": "2025-12-23",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C019101"
+          },
+          {
+            "gun": "2025-12-26",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C019196"
+          },
+          {
+            "gun": "2026-02-06",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C023879"
+          },
+          {
+            "gun": "2026-02-06",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C024533"
+          },
+          {
+            "gun": "2026-02-13",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C024566"
+          },
+          {
+            "gun": "2026-02-19",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C025009"
+          },
+          {
+            "gun": "2026-04-20",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C026241"
+          },
+          {
+            "gun": "2026-04-21",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C026094"
+          },
+          {
+            "gun": "2026-04-21",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M01881",
+            "musteri_profili": "sik",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-05-04",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C027730"
+          },
+          {
+            "gun": "2026-06-19",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C030605"
+          },
+          {
+            "gun": "2026-08-04",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C033157"
+          },
+          {
+            "gun": "2026-08-06",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C028040"
+          },
+          {
+            "gun": "2026-08-17",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C033561"
+          },
+          {
+            "gun": "2026-08-29",
+            "kural": "musteri_gecikmesi",
+            "varlik": "M02614",
+            "musteri_profili": "ara_sira",
+            "odemeyi_kesti": null
+          },
+          {
+            "gun": "2026-09-25",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C032903"
+          },
+          {
+            "gun": "2026-10-09",
+            "kural": "karsiliksiz_cek",
+            "varlik": "C034946"
+          }
+        ]
+      },
+      "ornek_uyarilar": null
+    }
+  }
+}
