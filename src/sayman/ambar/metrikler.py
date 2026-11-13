@@ -99,6 +99,36 @@ bakiye AS (
 )"""
 
 
+# Satış faturalarının D'ye kadarki kapanış günü ve son `pencere` günde kapananların gecikmesi (0'ın altı 0).
+ODEME_GECMISI = """
+olgu AS (
+    SELECT fatura_id, tarih, tutar_kurus AS tutar FROM tahsilatlar WHERE fatura_id IS NOT NULL AND tarih <= $d
+    UNION ALL
+    SELECT iliskili_fatura_id, fatura_tarihi, coalesce(uygulanan_kurus, 0) FROM faturalar
+    WHERE tur = 'iade' AND iliskili_fatura_id IS NOT NULL AND fatura_tarihi <= $d
+),
+kumulatif AS (
+    SELECT fatura_id, tarih, sum(sum(tutar)) OVER (PARTITION BY fatura_id ORDER BY tarih) AS toplam
+    FROM olgu GROUP BY fatura_id, tarih
+),
+ilk_kapanis AS (
+    SELECT k.fatura_id, min(k.tarih) AS gun
+    FROM kumulatif k JOIN faturalar f ON f.fatura_id = k.fatura_id
+    WHERE k.toplam >= f.tutar_kurus GROUP BY k.fatura_id
+),
+kapanis AS (
+    SELECT f.musteri_id, f.vade_tarihi,
+           CASE WHEN f.tutar_kurus <= 0 THEN f.fatura_tarihi ELSE ik.gun END AS kapanis_tarihi
+    FROM faturalar f LEFT JOIN ilk_kapanis ik ON ik.fatura_id = f.fatura_id
+    WHERE f.tur = 'satis' AND f.fatura_tarihi <= $d
+),
+gecmis AS (
+    SELECT musteri_id, greatest(0, date_diff('day', vade_tarihi, kapanis_tarihi)) AS gecikme
+    FROM kapanis
+    WHERE kapanis_tarihi BETWEEN CAST($d AS DATE) - CAST($pencere AS INTEGER) + 1 AND $d
+)"""
+
+
 def _gun(tarih) -> dt.date:
     if isinstance(tarih, dt.datetime) or not isinstance(tarih, dt.date):
         raise TypeError("tarih bir datetime.date olmalı")
@@ -326,32 +356,7 @@ def nakit_akis_tahmini(con, tarih: dt.date, hafta: int = 13) -> dict:
                     AS kalan_kurus
         FROM sirali s LEFT JOIN havuz h ON h.musteri_id = s.musteri_id
     ),
-    olgu AS (
-        SELECT fatura_id, tarih, tutar_kurus AS tutar FROM tahsilatlar WHERE fatura_id IS NOT NULL AND tarih <= $d
-        UNION ALL
-        SELECT iliskili_fatura_id, fatura_tarihi, coalesce(uygulanan_kurus, 0) FROM faturalar
-        WHERE tur = 'iade' AND iliskili_fatura_id IS NOT NULL AND fatura_tarihi <= $d
-    ),
-    kumulatif AS (
-        SELECT fatura_id, tarih, sum(sum(tutar)) OVER (PARTITION BY fatura_id ORDER BY tarih) AS toplam
-        FROM olgu GROUP BY fatura_id, tarih
-    ),
-    ilk_kapanis AS (
-        SELECT k.fatura_id, min(k.tarih) AS gun
-        FROM kumulatif k JOIN faturalar f ON f.fatura_id = k.fatura_id
-        WHERE k.toplam >= f.tutar_kurus GROUP BY k.fatura_id
-    ),
-    kapanis AS (
-        SELECT f.musteri_id, f.vade_tarihi,
-               CASE WHEN f.tutar_kurus <= 0 THEN f.fatura_tarihi ELSE ik.gun END AS kapanis_tarihi
-        FROM faturalar f LEFT JOIN ilk_kapanis ik ON ik.fatura_id = f.fatura_id
-        WHERE f.tur = 'satis' AND f.fatura_tarihi <= $d
-    ),
-    gecmis AS (
-        SELECT musteri_id, greatest(0, date_diff('day', vade_tarihi, kapanis_tarihi)) AS gecikme
-        FROM kapanis
-        WHERE kapanis_tarihi BETWEEN CAST($d AS DATE) - CAST($pencere AS INTEGER) + 1 AND $d
-    ),
+    {ODEME_GECMISI},
     musteri_ort AS (SELECT musteri_id, CAST(sum(gecikme) // count(*) AS INTEGER) AS ort FROM gecmis GROUP BY musteri_id),
     sirket_ort AS (SELECT CAST(coalesce(sum(gecikme) // count(*), 0) AS INTEGER) AS ort FROM gecmis),
     kalemler AS (
@@ -405,6 +410,24 @@ def nakit_akis_tahmini(con, tarih: dt.date, hafta: int = 13) -> dict:
     }
 
 
+# ---------------------------------------------------------------- yardımcı: ödeme geçmişi
+
+
+def odeme_gecmisi(con, tarih: dt.date, gun: int = GECMIS_PENCERESI) -> dict:
+    """Müşteri başına, D'de biten `gun` günde kapanan satış faturalarının sayısı, bunlardan vadeden sonra
+    kapananlar ve ortalama gecikme (gün, aşağı yuvarlanmış; erken ödeme 0 sayılır). Nakit tahmini aynı
+    tanımı kullanır."""
+    sql = f"""
+    WITH {ODEME_GECMISI}
+    SELECT musteri_id, count(*) AS fatura_sayisi, sum(CASE WHEN gecikme > 0 THEN 1 ELSE 0 END) AS gec_kapanan,
+           CAST(sum(gecikme) // count(*) AS INTEGER) AS ortalama_gecikme_gun
+    FROM gecmis GROUP BY musteri_id ORDER BY musteri_id"""
+    musteriler = {s.pop("musteri_id"): {k: int(v) for k, v in s.items()}
+                  for s in satirlar(con, sql, {"d": _gun(tarih), "pencere": gun})}
+    return {"tarih": tarih, "gun": gun, "musteriler": musteriler,
+            "kapanan_fatura": sum(m["fatura_sayisi"] for m in musteriler.values())}
+
+
 METRIKLER = {
     "nakit_pozisyonu": nakit_pozisyonu,
     "yaslandirma": yaslandirma,
@@ -413,4 +436,5 @@ METRIKLER = {
     "yaklasan_odemeler": yaklasan_odemeler,
     "kur_riski": kur_riski,
     "nakit_akis_tahmini": nakit_akis_tahmini,
+    "odeme_gecmisi": odeme_gecmisi,
 }

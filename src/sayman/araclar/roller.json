@@ -1,0 +1,35 @@
+{
+  "aciklama": "Roller, rollerin çağırabildiği araçlar ve veri kapsamları; kullanıcılar ve rolleri. Kişiler kurgusaldır.",
+  "roller": {
+    "cfo": {
+      "ad": "CFO",
+      "kapsam": "hepsi",
+      "araclar": [
+        "nakit_pozisyonu", "banka_hareketleri", "alacak_yaslandirma", "geciken_alacaklar", "musteri_ozeti",
+        "dso_hesapla", "yaklasan_odemeler", "nakit_akis_tahmini", "kur_riski", "doviz_kuru", "cek_portfoyu",
+        "pos_tahsilatlari", "fatura_ara"
+      ]
+    },
+    "satis_yurtici": {
+      "ad": "Yurtiçi satış müdürü",
+      "kapsam": "yurtici",
+      "araclar": [
+        "alacak_yaslandirma", "geciken_alacaklar", "musteri_ozeti", "dso_hesapla", "doviz_kuru", "cek_portfoyu",
+        "fatura_ara"
+      ]
+    },
+    "satis_ihracat": {
+      "ad": "İhracat satış müdürü",
+      "kapsam": "ihracat",
+      "araclar": [
+        "alacak_yaslandirma", "geciken_alacaklar", "musteri_ozeti", "dso_hesapla", "doviz_kuru", "cek_portfoyu",
+        "fatura_ara"
+      ]
+    }
+  },
+  "kullanicilar": {
+    "selin.aydin": "cfo",
+    "murat.kaya": "satis_yurtici",
+    "deniz.arslan": "satis_ihracat"
+  }
+}

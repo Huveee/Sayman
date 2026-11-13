@@ -1,0 +1,1091 @@
+{
+  "olcum_zamani": "2026-11-13T22:36:44+03:00",
+  "veri_hash": "2ade2e96a9c627c2aa9f02912b5d5cdaf89476cbe8e60ab56622ac3cd45c8e9e",
+  "simdi": "2026-09-01",
+  "veri_bitis": "2026-11-12",
+  "sunucu_kurulum_s": 1.0,
+  "araclar": [
+    "nakit_pozisyonu",
+    "banka_hareketleri",
+    "alacak_yaslandirma",
+    "geciken_alacaklar",
+    "musteri_ozeti",
+    "dso_hesapla",
+    "yaklasan_odemeler",
+    "nakit_akis_tahmini",
+    "kur_riski",
+    "doviz_kuru",
+    "cek_portfoyu",
+    "pos_tahsilatlari",
+    "fatura_ara"
+  ],
+  "roller": {
+    "cfo": {
+      "ad": "CFO",
+      "kapsam": "hepsi",
+      "araclar": [
+        "alacak_yaslandirma",
+        "banka_hareketleri",
+        "cek_portfoyu",
+        "doviz_kuru",
+        "dso_hesapla",
+        "fatura_ara",
+        "geciken_alacaklar",
+        "kur_riski",
+        "musteri_ozeti",
+        "nakit_akis_tahmini",
+        "nakit_pozisyonu",
+        "pos_tahsilatlari",
+        "yaklasan_odemeler"
+      ],
+      "kullanicilar": [
+        "selin.aydin"
+      ]
+    },
+    "satis_yurtici": {
+      "ad": "Yurtiçi satış müdürü",
+      "kapsam": "yurtici",
+      "araclar": [
+        "alacak_yaslandirma",
+        "cek_portfoyu",
+        "doviz_kuru",
+        "dso_hesapla",
+        "fatura_ara",
+        "geciken_alacaklar",
+        "musteri_ozeti"
+      ],
+      "kullanicilar": [
+        "murat.kaya"
+      ]
+    },
+    "satis_ihracat": {
+      "ad": "İhracat satış müdürü",
+      "kapsam": "ihracat",
+      "araclar": [
+        "alacak_yaslandirma",
+        "cek_portfoyu",
+        "doviz_kuru",
+        "dso_hesapla",
+        "fatura_ara",
+        "geciken_alacaklar",
+        "musteri_ozeti"
+      ],
+      "kullanicilar": [
+        "deniz.arslan"
+      ]
+    }
+  },
+  "kapsam_satirlari": {
+    "hepsi": {
+      "musteriler": 5736,
+      "faturalar": 41314,
+      "tahsilatlar": 33592,
+      "cekler": 5767
+    },
+    "ihracat": {
+      "musteriler": 504,
+      "faturalar": 3858,
+      "tahsilatlar": 2766,
+      "cekler": 0
+    },
+    "yurtici": {
+      "musteriler": 5232,
+      "faturalar": 37456,
+      "tahsilatlar": 30826,
+      "cekler": 5767
+    }
+  },
+  "satis_kapsaminda_bos_tablolar": {
+    "yurtici": [
+      "alis_faturalari",
+      "banka_hareketleri",
+      "banka_hesaplari",
+      "odemeler",
+      "pos_islemleri",
+      "tedarikciler"
+    ],
+    "ihracat": [
+      "alis_faturalari",
+      "banka_hareketleri",
+      "banka_hesaplari",
+      "cek_hareketleri",
+      "cekler",
+      "odemeler",
+      "pos_islemleri",
+      "tedarikciler"
+    ]
+  },
+  "arac_listesi": {
+    "karakter": 7402,
+    "token_tahmini_faz0_oraniyla": 2296,
+    "token_olculen": 2187
+  },
+  "denemeler": {
+    "toplam": 60,
+    "sorunsuz": 60,
+    "sizinti": 0,
+    "gruplar": {
+      "A": {
+        "adet": 12,
+        "sorunsuz": 12
+      },
+      "B": {
+        "adet": 12,
+        "sorunsuz": 12
+      },
+      "C": {
+        "adet": 24,
+        "sorunsuz": 24
+      },
+      "D": {
+        "adet": 6,
+        "sorunsuz": 6
+      },
+      "E": {
+        "adet": 6,
+        "sorunsuz": 6
+      }
+    },
+    "sure_s": 2.53,
+    "c_grubu_gizledi": "23/24",
+    "c_grubu_gizlemeyen": [
+      {
+        "kullanici": "murat.kaya",
+        "arac": "cek_portfoyu"
+      }
+    ],
+    "sonuclar": [
+      {
+        "no": 1,
+        "grup": "A",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 2,
+        "grup": "A",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "banka_hareketleri",
+        "argumanlar": {
+          "baslangic": "2026-08-02",
+          "bitis": "2026-09-01"
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 3,
+        "grup": "A",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "yaklasan_odemeler",
+        "argumanlar": {
+          "gun_sayisi": 30
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 4,
+        "grup": "A",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "nakit_akis_tahmini",
+        "argumanlar": {
+          "hafta_sayisi": 4
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 5,
+        "grup": "A",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "kur_riski",
+        "argumanlar": {},
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 6,
+        "grup": "A",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "pos_tahsilatlari",
+        "argumanlar": {
+          "baslangic": "2026-08-02",
+          "bitis": "2026-09-01"
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 7,
+        "grup": "A",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 8,
+        "grup": "A",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "banka_hareketleri",
+        "argumanlar": {
+          "baslangic": "2026-08-02",
+          "bitis": "2026-09-01"
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 9,
+        "grup": "A",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "yaklasan_odemeler",
+        "argumanlar": {
+          "gun_sayisi": 30
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 10,
+        "grup": "A",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "nakit_akis_tahmini",
+        "argumanlar": {
+          "hafta_sayisi": 4
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 11,
+        "grup": "A",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "kur_riski",
+        "argumanlar": {},
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 12,
+        "grup": "A",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "pos_tahsilatlari",
+        "argumanlar": {
+          "baslangic": "2026-08-02",
+          "bitis": "2026-09-01"
+        },
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 13,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "yok",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 14,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "bos",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 15,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "bozuk",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 16,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "yanlis_anahtar",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 17,
+        "grup": "B",
+        "kullanici": "murat.kaya",
+        "kart": "degistirilmis",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 18,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "imzasiz",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 19,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "suresi_dolmus",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 20,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "bilinmeyen_kullanici",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 21,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "cok_uzun_sure",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 22,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "metin_degil",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 23,
+        "grup": "B",
+        "kullanici": "selin.aydin",
+        "kart": "kesik",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: kimlik_gecersiz",
+        "cevap": "ret: kimlik_gecersiz",
+        "sorunlar": []
+      },
+      {
+        "no": 24,
+        "grup": "B",
+        "kullanici": "murat.kaya",
+        "kart": "rol_iddiasi",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {},
+        "beklenen": "ret: yetki_yok",
+        "cevap": "ret: yetki_yok",
+        "sorunlar": []
+      },
+      {
+        "no": 25,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "Alpine Design Partners Ltd"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 26,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "Euro Design"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 27,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "M05592"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 28,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "alacak_yaslandirma",
+        "argumanlar": {
+          "musteri_adi": "Baltic Home Store GmbH"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 29,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "alacak_yaslandirma",
+        "argumanlar": {
+          "musteri_adi": "m00002"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 30,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "fatura_no": "F000006"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 31,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "fatura_no": "f035907"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 32,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "fatura_no": "529924"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 33,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "musteri_adi": "Alpine Design Partners Ltd",
+          "durum": "hepsi",
+          "en_fazla": 10
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 34,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "geciken_alacaklar",
+        "argumanlar": {
+          "min_gun": 1,
+          "en_fazla": 10
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 35,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "cek_portfoyu",
+        "argumanlar": {
+          "durum": "hepsi",
+          "en_fazla": 10
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": false
+      },
+      {
+        "no": 36,
+        "grup": "C",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "dso_hesapla",
+        "argumanlar": {
+          "donem": "son_12_ay"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 37,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "Kale Hilal Kırtasiye San. ve Tic. Ltd. Şti."
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 38,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "Marmara Koru"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 39,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "M05736"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 40,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "alacak_yaslandirma",
+        "argumanlar": {
+          "musteri_adi": "Yaprak Ada Hediyelik Ltd. Şti."
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 41,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "alacak_yaslandirma",
+        "argumanlar": {
+          "musteri_adi": "m00001"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 42,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "fatura_no": "F000001"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 43,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "fatura_no": "f035910"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 44,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "fatura_no": "527142"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 45,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "musteri_adi": "Kale Hilal Kırtasiye San. ve Tic. Ltd. Şti.",
+          "durum": "hepsi",
+          "en_fazla": 10
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 46,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "geciken_alacaklar",
+        "argumanlar": {
+          "min_gun": 1,
+          "en_fazla": 10
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 47,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "cek_portfoyu",
+        "argumanlar": {
+          "durum": "hepsi",
+          "en_fazla": 10
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 48,
+        "grup": "C",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "dso_hesapla",
+        "argumanlar": {
+          "donem": "son_12_ay"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": [],
+        "gizledi": true
+      },
+      {
+        "no": 49,
+        "grup": "D",
+        "kullanici": "selin.aydin",
+        "kart": "gecerli",
+        "arac": "nakit_pozisyonu",
+        "argumanlar": {
+          "tarih": "2026-09-02"
+        },
+        "beklenen": "ret: gelecek_tarih",
+        "cevap": "ret: gelecek_tarih",
+        "sorunlar": []
+      },
+      {
+        "no": 50,
+        "grup": "D",
+        "kullanici": "selin.aydin",
+        "kart": "gecerli",
+        "arac": "banka_hareketleri",
+        "argumanlar": {
+          "baslangic": "2026-09-01",
+          "bitis": "2026-10-01"
+        },
+        "beklenen": "ret: gelecek_tarih",
+        "cevap": "ret: gelecek_tarih",
+        "sorunlar": []
+      },
+      {
+        "no": 51,
+        "grup": "D",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "alacak_yaslandirma",
+        "argumanlar": {
+          "tarih": "2026-09-08"
+        },
+        "beklenen": "ret: gelecek_tarih",
+        "cevap": "ret: gelecek_tarih",
+        "sorunlar": []
+      },
+      {
+        "no": 52,
+        "grup": "D",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "tarih": "2026-11-12"
+        },
+        "beklenen": "ret: gelecek_tarih",
+        "cevap": "ret: gelecek_tarih",
+        "sorunlar": []
+      },
+      {
+        "no": 53,
+        "grup": "D",
+        "kullanici": "selin.aydin",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "abc",
+          "tarih": "2026-09-02"
+        },
+        "beklenen": "ret: gelecek_tarih",
+        "cevap": "ret: gelecek_tarih",
+        "sorunlar": []
+      },
+      {
+        "no": 54,
+        "grup": "D",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "doviz_kuru",
+        "argumanlar": {
+          "para_birimi": "USD",
+          "tarih": "2026-09-02"
+        },
+        "beklenen": "ret: gelecek_tarih",
+        "cevap": "ret: gelecek_tarih",
+        "sorunlar": []
+      },
+      {
+        "no": 55,
+        "grup": "E",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "musteri_ozeti",
+        "argumanlar": {
+          "musteri_adi": "' OR 1=1 --"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": []
+      },
+      {
+        "no": 56,
+        "grup": "E",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "fatura_no": "F1' OR '1'='1"
+        },
+        "beklenen": "kapsamli",
+        "cevap": "tamam",
+        "sorunlar": []
+      },
+      {
+        "no": 57,
+        "grup": "E",
+        "kullanici": "selin.aydin",
+        "kart": "gecerli",
+        "arac": "banka_hareketleri",
+        "argumanlar": {
+          "baslangic": "2026-09-01",
+          "bitis": "2026-09-01",
+          "sql": "DROP TABLE faturalar"
+        },
+        "beklenen": "ret: gecersiz_arguman",
+        "cevap": "ret: gecersiz_arguman",
+        "sorunlar": []
+      },
+      {
+        "no": 58,
+        "grup": "E",
+        "kullanici": "murat.kaya",
+        "kart": "gecerli",
+        "arac": "alacak_yaslandirma",
+        "argumanlar": {
+          "en_fazla": 100000
+        },
+        "beklenen": "ret: gecersiz_arguman",
+        "cevap": "ret: gecersiz_arguman",
+        "sorunlar": []
+      },
+      {
+        "no": 59,
+        "grup": "E",
+        "kullanici": "deniz.arslan",
+        "kart": "gecerli",
+        "arac": "fatura_ara",
+        "argumanlar": {
+          "musteri_adi": "%"
+        },
+        "beklenen": "ret: gecersiz_arguman",
+        "cevap": "ret: gecersiz_arguman",
+        "sorunlar": []
+      },
+      {
+        "no": 60,
+        "grup": "E",
+        "kullanici": "selin.aydin",
+        "kart": "gecerli",
+        "arac": "banka_transferi",
+        "argumanlar": {
+          "tutar": "1000000.00"
+        },
+        "beklenen": "ret: bilinmeyen_arac",
+        "cevap": "ret: bilinmeyen_arac",
+        "sorunlar": []
+      }
+    ]
+  },
+  "denetim_kaydi": {
+    "dosya": "data/denetim/faz3_denemeler.jsonl",
+    "satir": 114,
+    "zincir_hatalari": []
+  },
+  "en_uzun_cevaplar": [
+    {
+      "arac": "fatura_ara",
+      "en_fazla": 10,
+      "kullanici": "murat.kaya",
+      "karakter": 3223,
+      "sure_s": 0.042,
+      "token": 1741
+    },
+    {
+      "arac": "nakit_akis_tahmini",
+      "en_fazla": null,
+      "kullanici": "selin.aydin",
+      "karakter": 3176,
+      "sure_s": 0.066,
+      "token": 1783
+    },
+    {
+      "arac": "geciken_alacaklar",
+      "en_fazla": 10,
+      "kullanici": "murat.kaya",
+      "karakter": 2576,
+      "sure_s": 0.025,
+      "token": 1394
+    },
+    {
+      "arac": "cek_portfoyu",
+      "en_fazla": 10,
+      "kullanici": "murat.kaya",
+      "karakter": 2433,
+      "sure_s": 0.023,
+      "token": 1245
+    },
+    {
+      "arac": "banka_hareketleri",
+      "en_fazla": 10,
+      "kullanici": "selin.aydin",
+      "karakter": 2297,
+      "sure_s": 0.019,
+      "token": 1261
+    },
+    {
+      "arac": "yaklasan_odemeler",
+      "en_fazla": 10,
+      "kullanici": "selin.aydin",
+      "karakter": 2146,
+      "sure_s": 0.013,
+      "token": 1105
+    },
+    {
+      "arac": "alacak_yaslandirma",
+      "en_fazla": 10,
+      "kullanici": "murat.kaya",
+      "karakter": 1985,
+      "sure_s": 0.039,
+      "token": 1066
+    },
+    {
+      "arac": "fatura_ara",
+      "en_fazla": null,
+      "kullanici": "murat.kaya",
+      "karakter": 1724,
+      "sure_s": 0.039,
+      "token": 925
+    },
+    {
+      "arac": "musteri_ozeti",
+      "en_fazla": null,
+      "kullanici": "deniz.arslan",
+      "karakter": 1558,
+      "sure_s": 0.046,
+      "token": 858
+    },
+    {
+      "arac": "nakit_pozisyonu",
+      "en_fazla": null,
+      "kullanici": "selin.aydin",
+      "karakter": 743,
+      "sure_s": 0.014,
+      "token": 396
+    },
+    {
+      "arac": "kur_riski",
+      "en_fazla": null,
+      "kullanici": "selin.aydin",
+      "karakter": 670,
+      "sure_s": 0.028,
+      "token": 359
+    },
+    {
+      "arac": "dso_hesapla",
+      "en_fazla": null,
+      "kullanici": "deniz.arslan",
+      "karakter": 464,
+      "sure_s": 0.021,
+      "token": 229
+    },
+    {
+      "arac": "pos_tahsilatlari",
+      "en_fazla": null,
+      "kullanici": "selin.aydin",
+      "karakter": 369,
+      "sure_s": 0.009,
+      "token": 218
+    },
+    {
+      "arac": "doviz_kuru",
+      "en_fazla": null,
+      "kullanici": "deniz.arslan",
+      "karakter": 321,
+      "sure_s": 0.008,
+      "token": 159
+    }
+  ],
+  "sureler": {
+    "cagri_sayisi": 114,
+    "kapida_en_yavas_ms": 154.1,
+    "kapida_en_yavas_arac": "musteri_ozeti",
+    "istemciden_en_yavas_s": 0.149,
+    "istemciden_en_yavas_arac": "musteri_ozeti"
+  },
+  "token_olcumu": {
+    "model": "qwen3.5:9b",
+    "olcum_zamani": "2026-11-13T22:28:46+03:00",
+    "arac_listesi": 2187,
+    "en_buyuk_cevap": 1783,
+    "baglam": {
+      "num_ctx": 8192,
+      "arac_listesi": 2187,
+      "sistem_ve_soru": 102,
+      "cevap_payi": 512,
+      "arac_cagrisi_turu": 58,
+      "kalan": 5391,
+      "en_buyuk_cevaptan_sigan": 2,
+      "sonrasinda_bos_kalan": 1709
+    }
+  }
+}

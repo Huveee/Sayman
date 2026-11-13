@@ -15,6 +15,7 @@ data/uretilen/
 data/anahtar/
 data/ambar/
 data/saat.json
+data/denetim/
 
 # Kişisel ve hocaya sunulan dokümanlar, faz planı: bilgisayarda durur, repoya girmez
 docs/ozet/

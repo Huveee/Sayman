@@ -232,7 +232,8 @@ def kur_riski(T, tarih: dt.date) -> dict:
     return {"tarih": tarih, "dovizler": dovizler, "toplam_try_kurus": sum(x["toplam_try_kurus"] for x in dovizler)}
 
 
-def _ortalama_gecikmeler(T, d: pd.Timestamp) -> tuple[dict[str, int], int]:
+def _kapanan_gecikmeler(T, d: pd.Timestamp, gun: int = 365) -> dict[str, list[int]]:
+    """Müşteri -> D'de biten `gun` günde kapanan satış faturalarının gecikmeleri (0'ın altı 0)."""
     f = T["faturalar"]
     t = T["tahsilatlar"]
     t = t[t["fatura_id"].notna() & (t["tarih"] <= d)][["fatura_id", "tarih", "tutar_kurus"]]
@@ -245,21 +246,33 @@ def _ortalama_gecikmeler(T, d: pd.Timestamp) -> tuple[dict[str, int], int]:
     sat = f[(f["tur"] == "satis") & (f["fatura_tarihi"] <= d)]
     tutar = dict(zip(sat["fatura_id"], sat["tutar_kurus"]))
     ilk = {}
-    for fid, gun, kum in zip(olgu["fatura_id"], olgu["tarih"], olgu["kumulatif"]):
+    for fid, olgu_gunu, kum in zip(olgu["fatura_id"], olgu["tarih"], olgu["kumulatif"]):
         if fid in tutar and fid not in ilk and kum >= tutar[fid]:
-            ilk[fid] = gun
-    toplam, adet = {}, {}
-    alt = d - pd.Timedelta(days=364)
+            ilk[fid] = olgu_gunu
+    gecikmeler: dict[str, list[int]] = {}
+    alt = d - pd.Timedelta(days=gun - 1)
     for fid, m, vade, ft, tt in zip(sat["fatura_id"], sat["musteri_id"], sat["vade_tarihi"], sat["fatura_tarihi"],
                                    sat["tutar_kurus"]):
         kapanis = ft if tt <= 0 else ilk.get(fid)
         if kapanis is None or not (alt <= kapanis <= d):
             continue
-        g = max(0, (kapanis - vade).days)
-        toplam[m] = toplam.get(m, 0) + g
-        adet[m] = adet.get(m, 0) + 1
-    sirket = sum(toplam.values()) // sum(adet.values()) if adet else 0
-    return {m: toplam[m] // adet[m] for m in toplam}, sirket
+        gecikmeler.setdefault(m, []).append(max(0, (kapanis - vade).days))
+    return gecikmeler
+
+
+def _ortalama_gecikmeler(T, d: pd.Timestamp) -> tuple[dict[str, int], int]:
+    g = _kapanan_gecikmeler(T, d)
+    hepsi = [x for v in g.values() for x in v]
+    sirket = sum(hepsi) // len(hepsi) if hepsi else 0
+    return {m: sum(v) // len(v) for m, v in g.items()}, sirket
+
+
+def odeme_gecmisi(T, tarih: dt.date, gun: int = 365) -> dict:
+    g = _kapanan_gecikmeler(T, _ts(tarih), gun)
+    musteriler = {m: {"fatura_sayisi": len(v), "gec_kapanan": sum(1 for x in v if x > 0),
+                      "ortalama_gecikme_gun": sum(v) // len(v)} for m, v in sorted(g.items())}
+    return {"tarih": tarih, "gun": gun, "musteriler": musteriler,
+            "kapanan_fatura": sum(m["fatura_sayisi"] for m in musteriler.values())}
 
 
 def nakit_akis_tahmini(T, tarih: dt.date, hafta: int = 13) -> dict:
@@ -335,4 +348,5 @@ METRIKLER = {
     "yaklasan_odemeler": yaklasan_odemeler,
     "kur_riski": kur_riski,
     "nakit_akis_tahmini": nakit_akis_tahmini,
+    "odeme_gecmisi": odeme_gecmisi,
 }

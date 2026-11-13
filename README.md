@@ -63,6 +63,24 @@ yazılır. Testler her metriği bağımsız bir pandas hesabıyla, elle hesaplan
 hesaplarıyla karşılaştırır. Nakit akış tahmini yalnızca bilinen kalemleri içerir (açık alacaklar, çekler,
 POS valörleri, ödenmemiş alış faturaları); maaş, vergi ve henüz kesilmemiş satışlar dahil değildir.
 
+## Faz 3: araçlar ve yetki
+
+Model veriye yalnızca 13 salt okunur araçla ulaşır; araçlar bir MCP sunucusunda durur. Her çağrı tek bir
+kapıdan geçer: imzalı kimlik kartı, rolün araç izni, argüman şeması, "bugün"den sonraki tarih kontrolü.
+Satış müdürleri yalnızca kendi müşterilerinin satırlarının bulunduğu ayrı, salt okunur bir veritabanında
+çalışır. Reddedilenler dahil her çağrı, satırları birbirine zincirlenmiş bir denetim kaydına yazılır.
+
+```bash
+.venv/Scripts/python -I scripts/faz3_anahtar_uret.py
+.venv/Scripts/python -I scripts/faz3_araclar_rapor.py
+```
+
+İlk betik kimlik kartlarını imzalayan anahtarı `.env` dosyasına yazar (ekrana yazmaz). İkincisi 60 yetkisiz
+denemeyi gerçek veride çalıştırır, cevap boyutlarını ölçer ve `reports/faz3_araclar.json` dosyasını yazar;
+Ollama açıksa `--token` ile token sayısını da ölçer. Sunucuyu bir MCP istemcisi
+`.venv/Scripts/python -I scripts/faz3_sunucu.py` komutuyla başlatır. Roller ve araç izinleri
+`src/sayman/araclar/roller.json` dosyasındadır; kullanıcılar kurgusaldır.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -77,8 +95,9 @@ POS valörleri, ödenmemiş alış faturaları); maaş, vergi ve henüz kesilmem
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler) |
+| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu) |
 | `tests` | Yazılım testleri ve kabul testleri |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
 | `reports` | Ölçüm sonuçları |
 | `data/kaynak` | Kaynaklardan indirilen küçük dosyalar (kurlar, kalibrasyon bantları) |
+| `data/denetim` | Araç çağrılarının denetim kaydı (git'e girmez) |
