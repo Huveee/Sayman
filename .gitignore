@@ -18,6 +18,8 @@ data/saat.json
 data/izleme_veri/
 data/izleme/
 data/denetim/
+data/belge/
+data/modeller/
 
 # Kişisel ve hocaya sunulan dokümanlar, faz planı: bilgisayarda durur, repoya girmez
 docs/ozet/

@@ -1,0 +1,292 @@
+{
+  "aciklama": "Faz 5 belge aramasının ayar denemeleri. Hepsi yalnızca ayar setinde (CFO rolüyle) yapıldı. Ayrılmış set ayarlar dondurulduktan sonra bir kez çalıştırılır. Soru seti ve puanlama (tests/faz5_sorular.py, tests/faz5_puanlama.py) aramadan önce yazıldı.",
+  "denemeler": [
+    {
+      "no": 1,
+      "yontem": "bm25",
+      "degisiklik": "Sızıntı kontrolü: yalnızca kelime araması (BM25, k1=1,5, b=0,75, Türkçe küçültme, 5 harflik kök). Ayar yapılmadı.",
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.6852,
+        "isabet@1": 0.3704,
+        "mrr@10": 0.4972,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 0.9167,
+            "isabet@1": 0.3333,
+            "mrr@10": 0.5926
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.5,
+            "isabet@1": 0.5,
+            "mrr@10": 0.5
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.7833,
+            "isabet@1": 0.2833,
+            "mrr@10": 0.4877
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.6,
+            "isabet@1": 0.425,
+            "mrr@10": 0.4896
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.4545,
+            "isabet@1": 0.0455,
+            "mrr@10": 0.2076
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9595,
+            "isabet@1": 0.7568,
+            "mrr@10": 0.8416
+          }
+        },
+        "kacan": 51
+      }
+    },
+    {
+      "no": 2,
+      "yontem": "bm25",
+      "degisiklik": "Kütüphaneye üç kanun karıştırıcı olarak eklendi (Çek Kanunu, TBK, TTK: 2.170 madde; toplam 3.003 parça). BM25 aynı ayarlarla; ayar yapılmadı.",
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.6852,
+        "isabet@1": 0.4012,
+        "mrr@10": 0.5236,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 0.9167,
+            "isabet@1": 0.5833,
+            "mrr@10": 0.7188
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.5,
+            "isabet@1": 0.5,
+            "mrr@10": 0.5
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.8167,
+            "isabet@1": 0.3333,
+            "mrr@10": 0.5275
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.575,
+            "isabet@1": 0.4125,
+            "mrr@10": 0.4943
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.4659,
+            "isabet@1": 0.0568,
+            "mrr@10": 0.2332
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9459,
+            "isabet@1": 0.8108,
+            "mrr@10": 0.8689
+          }
+        },
+        "kacan": 51
+      }
+    },
+    {
+      "no": 3,
+      "yontem": "anlam",
+      "ayarlar": {
+        "rrf_k": 60,
+        "derinlik": 50,
+        "aday": 20
+      },
+      "degisiklik": "Yalnızca anlam araması: bge-m3 vektörleri, Qdrant (kosinüs), CFO rolü süzmesi. Ayar yapılmadı.",
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.9568,
+        "isabet@1": 0.8951,
+        "mrr@10": 0.9257,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9167,
+            "mrr@10": 0.9444
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.8,
+            "isabet@1": 0.7,
+            "mrr@10": 0.7625
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.95,
+            "isabet@1": 0.9333,
+            "mrr@10": 0.9417
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.975,
+            "isabet@1": 0.8875,
+            "mrr@10": 0.9313
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.9545,
+            "isabet@1": 0.8409,
+            "mrr@10": 0.8973
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9595,
+            "isabet@1": 0.9595,
+            "mrr@10": 0.9595
+          }
+        },
+        "kacan": 7
+      }
+    },
+    {
+      "no": 4,
+      "yontem": "karma",
+      "ayarlar": {
+        "rrf_k": 60,
+        "derinlik": 50,
+        "aday": 20
+      },
+      "degisiklik": "Kelime + anlam: iki listenin ilk 50 sonucu sıra birleştirmesiyle (RRF, k=60, varsayılan değer).",
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.9321,
+        "isabet@1": 0.6852,
+        "mrr@10": 0.7765,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9167,
+            "mrr@10": 0.9375
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.6,
+            "isabet@1": 0.5,
+            "mrr@10": 0.55
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.9333,
+            "isabet@1": 0.6833,
+            "mrr@10": 0.7797
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.9625,
+            "isabet@1": 0.675,
+            "mrr@10": 0.7782
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.9091,
+            "isabet@1": 0.4886,
+            "mrr@10": 0.6425
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9595,
+            "isabet@1": 0.9189,
+            "mrr@10": 0.9358
+          }
+        },
+        "kacan": 11
+      }
+    },
+    {
+      "no": 5,
+      "yontem": "karma_sirala",
+      "ayarlar": {
+        "rrf_k": 60,
+        "derinlik": 50,
+        "aday": 20
+      },
+      "degisiklik": "Kelime + anlam (RRF k=60, ilk 50) birleşik listesinin ilk 20 adayı bge-reranker-v2-m3 ile yeniden sıralandı (en çok 512 token, işlemcide). Doğru parça 162 sorunun 158'inde ilk 20 adayda. Sıralama 20 adayda soru başına yaklaşık 9,5 sn sürdü (önbelleksiz ilk çalışma).",
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.963,
+        "isabet@1": 0.8272,
+        "mrr@10": 0.8876,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 1.0,
+            "isabet@1": 0.6667,
+            "mrr@10": 0.7986
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.7,
+            "isabet@1": 0.6,
+            "mrr@10": 0.6792
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.95,
+            "isabet@1": 0.8833,
+            "mrr@10": 0.9167
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 1.0,
+            "isabet@1": 0.8375,
+            "mrr@10": 0.9052
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.9659,
+            "isabet@1": 0.7273,
+            "mrr@10": 0.8329
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9595,
+            "isabet@1": 0.9459,
+            "mrr@10": 0.9527
+          }
+        },
+        "kacan": 6
+      }
+    },
+    {
+      "no": 6,
+      "tur": "dondurma",
+      "yontem": "karma_sirala",
+      "ayarlar": {
+        "rrf_k": 60,
+        "derinlik": 50,
+        "aday": 20
+      },
+      "degisiklik": "Ayarlar donduruldu; başka deneme yapılmadı. Kabul yöntemi: karma_sirala (baştan seçilen kelime + anlam araması ve yeniden sıralama), ölçüt ayrılmış sette isabet@5 ≥ 0,85. Ayar setinde dört yöntemden üçü isabet@5'te 0,93-0,96 arasında; fark birkaç soru olduğu için ayar yapılmadı.",
+      "bulgu": "Yeniden sıralama isabet@5'i değiştirmedi (anlam 0,957, karma_sirala 0,963: bir soru) ama isabet@1'i düşürdü (0,895 → 0,827): sıralayıcı bazen başka bir sözleşmenin aynı başlıklı maddesini (ör. Ödeme Koşulları) karşı tarafın adına bakmadan öne alıyor. Kaçan altı sorunun üçü, peşin çalışan müşterilerin vade sorusu: soru 'kaç gün içinde' diye soruyor, madde gün söylemiyor ('Siparişler peşin ödenir'). Kalan üçü uzak kalıplı politika soruları; ilk sıraları kanun maddeleri alıyor."
+    }
+  ]
+}

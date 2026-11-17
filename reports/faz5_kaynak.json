@@ -1,0 +1,41 @@
+{
+  "sohbet_modeli": "qwen3.5:9b",
+  "gomme_modeli": "bge-m3",
+  "siralayici": "bge-reranker-v2-m3",
+  "toplam_bellek_gb": 15.7,
+  "bos_bellek_gb": {
+    "bas": 8.85,
+    "ollama_iki_model": 1.65,
+    "hepsi_yuklu": 0.86
+  },
+  "not": "Boş bellek, ölçüm sırasında açık olan öteki programlara da bağlıdır.",
+  "sohbet_ilk_cagri_s": 20.54,
+  "sohbet_ikinci_cagri_s": 1.39,
+  "gomme_ilk_cagri_s": 3.46,
+  "ollama_yuklu_gb": {
+    "qwen3.5:9b": 5.76,
+    "bge-m3:latest": 1.16
+  },
+  "surec_bellek_gb": {
+    "siralayicidan_once": 0.06,
+    "siralayici_yuklu": 2.7,
+    "arama_sonrasi": 2.92
+  },
+  "siralayici_yukleme_s": 26.7,
+  "arama_soru_basina_s": {
+    "medyan": 9.55,
+    "en_cok": 23.06,
+    "soru": 6,
+    "aday": 20
+  },
+  "ollama_yuklu_gb_arama_sonrasi": {
+    "qwen3.5:9b": 5.76,
+    "bge-m3:latest": 1.16
+  },
+  "sohbet_arama_sonrasi_s": 3.05,
+  "ollama_yuklu_gb_son": {
+    "qwen3.5:9b": 5.76,
+    "bge-m3:latest": 1.16
+  },
+  "sohbet_modeli_atildi_mi": false
+}

@@ -1,0 +1,450 @@
+{
+  "aciklama": "Ayrılmış set; ayarlar ayar setinde dondurulduktan sonra bir kez çalıştırıldı. Bütün sorular CFO rolüyle (bütün belgeler, kanunlar dahil) soruldu. Kabul ölçütü: karma_sirala yönteminin isabet@5 değeri ≥ 0,85.",
+  "ayarlar": {
+    "rrf_k": 60,
+    "derinlik": 50,
+    "aday": 20
+  },
+  "parca": 3003,
+  "yontemler": {
+    "bm25": {
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.6852,
+        "isabet@1": 0.4012,
+        "mrr@10": 0.5236,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 0.9167,
+            "isabet@1": 0.5833,
+            "mrr@10": 0.7188
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.5,
+            "isabet@1": 0.5,
+            "mrr@10": 0.5
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.8167,
+            "isabet@1": 0.3333,
+            "mrr@10": 0.5275
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.575,
+            "isabet@1": 0.4125,
+            "mrr@10": 0.4943
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.4659,
+            "isabet@1": 0.0568,
+            "mrr@10": 0.2332
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9459,
+            "isabet@1": 0.8108,
+            "mrr@10": 0.8689
+          }
+        },
+        "kacan": 51
+      },
+      "ayrilmis": {
+        "soru": 160,
+        "isabet@5": 0.7688,
+        "isabet@1": 0.5,
+        "mrr@10": 0.6083,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 8,
+            "isabet@5": 0.875,
+            "isabet@1": 0.625,
+            "mrr@10": 0.7333
+          },
+          "politika": {
+            "soru": 12,
+            "isabet@5": 0.5833,
+            "isabet@1": 0.4167,
+            "mrr@10": 0.5139
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.8167,
+            "isabet@1": 0.5,
+            "mrr@10": 0.622
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.75,
+            "isabet@1": 0.5,
+            "mrr@10": 0.5997
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 78,
+            "isabet@5": 0.5769,
+            "isabet@1": 0.0897,
+            "mrr@10": 0.2799
+          },
+          "yakin": {
+            "soru": 82,
+            "isabet@5": 0.9512,
+            "isabet@1": 0.8902,
+            "mrr@10": 0.9207
+          }
+        },
+        "kacan": 37
+      },
+      "ayrilmis_kacanlar": [
+        "H-POL-CEK#m2",
+        "H-POL-CEK#m4",
+        "H-POL-NAKIT#m3",
+        "H-POL-ONAY#m2",
+        "H-POL-ONAY#m3",
+        "H-SOZ-M00067#m9",
+        "H-SOZ-M00120#m9",
+        "H-SOZ-M00315#m6",
+        "H-SOZ-M00315#m9",
+        "H-SOZ-M00318#m9",
+        "H-SOZ-M03362#m3",
+        "H-SOZ-M03935#m2",
+        "H-SOZ-M04258#m6",
+        "H-SOZ-M04931#m6",
+        "H-SOZ-M04991#m2",
+        "H-SOZ-M05556#m2",
+        "H-SOZ-S002#m8",
+        "H-SOZ-S003#m8",
+        "H-SOZ-S004#m8",
+        "H-SOZ-S004#m9",
+        "H-SOZ-S006#m8",
+        "H-SOZ-S006#m9",
+        "H-SOZ-S009#m8",
+        "H-SOZ-S009#m9",
+        "H-SOZ-S010#m9",
+        "H-SOZ-S014#m8",
+        "H-SOZ-S014#m9",
+        "H-SOZ-S015#m5",
+        "H-SOZ-S015#m9",
+        "H-SOZ-S017#m9",
+        "H-SOZ-S021#m5",
+        "H-SOZ-S021#m9",
+        "H-SOZ-S024#m8",
+        "H-SOZ-S038#m5",
+        "H-SOZ-S040#m5",
+        "H-SOZ-S040#m8",
+        "H-SOZ-S043#m5"
+      ]
+    },
+    "anlam": {
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.9568,
+        "isabet@1": 0.8951,
+        "mrr@10": 0.9257,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9167,
+            "mrr@10": 0.9444
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.8,
+            "isabet@1": 0.7,
+            "mrr@10": 0.7625
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.95,
+            "isabet@1": 0.9333,
+            "mrr@10": 0.9417
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.975,
+            "isabet@1": 0.8875,
+            "mrr@10": 0.9313
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.9545,
+            "isabet@1": 0.8409,
+            "mrr@10": 0.8973
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9595,
+            "isabet@1": 0.9595,
+            "mrr@10": 0.9595
+          }
+        },
+        "kacan": 7
+      },
+      "ayrilmis": {
+        "soru": 160,
+        "isabet@5": 1.0,
+        "isabet@1": 0.9187,
+        "mrr@10": 0.9557,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 8,
+            "isabet@5": 1.0,
+            "isabet@1": 1.0,
+            "mrr@10": 1.0
+          },
+          "politika": {
+            "soru": 12,
+            "isabet@5": 1.0,
+            "isabet@1": 0.8333,
+            "mrr@10": 0.9167
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9167,
+            "mrr@10": 0.9556
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 1.0,
+            "isabet@1": 0.925,
+            "mrr@10": 0.9573
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 78,
+            "isabet@5": 1.0,
+            "isabet@1": 0.8846,
+            "mrr@10": 0.937
+          },
+          "yakin": {
+            "soru": 82,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9512,
+            "mrr@10": 0.9736
+          }
+        },
+        "kacan": 0
+      },
+      "ayrilmis_kacanlar": []
+    },
+    "karma": {
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.9321,
+        "isabet@1": 0.6852,
+        "mrr@10": 0.7765,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9167,
+            "mrr@10": 0.9375
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.6,
+            "isabet@1": 0.5,
+            "mrr@10": 0.55
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.9333,
+            "isabet@1": 0.6833,
+            "mrr@10": 0.7797
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.9625,
+            "isabet@1": 0.675,
+            "mrr@10": 0.7782
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.9091,
+            "isabet@1": 0.4886,
+            "mrr@10": 0.6425
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9595,
+            "isabet@1": 0.9189,
+            "mrr@10": 0.9358
+          }
+        },
+        "kacan": 11
+      },
+      "ayrilmis": {
+        "soru": 160,
+        "isabet@5": 0.9563,
+        "isabet@1": 0.7,
+        "mrr@10": 0.8146,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 8,
+            "isabet@5": 1.0,
+            "isabet@1": 1.0,
+            "mrr@10": 1.0
+          },
+          "politika": {
+            "soru": 12,
+            "isabet@5": 0.9167,
+            "isabet@1": 0.5833,
+            "mrr@10": 0.6986
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 1.0,
+            "isabet@1": 0.6,
+            "mrr@10": 0.7972
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 0.925,
+            "isabet@1": 0.7625,
+            "mrr@10": 0.8265
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 78,
+            "isabet@5": 0.9359,
+            "isabet@1": 0.4359,
+            "mrr@10": 0.6627
+          },
+          "yakin": {
+            "soru": 82,
+            "isabet@5": 0.9756,
+            "isabet@1": 0.9512,
+            "mrr@10": 0.9591
+          }
+        },
+        "kacan": 7
+      },
+      "ayrilmis_kacanlar": [
+        "H-POL-CEK#m4",
+        "H-SOZ-S006#m9",
+        "H-SOZ-S010#m9",
+        "H-SOZ-S014#m9",
+        "H-SOZ-S017#m9",
+        "H-SOZ-S038#m5",
+        "H-SOZ-S040#m5"
+      ]
+    },
+    "karma_sirala": {
+      "ayar": {
+        "soru": 162,
+        "isabet@5": 0.963,
+        "isabet@1": 0.8272,
+        "mrr@10": 0.8876,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 12,
+            "isabet@5": 1.0,
+            "isabet@1": 0.6667,
+            "mrr@10": 0.7986
+          },
+          "politika": {
+            "soru": 10,
+            "isabet@5": 0.7,
+            "isabet@1": 0.6,
+            "mrr@10": 0.6792
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.95,
+            "isabet@1": 0.8833,
+            "mrr@10": 0.9167
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 1.0,
+            "isabet@1": 0.8375,
+            "mrr@10": 0.9052
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 88,
+            "isabet@5": 0.9659,
+            "isabet@1": 0.7273,
+            "mrr@10": 0.8329
+          },
+          "yakin": {
+            "soru": 74,
+            "isabet@5": 0.9595,
+            "isabet@1": 0.9459,
+            "mrr@10": 0.9527
+          }
+        },
+        "kacan": 6
+      },
+      "ayrilmis": {
+        "soru": 160,
+        "isabet@5": 0.9812,
+        "isabet@1": 0.95,
+        "mrr@10": 0.9679,
+        "ture_gore": {
+          "hizmet_sozlesmesi": {
+            "soru": 8,
+            "isabet@5": 1.0,
+            "isabet@1": 1.0,
+            "mrr@10": 1.0
+          },
+          "politika": {
+            "soru": 12,
+            "isabet@5": 0.8333,
+            "isabet@1": 0.6667,
+            "mrr@10": 0.7722
+          },
+          "satis_sozlesmesi": {
+            "soru": 60,
+            "isabet@5": 0.9833,
+            "isabet@1": 0.95,
+            "mrr@10": 0.9683
+          },
+          "tedarik_sozlesmesi": {
+            "soru": 80,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9875,
+            "mrr@10": 0.9938
+          }
+        },
+        "stile_gore": {
+          "uzak": {
+            "soru": 78,
+            "isabet@5": 0.9615,
+            "isabet@1": 0.9103,
+            "mrr@10": 0.9406
+          },
+          "yakin": {
+            "soru": 82,
+            "isabet@5": 1.0,
+            "isabet@1": 0.9878,
+            "mrr@10": 0.9939
+          }
+        },
+        "kacan": 3
+      },
+      "ayrilmis_kacanlar": [
+        "H-POL-ONAY#m2",
+        "H-POL-ONAY#m3",
+        "H-SOZ-M05408#m3"
+      ]
+    }
+  },
+  "kabul": true
+}

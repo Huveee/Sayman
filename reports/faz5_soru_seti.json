@@ -1,0 +1,68 @@
+{
+  "aciklama": "Faz 5 belge kütüphanesi ve soru seti. Özetler soru seti dondurulduğunda kaydedildi.",
+  "belge": 81,
+  "madde": 833,
+  "ture_gore": {
+    "hizmet_sozlesmesi": 5,
+    "politika": 6,
+    "satis_sozlesmesi": 30,
+    "tedarik_sozlesmesi": 40
+  },
+  "belge_ozeti": "9cd6cbea6fcd062823c60211b6b87856eb937e0183dc90dcf302b6bcb43b8178",
+  "soru_ozeti": "3359a90650930d2d57cec5e5514598db7118900fb718825f02fb2790bbb192cf",
+  "karistirici_kanunlar": {
+    "KANUN-5941": {
+      "ad": "Çek Kanunu",
+      "madde": 11,
+      "pdf_sha256": "a98bffcada06fe795be746806786fa39e36199e8d0a648076c82e60633bd2beb"
+    },
+    "KANUN-6098": {
+      "ad": "Türk Borçlar Kanunu",
+      "madde": 642,
+      "pdf_sha256": "052287d8111a07612974f31a71ed3c90e9743aa28d77a005846e4c392316b9d9"
+    },
+    "KANUN-6102": {
+      "ad": "Türk Ticaret Kanunu",
+      "madde": 1517,
+      "pdf_sha256": "17a80a20583483a1561b2585b292f1741375d488d6fc0c6f7dd39f44b6bd5084"
+    }
+  },
+  "kutuphane": {
+    "belge": 84,
+    "madde": 3003
+  },
+  "kutuphane_ozeti": "fb0c802a4c8b863cea61ade93996eed70f41433da982e448b7897d5326809b64",
+  "setler": {
+    "ayar": {
+      "soru": 162,
+      "ture_gore": {
+        "hizmet_sozlesmesi": 12,
+        "politika": 10,
+        "satis_sozlesmesi": 60,
+        "tedarik_sozlesmesi": 80
+      },
+      "stile_gore": {
+        "uzak": 88,
+        "yakin": 74
+      },
+      "belge": 41,
+      "sans_tabani_isabet@5": 0.4801
+    },
+    "ayrilmis": {
+      "soru": 160,
+      "ture_gore": {
+        "hizmet_sozlesmesi": 8,
+        "politika": 12,
+        "satis_sozlesmesi": 60,
+        "tedarik_sozlesmesi": 80
+      },
+      "stile_gore": {
+        "uzak": 78,
+        "yakin": 82
+      },
+      "belge": 40,
+      "sans_tabani_isabet@5": 0.4707
+    }
+  },
+  "sans_tabani_aciklama": "Sözleşme sorularında arama yalnızca doğru sözleşmeyi bulup maddelerini rastgele sıralasa beklenen isabet@5. Politika soruları dahil değildir."
+}
