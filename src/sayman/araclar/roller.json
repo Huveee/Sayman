@@ -7,7 +7,7 @@
       "araclar": [
         "nakit_pozisyonu", "banka_hareketleri", "alacak_yaslandirma", "geciken_alacaklar", "musteri_ozeti",
         "dso_hesapla", "yaklasan_odemeler", "nakit_akis_tahmini", "kur_riski", "doviz_kuru", "cek_portfoyu",
-        "pos_tahsilatlari", "fatura_ara"
+        "pos_tahsilatlari", "fatura_ara", "belge_ara"
       ]
     },
     "satis_yurtici": {
@@ -15,7 +15,7 @@
       "kapsam": "yurtici",
       "araclar": [
         "alacak_yaslandirma", "geciken_alacaklar", "musteri_ozeti", "dso_hesapla", "doviz_kuru", "cek_portfoyu",
-        "fatura_ara"
+        "fatura_ara", "belge_ara"
       ]
     },
     "satis_ihracat": {
@@ -23,7 +23,7 @@
       "kapsam": "ihracat",
       "araclar": [
         "alacak_yaslandirma", "geciken_alacaklar", "musteri_ozeti", "dso_hesapla", "doviz_kuru", "cek_portfoyu",
-        "fatura_ara"
+        "fatura_ara", "belge_ara"
       ]
     }
   },

@@ -1,0 +1,130 @@
+{
+ "olcum_zamani": "2026-11-17T23:02:29+03:00",
+ "model": "qwen3.5:9b",
+ "secenekler": {
+  "temperature": 0,
+  "seed": 42,
+  "num_ctx": 8192,
+  "num_batch": 64,
+  "num_predict": 512
+ },
+ "think": false,
+ "simulasyon_gunu": "2026-09-01",
+ "belge_yontemi": "anlam",
+ "ayar": {
+  "en_cok_adim": 6,
+  "en_cok_cagri": 8,
+  "duzeltme": 1,
+  "sure_s": 300.0,
+  "baglam_token": 8192,
+  "cevap_payi": 512,
+  "arac_listesi_token": 2400,
+  "karakter_token": 1.7
+ },
+ "not": "Seçili sorular, iki düzeltmeden sonra yeniden: (1) bağlam tahmini modelin bildirdiği istem token sayısının üstüne yalnızca yeni mesajları ekliyor; (2) belge_ara madde metnini 1.200 yerine 2.500 karakterde kesiyor (ikinci çalıştırmada 9. sorunun cevabı kesilen kısımdaydı). Ana rapor reports/faz6_duman.json.",
+ "olcum": {
+  "model_yukleme_s": 1.7,
+  "arac_sayisi": 14,
+  "arac_listesi_karakter": 7986,
+  "arac_listesi_token": 2338,
+  "ayni_istem_iki_kez_prompt_eval_count": [
+   2376,
+   2376
+  ],
+  "en_uzun_belge_sonucu": {
+   "madde": 3,
+   "karakter": 8224,
+   "token": 2580,
+   "karakter_token": 3.19
+  }
+ },
+ "ozet": {
+  "soru": 2,
+  "durumlar": {
+   "tamam": 2
+  },
+  "ilk_taslagi_reddedilen": 0,
+  "taslak_yazilan_soru": 2,
+  "ilk_taslaklarda_denetlenen_sayi": 1,
+  "ilk_taslaklarda_kaynaksiz_sayi": 0,
+  "gecersiz_alinti_nedenleri": {},
+  "sure_s_medyan": 79.6,
+  "sure_s_en_cok": 109.218,
+  "model_cagrisi_ortalama": 2,
+  "istem_token_en_cok": 4954
+ },
+ "sorular": [
+  {
+   "no": 8,
+   "kullanici": "selin.aydin",
+   "soru": "Bereket İmalat'a faturaları kaç günde ödüyoruz?",
+   "durum": "tamam",
+   "cevap": "Bereket İmalat'a faturaları, fatura tarihinden itibaren 30 gün içinde ödüyoruz.",
+   "model_cagrisi": 2,
+   "sure_s": 49.985,
+   "araclar": [
+    {
+     "arac": "belge_ara",
+     "argumanlar": {
+      "sorgu": "Bereket İmalat ödeme vadesi"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 1,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2742,
+    3211
+   ],
+   "uretim_token": [
+    39,
+    26
+   ],
+   "model_sure_s": [
+    24.711,
+    24.587
+   ],
+   "neden": null
+  },
+  {
+   "no": 9,
+   "kullanici": "selin.aydin",
+   "soru": "Ticari defterleri kaç yıl saklamamız gerekiyor?",
+   "durum": "tamam",
+   "cevap": "Ticari defterleri **on yıl** saklamak zorundasınız. Bu süre, ticari deftere son kaydın yapıldığı veya muhasebe belgelerinin oluştuğu takvim yılının bitişiyle başlar.",
+   "model_cagrisi": 2,
+   "sure_s": 109.218,
+   "araclar": [
+    {
+     "arac": "belge_ara",
+     "argumanlar": {
+      "sorgu": "ticari defterler saklama süresi"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 0,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2738,
+    4954
+   ],
+   "uretim_token": [
+    38,
+    51
+   ],
+   "model_sure_s": [
+    10.629,
+    97.939
+   ],
+   "neden": null
+  }
+ ]
+}

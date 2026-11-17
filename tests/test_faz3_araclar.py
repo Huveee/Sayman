@@ -93,7 +93,7 @@ def ret(sunucu, kullanici, arac, **args):
 def test_arac_listesi_salt_okunur_ve_rol_tablosuyla_ayni(sunucu):
     araclar = fd.anyio.run(_listele, sunucu)
     adlar = {a.name for a in araclar}
-    assert len(araclar) == 13 and adlar == {a.ad for a in ARACLAR}
+    assert len(araclar) == 14 and adlar == {a.ad for a in ARACLAR}
     yetki = yetki_oku()
     assert yetki.roller["cfo"].araclar == adlar
     assert all(r.araclar <= adlar for r in yetki.roller.values()), "rol tablosunda olmayan araç"
@@ -577,7 +577,7 @@ def test_stdio_sunucusu_ayri_surecte_calisir(ortam, tmp_path):
         env={"SAYMAN_KIMLIK_ANAHTARI": ANAHTAR.hex()})
     # Ayrı süreç gerçek saati kullanır: kart da şimdiki zamanla üretilir.
     araclar, kartli, kartsiz = fd.anyio.run(_stdio_oturumu, parametreler, kart_uret(CFO, ANAHTAR, 300))
-    assert len(araclar) == 13
+    assert len(araclar) == 14
     assert not kartli.isError and kartli.structuredContent["sonuc"]["toplam_tl"] == "12396.40"
     assert kartsiz.isError and kartsiz.structuredContent["hata"] == "kimlik_gecersiz"
     kayit = DenetimKaydi.oku(tmp_path / "kayit.jsonl")

@@ -116,3 +116,29 @@ class Arayici:
 
     def ara(self, sorgu: str, rol: str, k: int = 5, yontem: str = "karma_sirala") -> list[tuple[Parca, float]]:
         return [(self.parca[pid], s) for pid, s in ilk(self.skorlar(sorgu, rol, yontem), k)]
+
+
+def arayici_kur(belge_klasoru, yontem: str = "anlam", model_klasoru=None) -> Arayici:
+    """Diskteki kütüphaneden bir arayıcı kurar (asistan ve MCP sunucusu için).
+
+    - Anlam dizini önbellekteki parça vektörlerinden bellekte kurulur (Qdrant yerel mod); yeni sorular Ollama'daki
+      bge-m3 ile vektöre çevrilir.
+    - Sıralayıcı model yalnızca yöntem "karma_sirala" ise yüklenir. Faz 5 ölçümünde sürecin belleğini 2,7 GB'a
+      çıkardı ve soru başına aramayı medyan 9,6 saniyeye uzattı; daha güçlü bir bilgisayar için bir ayardır."""
+    from pathlib import Path
+
+    from sayman.belge import kutuphane
+
+    if yontem not in YONTEMLER:
+        raise ValueError(f"bilinmeyen yöntem: {yontem}")
+    klasor = Path(belge_klasoru)
+    parcalar = kutuphane.parcalar(kutuphane.oku(klasor / "belgeler.jsonl"))
+    anlam = siralayici = None
+    if yontem != "bm25":
+        from sayman.belge.anlam import AnlamDizini, GommeOnbellegi
+        anlam = AnlamDizini(parcalar, GommeOnbellegi(klasor / "onbellek" / "gomme_bge-m3.npz"))
+    if yontem == "karma_sirala":
+        from sayman.belge.siralayici import Siralayici
+        siralayici = Siralayici(Path(model_klasoru) if model_klasoru else None,
+                                klasor / "onbellek" / "sirala_bge-reranker-v2-m3.json")
+    return Arayici(parcalar, anlam, siralayici)

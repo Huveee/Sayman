@@ -26,7 +26,7 @@ from mcp import types
 from mcp.server.lowlevel import Server
 
 from sayman.araclar import kapsam as kapsam_modulu
-from sayman.araclar.araclar import ARACLAR, ARACLAR_ADA_GORE, AracHatasi, Baglam
+from sayman.araclar.araclar import ARACLAR, ARACLAR_ADA_GORE, AracHatasi, AracKullanilamaz, Baglam
 from sayman.araclar.kayit import DenetimKaydi
 from sayman.araclar.kimlik import KimlikHatasi, karti_dogrula, metadan_kart
 from sayman.araclar.yetki import YetkiTablosu
@@ -38,6 +38,7 @@ MESAJLAR = {
     "bilinmeyen_arac": "Böyle bir araç yok.",
     "yetki_yok": "Bu bilgiyi görme yetkiniz yok.",
     "hata": "Araç çalışırken bir hata oluştu.",
+    "kullanilamaz": "Bu araç şu an kullanılamıyor.",
 }
 EN_UZUN_ARGUMAN = 2000  # denetim kaydına yazılan argüman metninin üst sınırı
 
@@ -76,6 +77,8 @@ def arguman_mesaji(hata: jsonschema.ValidationError, sema: dict) -> str:
         return f"{alan} {o['minimum']} ile {o['maximum']} arasında olmalı."
     if v == "maxLength":
         return f"{alan} en çok {o['maxLength']} karakter olabilir."
+    if v == "minLength":
+        return f"{alan} en az {o['minLength']} karakter olmalı."
     if v == "type":
         return f"{alan} {TIPLER.get(o.get('type'), 'geçerli bir değer')} olmalı."
     return f"{alan} geçersiz."
@@ -87,10 +90,14 @@ def _gelecek_mi(deger, simdi: dt.date) -> bool:
 
 class SaymanSunucusu:
     def __init__(self, ambar: Path, saat: Callable[[], Saat], anahtar: bytes, yetki: YetkiTablosu,
-                 kayit: DenetimKaydi, kapsam_klasoru: Path | None = None, zaman: Callable[[], float] = time.time):
+                 kayit: DenetimKaydi, kapsam_klasoru: Path | None = None, zaman: Callable[[], float] = time.time,
+                 belge=None, belge_yontemi: str = "anlam"):
+        """belge: belge arayıcısı (verilmezse belge_ara "kullanilamaz" ile reddedilir). belge_yontemi: "anlam"
+        (varsayılan), "bm25", "karma" ya da "karma_sirala" (sıralayıcı; daha güçlü bir bilgisayar için)."""
         if not anahtar:
             raise RuntimeError("imza anahtarı olmadan sunucu açılmaz")
         self.saat, self.anahtar, self.yetki, self.kayit, self.zaman = saat, anahtar, yetki, kayit, zaman
+        self.belge, self.belge_yontemi = belge, belge_yontemi
         klasor = Path(kapsam_klasoru) if kapsam_klasoru else Path(tempfile.mkdtemp(prefix="sayman_kapsam_"))
         self.baglantilar = kapsam_modulu.baglantilar(ambar, klasor, {r.kapsam for r in yetki.roller.values()})
         self.dogrulayicilar = {a.ad: jsonschema.Draft202012Validator(a.sema, format_checker=jsonschema.FormatChecker())
@@ -153,10 +160,13 @@ class SaymanSunucusu:
                 if _gelecek_mi(argumanlar.get(alan), simdi):
                     raise Ret("gelecek_tarih", f"Bugünden ({simdi.isoformat()}) sonraki günler için veri yok.")
             kapsam = self.yetki.roller[kimlik.rol].kapsam
+            baglam = Baglam(self.baglantilar[kapsam], simdi, kimlik.rol, self.belge, self.belge_yontemi)
             try:
-                tarih, sonuc, kaynak = arac.calistir(Baglam(self.baglantilar[kapsam], simdi), argumanlar)
+                tarih, sonuc, kaynak = arac.calistir(baglam, argumanlar)
             except AracHatasi as e:
                 raise Ret("gecersiz_arguman", str(e)) from None
+            except AracKullanilamaz as e:
+                raise Ret("kullanilamaz", str(e)) from None
             yanit = {"cagri_id": cagri_id, "arac": ad, "tarih": tarih.isoformat(), "kapsam": KAPSAM_ADI[kapsam],
                      "sonuc": sonuc, "kaynak": kaynak}
             satir.update(sonuc="tamam", tarih=tarih.isoformat(), kayit_sayisi=sum(len(v) for v in kaynak.values()))
@@ -187,6 +197,7 @@ def main(argv: list[str] | None = None) -> None:
 
     from sayman.araclar.kimlik import ANAHTAR_DEGISKENI, anahtar_oku
     from sayman.araclar.yetki import yetki_oku
+    from sayman.belge.arama import YONTEMLER, arayici_kur
     from sayman.veri.saat import saat_oku
 
     kok = Path(__file__).resolve().parents[3]
@@ -195,12 +206,19 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--saat", type=Path, default=kok / "data" / "saat.json")
     ap.add_argument("--kayit", type=Path, default=kok / "data" / "denetim" / "kayit.jsonl")
     ap.add_argument("--kapsam-klasoru", type=Path, default=kok / "data" / "ambar" / "kapsam")
+    ap.add_argument("--belge", type=Path, default=None,
+                    help="Faz 5 belge kütüphanesi klasörü (ör. data/belge); verilmezse belge_ara kapalıdır")
+    ap.add_argument("--belge-yontemi", choices=YONTEMLER, default="anlam",
+                    help="karma_sirala sıralayıcı modeli yükler; daha güçlü bir bilgisayar için")
+    ap.add_argument("--siralayici-modeli", type=Path, default=kok / "data" / "modeller" / "bge-reranker-v2-m3")
     a = ap.parse_args(argv)
+    belge = arayici_kur(a.belge, a.belge_yontemi, a.siralayici_modeli) if a.belge else None
     ortam = dict(dotenv_values(kok / ".env"))
     if os.environ.get(ANAHTAR_DEGISKENI):
         ortam[ANAHTAR_DEGISKENI] = os.environ[ANAHTAR_DEGISKENI]
     sunucu = SaymanSunucusu(ambar=a.ambar, saat=lambda: saat_oku(a.saat), anahtar=anahtar_oku(ortam),
-                            yetki=yetki_oku(), kayit=DenetimKaydi(a.kayit), kapsam_klasoru=a.kapsam_klasoru)
+                            yetki=yetki_oku(), kayit=DenetimKaydi(a.kayit), kapsam_klasoru=a.kapsam_klasoru,
+                            belge=belge, belge_yontemi=a.belge_yontemi)
 
     async def calistir():
         async with stdio_server() as (oku, yaz):

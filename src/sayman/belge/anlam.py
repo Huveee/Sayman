@@ -76,11 +76,14 @@ def gom(metinler: list[str]) -> np.ndarray:
 class AnlamDizini:
     """Qdrant koleksiyonu. yol verilmezse bellekte kurulur (yine Qdrant yerel modu)."""
 
-    def __init__(self, parcalar: list[Parca], onbellek: GommeOnbellegi, yol: Path | None = None):
+    def __init__(self, parcalar: list[Parca], onbellek: GommeOnbellegi, yol: Path | None = None, gomucu=None):
+        """gomucu: önbellekte olmayan bir soruyu vektöre çeviren işlev (verilmezse Ollama'daki bge-m3). Yeni
+        soruların vektörü yalnızca bellekte tutulur; diskteki önbelleğe yazılmaz."""
         from qdrant_client import QdrantClient, models
 
         self.m = models
         self.onbellek = onbellek
+        self.gomucu = gomucu
         self.istemci = QdrantClient(path=str(yol)) if yol else QdrantClient(location=":memory:")
         if self.istemci.collection_exists(KOLEKSIYON):
             self.istemci.delete_collection(KOLEKSIYON)
@@ -94,7 +97,11 @@ class AnlamDizini:
 
     def skorlar(self, sorgu: str, rol: str, limit: int = 50) -> list[tuple[str, float]]:
         m = self.m
-        v = self.onbellek.al([sorgu])[0]
+        try:
+            v = self.onbellek.al([sorgu])[0]
+        except KeyError:  # önbellekte olmayan yeni soru
+            self.onbellek.v[anahtar(sorgu)] = (self.gomucu or gom)([sorgu])[0]
+            v = self.onbellek.al([sorgu])[0]
         yanit = self.istemci.query_points(
             KOLEKSIYON, query=v.tolist(), limit=limit, with_payload=["parca_id"],
             query_filter=m.Filter(must=[m.FieldCondition(key="roller", match=m.MatchValue(value=rol))]))

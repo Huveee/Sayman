@@ -102,6 +102,11 @@ def kontrol_et(alinti: str, parca_id: str, metinler: dict[str, str]) -> AlintiSo
     return AlintiSonucu(parca_id, alinti, False, "baska_parcada" if baska else "metinde_yok", baska)
 
 
+def tirnak_araliklari(metin: str) -> list[tuple[int, int]]:
+    """Metindeki tırnaklı bölümlerin (başlangıç, bitiş) konumları; sayı doğrulayıcı bunların içine bakmaz."""
+    return [(m.start(), m.end()) for m in _TIRNAKLI.finditer(metin)]
+
+
 def atiflar(cevap: str) -> list[tuple[str, str]]:
     """Cevaptaki (alıntı, parça kimliği) çiftleri, geçtikleri sırayla."""
     return [(m.group(1), m.group(2)) for m in _ATIF.finditer(cevap)]

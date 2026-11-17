@@ -136,7 +136,9 @@ def _kapsam_ici_cagrilar(sunucu, kapsam, simdi):
 def test_satis_rolu_izinli_araclarda_kapsamdaki_veriyle_ayni_cevap(sunucu, hakem, saat, kullanici):
     kapsam = sunucu.yetki.roller[sunucu.yetki.kullanicilar[kullanici]].kapsam
     cagrilar = _kapsam_ici_cagrilar(sunucu, kapsam, saat.simdi)
-    assert {a for a, _ in cagrilar} == set(sunucu.yetki.roller[sunucu.yetki.kullanicilar[kullanici]].araclar)
+    # belge_ara (Faz 6) ambara değil belge kütüphanesine bakar; rol süzmesi test_faz6_belge_araci.py'de sınanır.
+    assert {a for a, _ in cagrilar} == \
+        set(sunucu.yetki.roller[sunucu.yetki.kullanicilar[kullanici]].araclar) - {"belge_ara"}
     cevaplar = fd.mcp_cagir(sunucu, [(a, args, True, kart(kullanici)) for a, args in cagrilar])
     for (arac, args), (yanit, hata) in zip(cagrilar, cevaplar):
         deneme = {"arac": arac, "argumanlar": args, "beklenen": ("kapsamli",)}

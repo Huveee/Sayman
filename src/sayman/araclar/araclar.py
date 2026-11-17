@@ -1,8 +1,12 @@
-"""Modelin çağırdığı 13 salt okunur araç.
+"""Modelin çağırdığı 14 salt okunur araç.
 
 Her araç Faz 2 metriklerini ya da sabit, parametreli SELECT sorgularını kullanır; hiçbiri yazmaz. Araçlar
 yetkiyi bilmez: kendisine verilen (kapsamı daraltılmış, salt okunur) bağlantıda çalışır. Kimlik, yetki,
 tarih kontrolü ve denetim kaydı sunucunun tek kapısında yapılır (sunucu.py).
+
+Faz 6'da eklenen belge_ara ambara değil Faz 5 belge kütüphanesine bakar. Belgelerde kapsam bir bağlantı değil
+roldür: arayıcı, rolün göremediği parçayı sıralamaya hiç almaz. Varsayılan yöntem anlam aramasıdır; sıralayıcı
+("karma_sirala") sunucunun bir ayarıdır.
 
 Çıktı biçimi:
 - Tutarlar metin olarak, nokta ondalıkla ve iki haneyle: "-1234.56". TL alanlarının adı "_tl" ile biter;
@@ -32,6 +36,14 @@ TARIH = {"type": "string", "format": "date", "description": "Hangi gün itibarı
 AD = {"type": "string", "maxLength": 100}
 KIMLIK = {"type": "string", "maxLength": 40}
 DONEMLER = {"son_30_gun": 30, "son_90_gun": 90, "son_12_ay": 365}
+# Belge araması: madde metinlerinin medyanı 277, %90'ı 886, %99'u 2.249 karakter (Faz 5 kütüphanesi, 3.003 parça;
+# sözleşme ve politika maddeleri en çok 199 karakter, uzunlar kanun maddeleri). 2.500 karakterden uzun madde (%0,8)
+# kelime sınırında kesilir. Önce 1.200 denendi: %5,1 kesiliyordu ve duman testinde TTK md. 82'nin "on yıl" ifadesi
+# (1.413. karakter) kesilip atıldı. En çok 3 sonuç ≈ 7.500 karakter; Faz 6 ölçümünde madde metni ~3,1 karakter/token,
+# yani ~2.400 token: araç listesi (~2.340) ve sistem istemiyle birlikte 8.192'lik pencereye sığar.
+BELGE_VARSAYILAN = 3
+BELGE_EN_FAZLA = 3
+BELGE_METIN_SINIRI = 2500
 CEK_DURUMLARI = {"bekleyen": ("portfoyde", "tahsilde"), "portfoyde": ("portfoyde",), "tahsilde": ("tahsilde",),
                  "karsiliksiz": ("karsiliksiz",), "tahsil_edildi": ("tahsil_edildi",),
                  "hepsi": ("portfoyde", "tahsilde", "karsiliksiz", "tahsil_edildi")}
@@ -41,10 +53,17 @@ class AracHatasi(Exception):
     """Kullanıcının düzeltebileceği bir girdi hatası (ör. başlangıç bitişten sonra)."""
 
 
+class AracKullanilamaz(Exception):
+    """Araç bu kurulumda çalışamıyor (ör. belge kütüphanesi yüklenmemiş)."""
+
+
 @dataclass
 class Baglam:
     con: object
     simdi: dt.date
+    rol: str | None = None          # yalnızca belge_ara kullanır: belgelerde kapsam bağlantı değil roldür
+    belge: object | None = None     # belge arayıcısı (sayman.belge.arama.Arayici ya da aynı ara() yöntemi olan)
+    belge_yontemi: str = "anlam"
 
 
 @dataclass(frozen=True)
@@ -424,6 +443,28 @@ def _fatura_ara(b, a):
         {"faturalar": [f["fatura_id"] for f in faturalar]}
 
 
+def _kisalt(metin: str, sinir: int) -> tuple[str, bool]:
+    if len(metin) <= sinir:
+        return metin, False
+    kes = metin.rfind(" ", 0, sinir)
+    return metin[:kes if kes > 0 else sinir].rstrip() + " …", True
+
+
+def _belge_ara(b, a):
+    if b.belge is None or b.rol is None:
+        raise AracKullanilamaz("Belge araması şu an kullanılamıyor.")
+    bulunan = b.belge.ara(a["sorgu"], b.rol, a.get("en_fazla", BELGE_VARSAYILAN), b.belge_yontemi)
+    sonuclar = []
+    for p, _ in bulunan:
+        metin, kesildi = _kisalt(p.metin, BELGE_METIN_SINIRI)
+        s = {"parca_id": p.parca_id, "belge": p.belge_baslik, "madde": p.madde_baslik, "metin": metin}
+        if kesildi:
+            s["metin_kesildi"] = True
+        sonuclar.append(s)
+    return b.simdi, {"sorgu": a["sorgu"], "sonuclar": sonuclar}, \
+        {"belge_parcalari": [s["parca_id"] for s in sonuclar]}
+
+
 # ---------------------------------------------------------------- tanımlar
 
 ARACLAR: list[Arac] = [
@@ -488,6 +529,13 @@ ARACLAR: list[Arac] = [
           "durum": {"type": "string", "enum": ["acik", "kapali", "iade", "hepsi"], "description": "Faturanın durumu"},
           "en_fazla": EN_FAZLA, "tarih": TARIH},
          _fatura_ara),
+    Arac("belge_ara", "Sözleşmelerde, şirket politikalarında ve ilgili kanun maddelerinde arar; en ilgili maddelerin "
+                      "metnini parça kimliğiyle döndürür. Rolün göremediği belgeler aranmaz.",
+         {"sorgu": {"type": "string", "minLength": 3, "maxLength": 300,
+                    "description": "Ne aranıyor; ör. 'Bereket İmalat ödeme vadesi'"},
+          "en_fazla": {"type": "integer", "minimum": 1, "maximum": BELGE_EN_FAZLA,
+                       "description": f"En fazla kaç madde (varsayılan {BELGE_VARSAYILAN})"}},
+         _belge_ara, ("sorgu",)),
 ]
 
 ARACLAR_ADA_GORE: dict[str, Arac] = {a.ad: a for a in ARACLAR}

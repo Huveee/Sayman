@@ -1,0 +1,630 @@
+{
+ "olcum_zamani": "2026-11-17T22:51:38+03:00",
+ "model": "qwen3.5:9b",
+ "secenekler": {
+  "temperature": 0,
+  "seed": 42,
+  "num_ctx": 8192,
+  "num_batch": 64,
+  "num_predict": 512
+ },
+ "think": false,
+ "simulasyon_gunu": "2026-09-01",
+ "belge_yontemi": "anlam",
+ "ayar": {
+  "en_cok_adim": 6,
+  "en_cok_cagri": 8,
+  "duzeltme": 1,
+  "sure_s": 300.0,
+  "baglam_token": 8192,
+  "cevap_payi": 512,
+  "arac_listesi_token": 2400,
+  "karakter_token": 1.7
+ },
+ "not": "İkinci çalıştırma. İlk çalıştırma (reports/faz6_duman_ilk.json, süre sınırı 120 sn) doğrulayıcıda üç açık gösterdi (\"TL**\" biçim işareti, \"09-15 Eylül\" tarih aralığı, kısa rakamsız tırnaklı söz); bunlar kapatıldı ve süre sınırı Faz 0 hızından 300 sn'ye çıkarıldı. Sorular aynıdır: bu bağımsız bir ölçüm değil, duman testidir.",
+ "olcum": {
+  "model_yukleme_s": 1.6,
+  "arac_sayisi": 14,
+  "arac_listesi_karakter": 7986,
+  "arac_listesi_token": 2338,
+  "ayni_istem_iki_kez_prompt_eval_count": [
+   2376,
+   2376
+  ],
+  "en_uzun_belge_sonucu": {
+   "madde": 3,
+   "karakter": 4324,
+   "token": 1390,
+   "karakter_token": 3.11
+  }
+ },
+ "ozet": {
+  "soru": 13,
+  "durumlar": {
+   "tamam": 9,
+   "uretemedim": 1,
+   "baglam_siniri": 1,
+   "ret": 1,
+   "sure_siniri": 1
+  },
+  "ilk_taslagi_reddedilen": 3,
+  "taslak_yazilan_soru": 11,
+  "ilk_taslaklarda_denetlenen_sayi": 115,
+  "ilk_taslaklarda_kaynaksiz_sayi": 4,
+  "gecersiz_alinti_nedenleri": {
+   "alintisiz_atif": 1
+  },
+  "sure_s_medyan": 97.1,
+  "sure_s_en_cok": 300.297,
+  "model_cagrisi_ortalama": 2.46,
+  "istem_token_en_cok": 4742
+ },
+ "sorular": [
+  {
+   "no": 1,
+   "kullanici": "selin.aydin",
+   "soru": "Bankalarda toplam ne kadar nakitimiz var?",
+   "durum": "tamam",
+   "cevap": "Bankalarda toplam nakit pozisyonumuz **75.826.754,65 TL**'dir.",
+   "model_cagrisi": 2,
+   "sure_s": 46.188,
+   "araclar": [
+    {
+     "arac": "nakit_pozisyonu",
+     "argumanlar": {},
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 1,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2735,
+    3162
+   ],
+   "uretim_token": [
+    18,
+    29
+   ],
+   "model_sure_s": [
+    22.117,
+    23.532
+   ],
+   "neden": null
+  },
+  {
+   "no": 2,
+   "kullanici": "selin.aydin",
+   "soru": "Son 90 günün DSO'su kaç?",
+   "durum": "tamam",
+   "cevap": "Son 90 günlük DSO (Ortalama Tahsil Süresi) **50.93 gün**'dür. Bu değer, 2026-06-04 ile 2026-09-01 tarihleri arasındaki dönem için hesaplanmıştır.",
+   "model_cagrisi": 2,
+   "sure_s": 36.031,
+   "araclar": [
+    {
+     "arac": "dso_hesapla",
+     "argumanlar": {
+      "donem": "son_90_gun"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 4,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2737,
+    3009
+   ],
+   "uretim_token": [
+    36,
+    63
+   ],
+   "model_sure_s": [
+    11.76,
+    23.742
+   ],
+   "neden": null
+  },
+  {
+   "no": 3,
+   "kullanici": "selin.aydin",
+   "soru": "Green Home Store Ltd'nin durumu nasıl?",
+   "durum": "tamam",
+   "cevap": "Green Home Store Ltd'nin durumu şu şekildedir:\n\n*   **Müşteri:** Green Home Store Ltd (İrlanda)\n*   **Açık Alacak:** 7.775.050,92 TL\n*   **Çek Durumu:** Bekleyen çek bulunmamaktadır.\n*   **Son Tahsilatlar:** Son dönemde birkaç kez Swift yoluyla ödeme alınmıştır (en son 2026-01-20).\n*   **Ödeme Alışkanlığı:** Son 12 ayda ortalama gecikme süresi 78 gündür. Bu süre, faturanın vadesi geçmiş ve kapatılmamış durumunu göstermektedir.\n\n**Alacakların Gecikme Durumu (TL):**\n*   Vadesi gelmemiş: 1.163.238,49 TL\n*   1-30 gün gecikme: 821.769,85 TL\n*   31-60 gün gecikme: 601.614,68 TL\n*   61-90 gün gecikme: 330.902,70 TL\n*   91-180 gün gecikme: 1.112.690,18 TL\n*   180 gün üstü gecikme: 3.744.835,02 TL\n\nMüşterinin toplam açık alacağı 71 adet faturadan oluşmaktadır ve en eski açık vade tarihi 2025-09-19'dur.",
+   "model_cagrisi": 2,
+   "sure_s": 132.704,
+   "araclar": [
+    {
+     "arac": "musteri_ozeti",
+     "argumanlar": {
+      "musteri_adi": "Green Home Store Ltd"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 21,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2734,
+    3643
+   ],
+   "uretim_token": [
+    36,
+    368
+   ],
+   "model_sure_s": [
+    11.062,
+    120.948
+   ],
+   "neden": null
+  },
+  {
+   "no": 4,
+   "kullanici": "selin.aydin",
+   "soru": "Vadesini 60 günden fazla geçmiş kaç fatura var, toplamı ne kadar?",
+   "durum": "tamam",
+   "cevap": "Vadesini 60 günden fazla geçmiş **620** adet fatura bulunmaktadır. Bu faturaların toplam tutarı **18.661.759,09 TL**'dir.",
+   "model_cagrisi": 2,
+   "sure_s": 56.703,
+   "araclar": [
+    {
+     "arac": "geciken_alacaklar",
+     "argumanlar": {
+      "min_gun": 60
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 3,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2745,
+    3525
+   ],
+   "uretim_token": [
+    33,
+    48
+   ],
+   "model_sure_s": [
+    12.775,
+    43.388
+   ],
+   "neden": null
+  },
+  {
+   "no": 5,
+   "kullanici": "selin.aydin",
+   "soru": "Kur riskimiz ne durumda?",
+   "durum": "uretemedim",
+   "cevap": "Bu soruya doğrulanabilir bir cevap üretemedim: cevaptaki bazı sayılar ya da alıntılar araç sonuçlarıyla eşleşmedi. Soruyu daha dar sorarak yeniden deneyebilirsiniz.",
+   "model_cagrisi": 4,
+   "sure_s": 261.64,
+   "araclar": [
+    {
+     "arac": "nakit_pozisyonu",
+     "argumanlar": {},
+     "hata": null
+    },
+    {
+     "arac": "kur_riski",
+     "argumanlar": {
+      "para_birimi": "EUR"
+     },
+     "hata": null
+    },
+    {
+     "arac": "kur_riski",
+     "argumanlar": {
+      "para_birimi": "USD"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 2,
+   "reddedilen_taslaklar": [
+    "Şirketin kur riski pozisyonu şu şekildedir:\n\n**EUR Riski:**\n- Toplam EUR pozisyonu: 383.072,08 EUR (alacaklar + banka bakiyesi)\n- TL karşılığı: 21.400.398,36 TL\n- Kur %10 değişirse TL etkisi: **2.140.039,84 TL**\n\n**USD Riski:**\n- Toplam USD pozisyonu: 107.189,33 USD (alacaklar + banka bakiyesi)\n- TL karşılığı: 5.163.792,38 TL\n- Kur %10 değişirse TL etkisi: **516.379,24 TL**\n\n**Genel Risk:** Döviz kurlarında %10'luk bir hareket durumunda toplamda yaklaşık **2.656.419,08 TL**'lik bir kur riski bulunmaktadır.",
+    "Şirketin kur riski pozisyonu şu şekildedir:\n\n**EUR Riski:**\n- Toplam EUR pozisyonu (alacak + banka): 383.072,08 EUR\n- TL karşılığı: 21.400.398,36 TL\n- Kur %10 değişirse TL etkisi: **2.140.039,84 TL**\n\n**USD Riski:**\n- Toplam USD pozisyonu (alacak + banka): 107.189,33 USD\n- TL karşılığı: 5.163.792,38 TL\n- Kur %10 değişirse TL etkisi: **516.379,24 TL**\n\nBu araç sonuçlarına göre, EUR ve USD kurlarında %10'luk bir hareket durumunda toplamda **2.656.419,08 TL** (2.140.039,84 + 516.379,24) gibi bir etki oluşacaktır. Ancak bu toplama işlemi araç sonuçlarında doğrudan verilmediği için, sadece araçlardan gelen verileri kullanarak ifade edelim:\n\n- EUR'da kur %10 değişirse **2.140.039,84 TL** etkisi olur.\n- USD'de kur %10 değişirse **516.379,24 TL** etkisi olur."
+   ],
+   "denetlenen_sayi": 10,
+   "ilk_taslakta_kaynaksiz": [
+    "2.656.419,08"
+   ],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2731,
+    3220,
+    3895,
+    4207
+   ],
+   "uretim_token": [
+    80,
+    193,
+    229,
+    330
+   ],
+   "model_sure_s": [
+    20.115,
+    63.864,
+    82.813,
+    93.611
+   ],
+   "neden": null
+  },
+  {
+   "no": 6,
+   "kullanici": "selin.aydin",
+   "soru": "Önümüzdeki 30 günde ne kadar tedarikçi ödememiz var?",
+   "durum": "tamam",
+   "cevap": "Önümüzdeki 30 gün içinde tedarikçiye ödenmesi gereken toplam tutar **43.510.100,56 TL**'dir. Bu tutarın **657.272,69 TL**'si vadesi geçmiş faturalardan oluşmaktadır.",
+   "model_cagrisi": 2,
+   "sure_s": 57.532,
+   "araclar": [
+    {
+     "arac": "yaklasan_odemeler",
+     "argumanlar": {
+      "gun_sayisi": 30
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 3,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2745,
+    3425
+   ],
+   "uretim_token": [
+    34,
+    70
+   ],
+   "model_sure_s": [
+    12.461,
+    44.471
+   ],
+   "neden": null
+  },
+  {
+   "no": 7,
+   "kullanici": "selin.aydin",
+   "soru": "Önümüzdeki 4 haftanın nakit akışı nasıl görünüyor?",
+   "durum": "tamam",
+   "cevap": "Önümüzdeki 4 haftanın nakit akışı özet şöyledir:\n\n*   **1. Hafta (02-08 Eylül):** Giriş 16,09 milyon TL, Çıkış 7,24 milyon TL. Net artış 8,85 milyon TL.\n*   **2. Hafta (09-15 Eylül):** Giriş 5,83 milyon TL, Çıkış 45 bin TL. Net artış 5,79 milyon TL.\n*   **3. Hafta (16-22 Eylül):** Giriş 6,91 milyon TL, Çıkış 10,21 milyon TL. Net düşüş 3,29 milyon TL.\n*   **4. Hafta (23-29 Eylül):** Giriş 7,37 milyon TL, Çıkış 20,34 milyon TL. Net düşüş 13,0 milyon TL.\n\nGenel olarak ilk iki haftada nakit birikimi olurken, son iki haftada çıkışların girişleri aştığı görülüyor. Tahminde şüpheli alacaklar ve henüz kesilmemiş satışlar gibi kalemler yer almamaktadır.",
+   "model_cagrisi": 2,
+   "sure_s": 108.453,
+   "araclar": [
+    {
+     "arac": "nakit_akis_tahmini",
+     "argumanlar": {
+      "hafta_sayisi": 4
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 21,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2742,
+    3591
+   ],
+   "uretim_token": [
+    35,
+    267
+   ],
+   "model_sure_s": [
+    11.989,
+    95.786
+   ],
+   "neden": null
+  },
+  {
+   "no": 8,
+   "kullanici": "selin.aydin",
+   "soru": "Bereket İmalat'a faturaları kaç günde ödüyoruz?",
+   "durum": "tamam",
+   "cevap": "Bereket İmalat'a faturaları **fatura tarihinden itibaren 30 gün içinde** ödüyoruz. \"ŞİRKET, TEDARİKÇİ'nin düzenlediği faturaları fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder\" [SOZ-S001#m3].",
+   "model_cagrisi": 3,
+   "sure_s": 71.375,
+   "araclar": [
+    {
+     "arac": "belge_ara",
+     "argumanlar": {
+      "sorgu": "Bereket İmalat ödeme vadesi"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 2,
+   "reddedilen_taslaklar": [
+    "Bereket İmalat'a faturaları, **fatura tarihinden itibaren 30 gün içinde** ödüyoruz. [SOZ-S001#m3]"
+   ],
+   "denetlenen_sayi": 1,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [
+    "alintisiz_atif"
+   ],
+   "istem_token": [
+    2742,
+    3211,
+    3334
+   ],
+   "uretim_token": [
+    39,
+    39,
+    74
+   ],
+   "model_sure_s": [
+    12.954,
+    29.273,
+    24.005
+   ],
+   "neden": null
+  },
+  {
+   "no": 9,
+   "kullanici": "selin.aydin",
+   "soru": "Ticari defterleri kaç yıl saklamamız gerekiyor?",
+   "durum": "baglam_siniri",
+   "cevap": "Bu soru tek seferde işlenemeyecek kadar çok veri gerektirdi. Soruyu daha küçük parçalara bölerek sorabilirsiniz.",
+   "model_cagrisi": 2,
+   "sure_s": 97.14,
+   "araclar": [
+    {
+     "arac": "belge_ara",
+     "argumanlar": {
+      "sorgu": "ticari defter saklama süresi"
+     },
+     "hata": null
+    },
+    {
+     "arac": "belge_ara",
+     "argumanlar": {
+      "sorgu": "ticari defter saklama süresi kaç yıl"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 0,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 0,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2738,
+    4157
+   ],
+   "uretim_token": [
+    37,
+    107
+   ],
+   "model_sure_s": [
+    11.794,
+    84.398
+   ],
+   "neden": null
+  },
+  {
+   "no": 10,
+   "kullanici": "selin.aydin",
+   "soru": "EUR ve USD pozisyonlarımızın TL karşılığı toplam ne kadar?",
+   "durum": "tamam",
+   "cevap": "EUR ve USD pozisyonlarının TL karşılığını araç sonuçlarından alarak listeleyelim:\n\n**EUR Pozisyonu:**\n- Toplam TL karşılığı: 21.400.398,36 TL\n\n**USD Pozisyonu:**\n- Toplam TL karşılığı: 5.163.792,38 TL\n\nAraç sonuçlarında toplam EUR ve USD pozisyonlarının birleşik TL karşılığı verilmiyor. Sadece ayrı ayrı veriler mevcut.",
+   "model_cagrisi": 4,
+   "sure_s": 241.297,
+   "araclar": [
+    {
+     "arac": "nakit_pozisyonu",
+     "argumanlar": {
+      "tarih": "2026-09-01"
+     },
+     "hata": null
+    },
+    {
+     "arac": "kur_riski",
+     "argumanlar": {
+      "para_birimi": "EUR",
+      "tarih": "2026-09-01"
+     },
+     "hata": null
+    },
+    {
+     "arac": "kur_riski",
+     "argumanlar": {
+      "para_birimi": "USD",
+      "tarih": "2026-09-01"
+     },
+     "hata": null
+    },
+    {
+     "arac": "kur_riski",
+     "argumanlar": {
+      "para_birimi": "EUR",
+      "tarih": "2026-09-01"
+     },
+     "hata": null
+    },
+    {
+     "arac": "kur_riski",
+     "argumanlar": {
+      "para_birimi": "USD",
+      "tarih": "2026-09-01"
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 2,
+   "reddedilen_taslaklar": [
+    "Şirketin EUR ve USD pozisyonlarının TL karşılığını hesaplayalım:\n\n**EUR Pozisyonu:**\n- Banka bakiyesi: 17.904,83 EUR (TL: 1.000.256,91)\n- Alacaklar: 365.167,25 EUR (TL: 20.390.141,11)\n- **Toplam EUR TL karşılığı:** 21.400.398,36 TL\n\n**USD Pozisyonu:**\n- Banka bakiyesi: 8.697,97 USD (TL: 419.020,36)\n- Alacaklar: 98.491,36 USD (TL: 4.744.772,02)\n- **Toplam USD TL karşılığı:** 5.163.792,38 TL\n\n**EUR ve USD toplam TL karşılığı:** 21.400.398,36 + 5.163.792,38 = **26.564.190,74 TL**"
+   ],
+   "denetlenen_sayi": 13,
+   "ilk_taslakta_kaynaksiz": [
+    "20.390.141,11",
+    "4.744.772,02",
+    "26.564.190,74"
+   ],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2740,
+    3768,
+    4157,
+    4742
+   ],
+   "uretim_token": [
+    143,
+    276,
+    104,
+    112
+   ],
+   "model_sure_s": [
+    34.544,
+    106.025,
+    42.129,
+    57.31
+   ],
+   "neden": null
+  },
+  {
+   "no": 11,
+   "kullanici": "murat.kaya",
+   "soru": "Bankada ne kadar paramız var?",
+   "durum": "ret",
+   "cevap": "Bu bilgiyi görme yetkiniz yok.",
+   "model_cagrisi": 1,
+   "sure_s": 8.516,
+   "araclar": [
+    {
+     "arac": "nakit_pozisyonu",
+     "argumanlar": {},
+     "hata": "yetki_yok"
+    }
+   ],
+   "taslak_sayisi": 0,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 0,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2733
+   ],
+   "uretim_token": [
+    18
+   ],
+   "model_sure_s": [
+    8.181
+   ],
+   "neden": "yetki_yok"
+  },
+  {
+   "no": 12,
+   "kullanici": "murat.kaya",
+   "soru": "Vadesi geçmiş alacaklarımız ne durumda?",
+   "durum": "sure_siniri",
+   "cevap": "Bu soru süre sınırı içinde cevaplanamadı. Biraz sonra yeniden deneyebilir ya da soruyu daraltabilirsiniz.",
+   "model_cagrisi": 4,
+   "sure_s": 300.297,
+   "araclar": [
+    {
+     "arac": "geciken_alacaklar",
+     "argumanlar": {
+      "min_gun": 0
+     },
+     "hata": "gecersiz_arguman"
+    },
+    {
+     "arac": "geciken_alacaklar",
+     "argumanlar": {
+      "min_gun": 1,
+      "en_fazla": 20
+     },
+     "hata": "gecersiz_arguman"
+    },
+    {
+     "arac": "geciken_alacaklar",
+     "argumanlar": {
+      "min_gun": 1,
+      "en_fazla": 10
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [
+    "Vadesi geçmiş alacaklarınızın durumu şöyledir:\n\n- **Toplam gecikmiş fatura sayısı:** 985 adet\n- **Toplam tutar:** 23.863.877,25 TL\n\n**En büyük 10 gecikmiş fatura:**\n\n| Fatura No | Müşteri Adı | Vade Tarihi | Gecikme (gün) | Açık Tutar (TL) |\n|-----------|-------------|--------------|----------------|------------------|\n| F027181 | Vadi Mavi Dekorasyon Ltd. Şti. | 2026-03-19 | 166 | 592.329,28 |\n| F030272 | Atlas Başak Kırtasiye San. ve Tic. Ltd. Şti. | 2026-06-17 | 76 | 538.440,07 |\n| F034053 | Hilal Nar Gıda Ltd. Şti. | 2026-08-25 | 7 | 449.159,06 |\n| F034312 | Atlas Başak Kırtasiye San. ve Tic. Ltd. Şti. | 2026-08-29 | 3 | 413.955,78 |\n| F031294 | Palmiye Nar Tasarım Ltd. Şti. | 2026-08-03 | 29 | 359.441,73 |\n| F033872 | Zümrüt Meltem Market Ltd. Şti. | 2026-08-21 | 11 | 343.151,14 |\n| F035646 | Vadi Mavi Dekorasyon Ltd. Şti. | 2026-08-26 | 6 | 244.697,73 |\n| F033282 | Nar Koru Kırtasiye A.Ş. | 2026-08-24 | 8 |"
+   ],
+   "denetlenen_sayi": 26,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2735,
+    2836,
+    2976,
+    4431
+   ],
+   "uretim_token": [
+    32,
+    72,
+    47,
+    512
+   ],
+   "model_sure_s": [
+    11.28,
+    24.903,
+    20.239,
+    215.065
+   ],
+   "neden": null
+  },
+  {
+   "no": 13,
+   "kullanici": "deniz.arslan",
+   "soru": "En büyük alacaklarımız hangi müşterilerde?",
+   "durum": "tamam",
+   "cevap": "Şirketimizin en büyük alacakları şu müşterilerdedir (bugünün tarihi 2026-09-01 itibarıyla):\n\n1. **Green Home Store Ltd**: Toplam 7.775.050,92 TL (vadesi geçmiş: 6.611.812,43 TL)\n2. **Prime Design House Ltd**: Toplam 3.810.137,48 TL (vadesi geçmiş: 3.289.531,58 TL)\n3. **Bright Trading Co Pty Ltd**: Toplam 2.830.371,80 TL (vadesi geçmiş: 1.413.713,79 TL)\n4. **Alpine Gifts Store BV**: Toplam 2.586.733,95 TL (vadesi geçmiş: 0,00 TL)\n5. **Bright Living House GmbH**: Toplam 571.216,71 TL (vadesi geçmiş: 571.216,71 TL)\n\nToplam açık alacak: 23.860.952,91 TL'dir.",
+   "model_cagrisi": 2,
+   "sure_s": 140.828,
+   "araclar": [
+    {
+     "arac": "alacak_yaslandirma",
+     "argumanlar": {
+      "en_fazla": 10
+     },
+     "hata": null
+    }
+   ],
+   "taslak_sayisi": 1,
+   "reddedilen_taslaklar": [],
+   "denetlenen_sayi": 12,
+   "ilk_taslakta_kaynaksiz": [],
+   "ilk_taslakta_gecersiz_alinti": [],
+   "istem_token": [
+    2735,
+    3773
+   ],
+   "uretim_token": [
+    34,
+    278
+   ],
+   "model_sure_s": [
+    16.485,
+    123.583
+   ],
+   "neden": null
+  }
+ ]
+}

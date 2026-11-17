@@ -4,6 +4,10 @@
 
 Kullanım (proje kökünden):
     .venv\\Scripts\\python -I scripts\\faz3_sunucu.py [--ambar ...] [--saat ...] [--kayit ...] [--kapsam-klasoru ...]
+        [--belge data\\belge] [--belge-yontemi anlam|bm25|karma|karma_sirala]
+
+--belge verilmezse belge_ara aracı "kullanilamaz" ile reddedilir (Faz 6). Sıralayıcı (karma_sirala) daha güçlü bir
+bilgisayar için bir ayardır.
 """
 
 import sys

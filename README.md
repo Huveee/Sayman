@@ -65,8 +65,9 @@ POS valörleri, ödenmemiş alış faturaları); maaş, vergi ve henüz kesilmem
 
 ## Faz 3: araçlar ve yetki
 
-Model veriye yalnızca 13 salt okunur araçla ulaşır; araçlar bir MCP sunucusunda durur. Her çağrı tek bir
-kapıdan geçer: imzalı kimlik kartı, rolün araç izni, argüman şeması, "bugün"den sonraki tarih kontrolü.
+Model veriye yalnızca salt okunur araçlarla ulaşır (Faz 3'te 13 araç; Faz 6'da belge araması eklendi, 14);
+araçlar bir MCP sunucusunda durur. Her çağrı tek bir kapıdan geçer: imzalı kimlik kartı, rolün araç izni,
+argüman şeması, "bugün"den sonraki tarih kontrolü.
 Satış müdürleri yalnızca kendi müşterilerinin satırlarının bulunduğu ayrı, salt okunur bir veritabanında
 çalışır. Reddedilenler dahil her çağrı, satırları birbirine zincirlenmiş bir denetim kaydına yazılır.
 
@@ -171,6 +172,89 @@ arama kısmı sıralayıcıyla medyan 9,6 sn (en çok 23 sn) sürüyor; sıralay
 neredeyse tamamı. Sıralayıcısız arama soru başına yaklaşık 0,15 sn (sorunun vektöre çevrilmesi 0,1 sn). Bütün parçaların vektöre
 çevrilmesi bir kez yapılır ve 26 dakika sürdü.
 
+## Faz 6: doğrulayıcı ve orkestratör
+
+Orkestratör soruyu modele verir, modelin istediği araçları Faz 3'ün kapısından çalıştırır ve modelin cevabını
+kullanıcıya göstermeden önce doğrular. Kural: kullanıcıya gösterilen metin ya doğrulayıcıdan geçmiş bir model
+cevabıdır ya da sabit bir metindir; reddedilen taslak gösterilmez. Bir tur şu durumlardan biriyle biter:
+
+| Durum | Ne zaman |
+| --- | --- |
+| `tamam` | Cevap doğrulandı. |
+| `ret` | Kimlik kartı geçersiz ya da bu turdaki araç çağrılarının hepsi `yetki_yok` aldı. Modele bir daha gidilmez. |
+| `uretemedim` | Doğrulanamayan cevap için bir kez düzeltme istendi, yine doğrulanamadı ("cevap üretemedim"). |
+| `adim_siniri` | En çok 6 model çağrısı (düzeltme dahil) ya da 8 araç çağrısı. |
+| `sure_siniri` | 300 sn (Faz 0 hızından: istem ~27, üretim ~5 token/sn). |
+| `baglam_siniri` | Mesajlar 8.192 tokenlık pencereye sığmıyor (Ollama sığmayanı sessizce keserdi). |
+| `model_hatasi` | Model çağrısı hata verdi. |
+
+Kimlik kartı modele giden mesajlara girmez, yalnızca kapıya gider; tur başında, süre sınırının dolacağı an için
+doğrulanır.
+
+Doğrulayıcı cevaptaki her sayıyı bu turdaki başarılı araç sonuçlarında arar. Cevap Türkçe biçimde okunur
+("75.826.754,65"; noktanın ardından tam üç rakam binlik ayırıcıdır), "bin/milyon/milyar" çarpandır; yuvarlanmış ya
+da kesilmiş yazılış geçer ("75,8 milyon"), yanlış yuvarlama geçmez ("75,81 milyon"). Her sayının bir türü vardır
+(tutar, yüzde, gün, ay, adet, tarih, yıl): uydurulmuş "%12", "son 12 ay"daki 12 ile eşleşmez. Kaynaklar: bu turdaki
+başarılı araç sonuçlarının değerleri, alan adlarındaki dönemler (`son_12_ay`), araç argümanları, belge sonuçlarındaki
+madde metinleri, kullanıcının sorusu ve bugünün tarihi. Açıklama metinleri, reddedilen çağrılar ve düzeltme mesajları
+kaynak değildir. Belge alıntıları Faz 5 alıntı kontrolüyle, yalnızca bu turda getirilen maddelere karşı denetlenir.
+
+Belge araması 14. araçtır (`belge_ara`) ve aynı kapıdan geçer: rol süzmesi, şema kontrolü ve denetim kaydı öteki
+araçlarla aynıdır. Varsayılan yöntem anlam aramasıdır; sıralayıcı bir ayardır (`--belge-yontemi karma_sirala`, daha
+güçlü bir bilgisayar için). En çok 3 madde döner; 2.500 karakterden uzun madde (kütüphanenin %0,8'i, hepsi kanun
+maddesi) kelime sınırında kesilir.
+
+Bilinen sınırlar (her biri bir testle gösterilir): doğrulayıcı sayının neye ait olduğuna bakmaz, doğru tutar yanlış
+müşteriye yazılırsa geçer; kullanıcının sorusundaki sayı kaynaktır ("DSO 59 gün mü?" sorusuna "Evet, 59 gün" geçer);
+yalnızca rakamla yazılan sayılara bakılır ("yirmi yıl" denetlenmez) ve belge cevaplarında alıntı şart değildir, yani
+yazıyla yanlış bir süre yazan alıntısız bir belge cevabı hiçbir kontrole takılmaz. Modelin kendi yaptığı toplama ya da
+çarpma, sonucu doğru olsa bile reddedilir.
+
+```bash
+.venv/Scripts/python -I scripts/faz6_arac_ornekleri.py
+.venv/Scripts/python -I scripts/faz6_duman.py
+```
+
+İlk betik, doğrulayıcı testlerinin dayandığı gerçek araç sonuçlarını kaydeder (`tests/faz6_arac_sonuclari.json`).
+Taslak seti (`tests/faz6_taslaklar.py`) doğrulayıcıdan önce bu sonuçlara göre yazıldı ve donduruldu: 18 doğru taslak
+(aynı sayının farklı yazılışları, eksi işaretsiz çıkış, tarih, numaralı liste, alıntı) geçmeli; 13 yanlış taslak
+(yazım hatası, rakam kayması, uydurma %12, yanlış yuvarlama, tür uyuşmazlığı, türetilmiş toplam, reddedilen çağrıdan
+sayı, yanlış tarih, uydurma alıntı ve başkaları) tam olarak beklenen sayılarla yakalanmalı. Orkestratörün her bitiş
+durumu, senaryosu önceden yazılmış sahte bir modelle sınanır.
+
+İkinci betik gerçek modelle duman testidir (qwen3.5:9b, sıcaklık 0, tohum 42): önce bağlam ölçümleri, sonra üç rolden
+13 soru (`reports/faz6_duman.json`). Bu bir kalite ölçümü değildir; sorular azdır ve düzeltmeler aynı sorular
+üzerinde yapıldı.
+
+| Çalıştırma | tamam | ret | uretemedim | sure_siniri | baglam_siniri |
+| --- | --- | --- | --- | --- | --- |
+| İlk (sınır 120 sn), `reports/faz6_duman_ilk.json` | 6 | 1 | 1 | 5 | 0 |
+| İkinci (300 sn, üç doğrulayıcı düzeltmesinden sonra) | 9 | 1 | 1 | 1 | 1 |
+
+- İlk çalıştırma doğrulayıcıda üç açık gösterdi: kalın yazı işaretli "**43.510.100,56 TL**" adet sayıldı, "09-15
+  Eylül" aralığındaki 09 sayı sanıldı, '"kaç yıl" sorusuna' gibi kısa tırnaklı söz alıntı sayıldı. Üçü kapatıldı ve
+  test eklendi.
+- İkinci çalıştırmada ilk taslaklarda 115 sayı denetlendi, 4'ü kaynaksız çıktı ve dördü de modelin kendi işlemiydi:
+  iki tutarın toplamı (iki soruda) ve döviz alacağının TL karşılığı. Bu çarpımlardan biri 10.000 TL yanlıştı
+  (365.167,25 EUR × 55,8652 = 20.400.141,45; model 20.390.141,11 yazdı). Bir soruda düzeltme sonrası doğru cevap
+  geldi, birinde model toplamı yazmayı sürdürdü ve tur "cevap üretemedim" ile bitti.
+- 9. soru (ticari defterlerin saklama süresi) bağlam sınırına takıldı: karakterden yapılan tahmin gerçek istemi
+  en az ~2.000 token fazla saydı (madde metni token başına ~3,1 karakter tutuyor, tahmin 1,7 kullanıyordu). Tahmin,
+  modelin bildirdiği istem token sayısının üstüne yalnızca yeni mesajları ekleyecek, belge sonuçlarına da kendi
+  oranını (2,8) kullanacak şekilde düzeltildi. 9. soru tek başına yeniden sorulunca ikinci bir sorun çıktı (bu ara
+  çalıştırmanın dosyası bir sonraki seçili çalıştırmayla üzerine yazıldı): arama doğru maddeyi (TTK md. 82) ilk sırada
+  buldu, ama "on yıl" ifadesi maddenin 1.413. karakterindeydi ve araç maddeyi o zaman 1.200 karakterde kesiyordu;
+  model süreyi bulamadığını söyledi. Sınır 2.500'e çıkarıldı; 8. ve 9. sorular yeniden soruldu, ikisi de doğru
+  cevapla bitti (`reports/faz6_duman_secili.json`).
+- Ölçümler: 14 aracın listesi 2.338 token. Seçili çalıştırmada (`reports/faz6_duman_secili.json`) en uzun belge
+  sonucu (3 madde, 8.224 karakter) 2.580 token, görülen en büyük istem 4.954 token. Ollama'nın bildirdiği istem
+  token sayısı ön bellekten okunan kısmı da sayıyor.
+- Süre: soru başına medyan 97 sn. Bu bilgisayarda model saniyede ~5 token yazdığı için uzun cevaplar (250-500 token)
+  sürenin çoğunu alıyor; bir soru 512 tokenlık bir tabloyla süre sınırına takıldı.
+- Doğrulayıcının kör noktası gerçek cevapta da görüldü: ilk çalıştırmada model "son 12 ayda kapanan 4 faturanın 3'ü
+  geç kapandı" bilgisini "4 fatura zamanında, 3 fatura gecikmeli" diye yazdı; sayılar araç sonucunda geçtiği için
+  geçti.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -189,7 +273,7 @@ neredeyse tamamı. Sıralayıcısız arama soru başına yaklaşık 0,15 sn (sor
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü) |
+| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör) |
 | `tests` | Yazılım testleri ve kabul testleri |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
 | `reports` | Ölçüm sonuçları |

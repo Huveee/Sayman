@@ -1,0 +1,664 @@
+{
+ "aciklama": "Gerçek araçların gerçek ambardaki sonuçları; doğrulayıcı taslak testleri bunlara dayanır.",
+ "bugun": "2026-09-01",
+ "cagrilar": {
+  "yaslandirma": {
+   "kullanici": "selin.aydin",
+   "arac": "alacak_yaslandirma",
+   "argumanlar": {
+    "en_fazla": 5
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "C8cbf462b0484",
+    "arac": "alacak_yaslandirma",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "dilimler": {
+      "vadesi_gelmemis": "39535833.17",
+      "gecikme_1_30": "11743200.33",
+      "gecikme_31_60": "7455290.25",
+      "gecikme_61_90": "3638946.42",
+      "gecikme_91_180": "5847508.61",
+      "gecikme_180_ustu": "9115917.34",
+      "eslesmemis_tahsilat": "-1756450.44"
+     },
+     "toplam_tl": "75580245.68",
+     "vadesi_gecmis_tl": "37800862.95",
+     "musteri_sayisi": 1290,
+     "en_buyuk_alacaklar": [
+      {
+       "musteri_id": "M01740",
+       "musteri": "Green Home Store Ltd",
+       "toplam_tl": "7775050.92",
+       "vadesi_gecmis_tl": "6611812.43"
+      },
+      {
+       "musteri_id": "M02469",
+       "musteri": "Prime Design House Ltd",
+       "toplam_tl": "3810137.48",
+       "vadesi_gecmis_tl": "3289531.58"
+      },
+      {
+       "musteri_id": "M00067",
+       "musteri": "Bright Trading Co Pty Ltd",
+       "toplam_tl": "2830371.80",
+       "vadesi_gecmis_tl": "1413713.79"
+      },
+      {
+       "musteri_id": "M02217",
+       "musteri": "Alpine Gifts Store BV",
+       "toplam_tl": "2586733.95",
+       "vadesi_gecmis_tl": "0.00"
+      },
+      {
+       "musteri_id": "M03296",
+       "musteri": "Vadi Mavi Dekorasyon Ltd. Şti.",
+       "toplam_tl": "2543589.02",
+       "vadesi_gecmis_tl": "2508616.30"
+      }
+     ],
+     "not": "TL tutarlar fatura günündeki kurla; eşleşmemiş tahsilatlar alacaktan düşülmüştür."
+    },
+    "kaynak": {
+     "musteriler": [
+      "M01740",
+      "M02469",
+      "M00067",
+      "M02217",
+      "M03296"
+     ]
+    }
+   }
+  },
+  "nakit": {
+   "kullanici": "selin.aydin",
+   "arac": "nakit_pozisyonu",
+   "argumanlar": {},
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "Ca64cb10476eb",
+    "arac": "nakit_pozisyonu",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "hesaplar": [
+      {
+       "hesap_id": "A_TRY",
+       "banka": "Banka A",
+       "para_birimi": "TRY",
+       "bakiye": "74205083.37",
+       "kur": "1",
+       "bakiye_tl": "74205083.37"
+      },
+      {
+       "hesap_id": "B_EUR",
+       "banka": "Banka B",
+       "para_birimi": "EUR",
+       "bakiye": "17904.83",
+       "kur": "55.8652",
+       "bakiye_tl": "1000256.91"
+      },
+      {
+       "hesap_id": "B_TRY",
+       "banka": "Banka B",
+       "para_birimi": "TRY",
+       "bakiye": "202394.01",
+       "kur": "1",
+       "bakiye_tl": "202394.01"
+      },
+      {
+       "hesap_id": "C_USD",
+       "banka": "Banka C",
+       "para_birimi": "USD",
+       "bakiye": "8697.97",
+       "kur": "48.1745",
+       "bakiye_tl": "419020.36"
+      }
+     ],
+     "toplam_tl": "75826754.65"
+    },
+    "kaynak": {
+     "banka_hesaplari": [
+      "A_TRY",
+      "B_EUR",
+      "B_TRY",
+      "C_USD"
+     ]
+    }
+   }
+  },
+  "musteri_a": {
+   "kullanici": "selin.aydin",
+   "arac": "musteri_ozeti",
+   "argumanlar": {
+    "musteri_adi": "Green Home Store Ltd"
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "C8bcfa2cfa1a1",
+    "arac": "musteri_ozeti",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "musteri_id": "M01740",
+     "musteri": "Green Home Store Ltd",
+     "ulke": "İrlanda",
+     "para_birimi": "EUR",
+     "vade_gun": 30,
+     "acik_alacak_tl": "7775050.92",
+     "dilimler": {
+      "vadesi_gelmemis": "1163238.49",
+      "gecikme_1_30": "821769.85",
+      "gecikme_31_60": "601614.68",
+      "gecikme_61_90": "330902.70",
+      "gecikme_91_180": "1112690.18",
+      "gecikme_180_ustu": "3744835.02",
+      "eslesmemis_tahsilat": "0.00"
+     },
+     "acik_fatura_sayisi": 71,
+     "en_eski_acik_vade": "2025-09-19",
+     "son_tahsilatlar": [
+      {
+       "tahsilat_id": "T4EF106E1",
+       "tarih": "2026-01-20",
+       "tutar": "7501.99",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F011881"
+      },
+      {
+       "tahsilat_id": "T71B49FDB",
+       "tarih": "2026-01-09",
+       "tutar": "13336.87",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F011881"
+      },
+      {
+       "tahsilat_id": "T54937666",
+       "tarih": "2025-10-13",
+       "tutar": "9.73",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F013418"
+      },
+      {
+       "tahsilat_id": "T2B5A1DE3",
+       "tarih": "2025-09-15",
+       "tutar": "1260.57",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F007267"
+      },
+      {
+       "tahsilat_id": "T1B259EB0",
+       "tarih": "2025-09-04",
+       "tutar": "931.74",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F013656"
+      }
+     ],
+     "bekleyen_cek_sayisi": 0,
+     "bekleyen_cek_tutari": "0.00",
+     "son_12_ay_kapanan_fatura": 4,
+     "son_12_ay_gec_kapanan_fatura": 3,
+     "son_12_ay_ortalama_gecikme_gun": 78
+    },
+    "kaynak": {
+     "musteriler": [
+      "M01740"
+     ],
+     "tahsilatlar": [
+      "T4EF106E1",
+      "T71B49FDB",
+      "T54937666",
+      "T2B5A1DE3",
+      "T1B259EB0"
+     ]
+    }
+   }
+  },
+  "musteri_b": {
+   "kullanici": "selin.aydin",
+   "arac": "musteri_ozeti",
+   "argumanlar": {
+    "musteri_adi": "Prime Design House Ltd"
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "C79a1fa06857d",
+    "arac": "musteri_ozeti",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "musteri_id": "M02469",
+     "musteri": "Prime Design House Ltd",
+     "ulke": "İrlanda",
+     "para_birimi": "EUR",
+     "vade_gun": 30,
+     "acik_alacak_tl": "3810137.48",
+     "dilimler": {
+      "vadesi_gelmemis": "520605.90",
+      "gecikme_1_30": "779244.65",
+      "gecikme_31_60": "619279.78",
+      "gecikme_61_90": "569130.61",
+      "gecikme_91_180": "769753.44",
+      "gecikme_180_ustu": "552123.10",
+      "eslesmemis_tahsilat": "0.00"
+     },
+     "acik_fatura_sayisi": 96,
+     "en_eski_acik_vade": "2026-01-07",
+     "son_tahsilatlar": [
+      {
+       "tahsilat_id": "T912A3F18",
+       "tarih": "2026-05-29",
+       "tutar": "7.66",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F022365"
+      },
+      {
+       "tahsilat_id": "T1085BD7D",
+       "tarih": "2026-05-13",
+       "tutar": "9.37",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F022365"
+      },
+      {
+       "tahsilat_id": "TEF37F79A",
+       "tarih": "2026-05-11",
+       "tutar": "614.55",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F020321"
+      },
+      {
+       "tahsilat_id": "TB4251BD7",
+       "tarih": "2026-04-20",
+       "tutar": "314.80",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F016882"
+      },
+      {
+       "tahsilat_id": "T2AE4861E",
+       "tarih": "2026-03-18",
+       "tutar": "192.73",
+       "para_birimi": "EUR",
+       "yontem": "swift",
+       "fatura_id": "F021081"
+      }
+     ],
+     "bekleyen_cek_sayisi": 0,
+     "bekleyen_cek_tutari": "0.00",
+     "son_12_ay_kapanan_fatura": 100,
+     "son_12_ay_gec_kapanan_fatura": 41,
+     "son_12_ay_ortalama_gecikme_gun": 17
+    },
+    "kaynak": {
+     "musteriler": [
+      "M02469"
+     ],
+     "tahsilatlar": [
+      "T912A3F18",
+      "T1085BD7D",
+      "TEF37F79A",
+      "TB4251BD7",
+      "T2AE4861E"
+     ]
+    }
+   }
+  },
+  "geciken": {
+   "kullanici": "selin.aydin",
+   "arac": "geciken_alacaklar",
+   "argumanlar": {
+    "min_gun": 30,
+    "en_fazla": 5
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "C62a96303ee08",
+    "arac": "geciken_alacaklar",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "min_gun": 30,
+     "fatura_sayisi": 840,
+     "toplam_tl": "26295727.02",
+     "faturalar": [
+      {
+       "fatura_id": "F032047",
+       "musteri_id": "M00067",
+       "musteri": "Bright Trading Co Pty Ltd",
+       "vade_tarihi": "2026-07-17",
+       "gecikme_gun": 46,
+       "acik_tutar": "30508.53",
+       "para_birimi": "USD",
+       "acik_tutar_tl": "1409875.44"
+      },
+      {
+       "fatura_id": "F024508",
+       "musteri_id": "M01740",
+       "musteri": "Green Home Store Ltd",
+       "vade_tarihi": "2026-02-15",
+       "gecikme_gun": 198,
+       "acik_tutar": "19332.84",
+       "para_birimi": "EUR",
+       "acik_tutar_tl": "969630.86"
+      },
+      {
+       "fatura_id": "F013945",
+       "musteri_id": "M01740",
+       "musteri": "Green Home Store Ltd",
+       "vade_tarihi": "2025-09-19",
+       "gecikme_gun": 347,
+       "acik_tutar": "14457.88",
+       "para_birimi": "EUR",
+       "acik_tutar_tl": "689272.20"
+      },
+      {
+       "fatura_id": "F027181",
+       "musteri_id": "M03296",
+       "musteri": "Vadi Mavi Dekorasyon Ltd. Şti.",
+       "vade_tarihi": "2026-03-19",
+       "gecikme_gun": 166,
+       "acik_tutar": "592329.28",
+       "para_birimi": "TRY",
+       "acik_tutar_tl": "592329.28"
+      },
+      {
+       "fatura_id": "F030089",
+       "musteri_id": "M00233",
+       "musteri": "Bright Living House GmbH",
+       "vade_tarihi": "2026-07-13",
+       "gecikme_gun": 50,
+       "acik_tutar": "10760.68",
+       "para_birimi": "EUR",
+       "acik_tutar_tl": "571216.71"
+      }
+     ]
+    },
+    "kaynak": {
+     "faturalar": [
+      "F032047",
+      "F024508",
+      "F013945",
+      "F027181",
+      "F030089"
+     ]
+    }
+   }
+  },
+  "kur_riski": {
+   "kullanici": "selin.aydin",
+   "arac": "kur_riski",
+   "argumanlar": {},
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "C594e72917073",
+    "arac": "kur_riski",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "dovizler": [
+      {
+       "para_birimi": "EUR",
+       "alacak": "365167.25",
+       "banka": "17904.83",
+       "toplam": "383072.08",
+       "kur": "55.8652",
+       "toplam_tl": "21400398.36",
+       "kur_yuzde_10_degisirse_etki_tl": "2140039.84",
+       "alacak_kur_farki_tl": "1184497.81"
+      },
+      {
+       "para_birimi": "USD",
+       "alacak": "98491.36",
+       "banka": "8697.97",
+       "toplam": "107189.33",
+       "kur": "48.1745",
+       "toplam_tl": "5163792.38",
+       "kur_yuzde_10_degisirse_etki_tl": "516379.24",
+       "alacak_kur_farki_tl": "99462.76"
+      }
+     ],
+     "not": "Alacak ve banka tutarları döviz cinsindendir; TL karşılığı o günün TCMB alış kuruyla."
+    },
+    "kaynak": {}
+   }
+  },
+  "dso": {
+   "kullanici": "selin.aydin",
+   "arac": "dso_hesapla",
+   "argumanlar": {
+    "donem": "son_90_gun"
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "Cbcabc44d6061",
+    "arac": "dso_hesapla",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "donem": "son_90_gun",
+     "gun": 90,
+     "pencere_baslangic": "2026-06-04",
+     "pencere_bitis": "2026-09-01",
+     "dso_gun": "50.93",
+     "acik_alacak_tl": "75580245.68",
+     "donem_satisi_tl": "133549920.32",
+     "formul": "DSO = gün sayısı x açık alacak / dönemdeki net satış (iadeler düşülmüş). Kapsam tüm şirketse POS satışları da dahildir."
+    },
+    "kaynak": {}
+   }
+  },
+  "yaklasan": {
+   "kullanici": "selin.aydin",
+   "arac": "yaklasan_odemeler",
+   "argumanlar": {
+    "gun_sayisi": 30,
+    "en_fazla": 5
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "Cab8fcb60f60c",
+    "arac": "yaklasan_odemeler",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "gun_sayisi": 30,
+     "fatura_sayisi": 22,
+     "toplam_tl": "43510100.56",
+     "vadesi_gecmis_tl": "657272.69",
+     "odemeler": [
+      {
+       "alis_fatura_id": "A000351",
+       "tedarikci": "Orkide Kargo ve Lojistik A.Ş.",
+       "kategori": "lojistik",
+       "vade_tarihi": "2026-08-30",
+       "kalan_gun": -2,
+       "tutar_tl": "657272.69"
+      },
+      {
+       "alis_fatura_id": "A000355",
+       "tedarikci": "Kartal Kağıt A.Ş.",
+       "kategori": "mal",
+       "vade_tarihi": "2026-09-03",
+       "kalan_gun": 2,
+       "tutar_tl": "1164469.46"
+      },
+      {
+       "alis_fatura_id": "A000347",
+       "tedarikci": "Ekin Metal A.Ş.",
+       "kategori": "mal",
+       "vade_tarihi": "2026-09-04",
+       "kalan_gun": 3,
+       "tutar_tl": "1390666.04"
+      },
+      {
+       "alis_fatura_id": "A000344",
+       "tedarikci": "Marmara Metal San. ve Tic. Ltd. Şti.",
+       "kategori": "mal",
+       "vade_tarihi": "2026-09-05",
+       "kalan_gun": 4,
+       "tutar_tl": "2561753.24"
+      },
+      {
+       "alis_fatura_id": "A000342",
+       "tedarikci": "Marmara Metal San. ve Tic. Ltd. Şti.",
+       "kategori": "mal",
+       "vade_tarihi": "2026-09-07",
+       "kalan_gun": 6,
+       "tutar_tl": "1463858.99"
+      }
+     ],
+     "not": "Ödenmemiş tedarikçi (alış) faturalarıdır; maaş, SGK ve vergi ödemeleri dahil değildir."
+    },
+    "kaynak": {
+     "alis_faturalari": [
+      "A000351",
+      "A000355",
+      "A000347",
+      "A000344",
+      "A000342"
+     ]
+    }
+   }
+  },
+  "cikislar": {
+   "kullanici": "selin.aydin",
+   "arac": "banka_hareketleri",
+   "argumanlar": {
+    "baslangic": "2026-08-25",
+    "bitis": "2026-09-01",
+    "yon": "cikis",
+    "en_fazla": 5
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "C24e37af6fba8",
+    "arac": "banka_hareketleri",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "baslangic": "2026-08-25",
+     "bitis": "2026-09-01",
+     "hareket_sayisi": 41,
+     "toplamlar": [
+      {
+       "para_birimi": "EUR",
+       "adet": 2,
+       "giris": "0.00",
+       "cikis": "-71625.58"
+      },
+      {
+       "para_birimi": "TRY",
+       "adet": 38,
+       "giris": "0.00",
+       "cikis": "-12766257.63"
+      },
+      {
+       "para_birimi": "USD",
+       "adet": 1,
+       "giris": "0.00",
+       "cikis": "-34791.88"
+      }
+     ],
+     "gosterilen": 5,
+     "hareketler": [
+      {
+       "hareket_id": "H0033267",
+       "hesap_id": "A_TRY",
+       "tarih": "2026-09-01",
+       "tutar": "-250.00",
+       "para_birimi": "TRY",
+       "aciklama": "HESAP İŞLETİM ÜCRETİ"
+      },
+      {
+       "hareket_id": "H0033265",
+       "hesap_id": "C_USD",
+       "tarih": "2026-09-01",
+       "tutar": "-34791.88",
+       "para_birimi": "USD",
+       "aciklama": "DÖVİZ SATIŞ USD/TRY KUR 48.1745"
+      },
+      {
+       "hareket_id": "H0033263",
+       "hesap_id": "B_EUR",
+       "tarih": "2026-09-01",
+       "tutar": "-71619.34",
+       "para_birimi": "EUR",
+       "aciklama": "DÖVİZ SATIŞ EUR/TRY KUR 55.8652"
+      },
+      {
+       "hareket_id": "H0033262",
+       "hesap_id": "A_TRY",
+       "tarih": "2026-09-01",
+       "tutar": "-87277.45",
+       "para_birimi": "TRY",
+       "aciklama": "EFT GİDEN Lale Yazılım Hizmetleri A.Ş."
+      },
+      {
+       "hareket_id": "H0033261",
+       "hesap_id": "A_TRY",
+       "tarih": "2026-09-01",
+       "tutar": "-178.39",
+       "para_birimi": "TRY",
+       "aciklama": "İADE Kartal Nar Pazarlama Ltd. Şti."
+      }
+     ]
+    },
+    "kaynak": {
+     "banka_hareketleri": [
+      "H0033267",
+      "H0033265",
+      "H0033263",
+      "H0033262",
+      "H0033261"
+     ]
+    }
+   }
+  },
+  "usd": {
+   "kullanici": "selin.aydin",
+   "arac": "doviz_kuru",
+   "argumanlar": {
+    "para_birimi": "USD"
+   },
+   "hata_mi": false,
+   "yanit": {
+    "cagri_id": "Ceb9a50ed4750",
+    "arac": "doviz_kuru",
+    "tarih": "2026-09-01",
+    "kapsam": "tüm şirket",
+    "sonuc": {
+     "para_birimi": "USD",
+     "kur_tarihi": "2026-09-01",
+     "alis": "48.1745",
+     "not": "TCMB döviz alış kuru; hafta sonu ve tatilde son iş gününün kuru."
+    },
+    "kaynak": {
+     "doviz_kurlari": [
+      "2026-09-01-USD"
+     ]
+    }
+   }
+  },
+  "satis_nakit_ret": {
+   "kullanici": "murat.kaya",
+   "arac": "nakit_pozisyonu",
+   "argumanlar": {},
+   "hata_mi": true,
+   "yanit": {
+    "cagri_id": "C540a86a534c4",
+    "hata": "yetki_yok",
+    "mesaj": "Bu bilgiyi görme yetkiniz yok."
+   }
+  }
+ }
+}
