@@ -1,0 +1,404 @@
+{
+ "olcum_zamani": "2026-11-19T19:35:20+03:00",
+ "soru_seti_ozeti": "a0481c1c965942b0f2a2263d76a12ebe0f37f2b1d972d9cde32283c9acb1478d",
+ "modeller": {
+  "kahin": {
+   "gelistirme": {
+    "sure_s": 3.0,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 1.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 1.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 1.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 62,
+     "ret": 6
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 58,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 48
+    }
+   },
+   "saklanan": {
+    "sure_s": 8.7,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 1.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 1.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 1.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 215,
+     "ret": 35
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 190,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 150
+    }
+   }
+  },
+  "yanlis_arac": {
+   "gelistirme": {
+    "sure_s": 1.2,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 1.0,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 0.0,
+    "belge_cevap": 0.0,
+    "belge_alinti": 0.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 68
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 58,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "yanlis_arac": 48
+    }
+   },
+   "saklanan": {
+    "sure_s": 2.4,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 1.0,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 0.0,
+    "belge_cevap": 0.0,
+    "belge_alinti": 0.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 250
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 190,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "yanlis_arac": 150
+    }
+   }
+  },
+  "bir_hane": {
+   "gelistirme": {
+    "sure_s": 2.4,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0625,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 0.1,
+    "belge_alinti": 0.1,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "uretemedim": 54,
+     "tamam": 8,
+     "ret": 6
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 1,
+     "gecti_eksik": 3,
+     "reddedildi_dogru": 18,
+     "reddedildi_eksik": 90
+    },
+    "hata_turleri": {
+     "dogrulanamadi": 45,
+     "deger_eksik": 3
+    }
+   },
+   "saklanan": {
+    "sure_s": 10.6,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0733,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 0.0,
+    "belge_alinti": 0.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "uretemedim": 179,
+     "tamam": 36,
+     "ret": 35
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 11,
+     "reddedildi_dogru": 78,
+     "reddedildi_eksik": 280
+    },
+    "hata_turleri": {
+     "dogrulanamadi": 139,
+     "deger_eksik": 11
+    }
+   }
+  },
+  "hep_ret": {
+   "gelistirme": {
+    "sure_s": 0.8,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 0.0,
+    "belge_cevap": 0.0,
+    "belge_alinti": 0.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 68
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 58,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "gereksiz_ret": 48
+    }
+   },
+   "saklanan": {
+    "sure_s": 1.0,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 0.0,
+    "belge_cevap": 0.0,
+    "belge_alinti": 0.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 250
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 190,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "gereksiz_ret": 150
+    }
+   }
+  },
+  "baska_musteri": {
+   "gelistirme": {
+    "sure_s": 2.5,
+    "arac_secimi": 1.0,
+    "parametre": 0.9375,
+    "rakam_dogrulugu": 0.9375,
+    "dogrulanmis_yanlis_sayi": 0.0625,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 1.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 62,
+     "ret": 6
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 55,
+     "gecti_eksik": 3,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 45,
+     "yanlis_parametre": 3
+    }
+   },
+   "saklanan": {
+    "sure_s": 9.0,
+    "arac_secimi": 1.0,
+    "parametre": 0.7933,
+    "rakam_dogrulugu": 0.7933,
+    "dogrulanmis_yanlis_sayi": 0.2067,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 1.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 215,
+     "ret": 35
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 159,
+     "gecti_eksik": 31,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 119,
+     "yanlis_parametre": 31
+    }
+   }
+  },
+  "yaziyla": {
+   "gelistirme": {
+    "sure_s": 2.4,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.8125,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 0.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 62,
+     "ret": 6
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 58,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "deger_eksik": 39,
+     "gereksiz_ret": 9
+    }
+   },
+   "saklanan": {
+    "sure_s": 8.5,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.88,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 0.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 215,
+     "ret": 35
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 190,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "deger_eksik": 132,
+     "gereksiz_ret": 18
+    }
+   }
+  },
+  "yanlis_birim": {
+   "gelistirme": {
+    "sure_s": 2.4,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.5,
+    "dogrulanmis_yanlis_sayi": 0.5,
+    "musteri_sorularinda_rakam_dogrulugu": 1.0,
+    "belge_isabet": 1.0,
+    "belge_cevap": 1.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 62,
+     "ret": 6
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 34,
+     "gecti_eksik": 24,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "deger_eksik": 24,
+     "dogru": 24
+    }
+   },
+   "saklanan": {
+    "sure_s": 8.3,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.32,
+    "dogrulanmis_yanlis_sayi": 0.68,
+    "musteri_sorularinda_rakam_dogrulugu": 0.4839,
+    "belge_isabet": 1.0,
+    "belge_cevap": 1.0,
+    "belge_alinti": 1.0,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 215,
+     "ret": 35
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 88,
+     "gecti_eksik": 102,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "deger_eksik": 102,
+     "dogru": 48
+    }
+   }
+  }
+ },
+ "belge_tavani": {
+  "gelistirme": {
+   "soru": 10,
+   "isabet@3": 1.0,
+   "kacan": []
+  },
+  "saklanan": {
+   "soru": 40,
+   "isabet@3": 0.975,
+   "kacan": [
+    "S-belge-25"
+   ]
+  }
+ }
+}

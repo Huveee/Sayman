@@ -20,6 +20,7 @@ data/izleme/
 data/denetim/
 data/belge/
 data/modeller/
+data/olcum/
 
 # Kişisel ve hocaya sunulan dokümanlar, faz planı: bilgisayarda durur, repoya girmez
 docs/ozet/

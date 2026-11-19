@@ -246,9 +246,22 @@ def test_kisa_rakamsiz_tirnak_alinti_sayilmaz():
 
 
 def test_kor_nokta_yaziyla_yazilan_sayi_denetlenmez():
-    """Üçüncü bilinen sınır: doğrulayıcı yalnızca rakamla yazılan sayılara bakar. Madde "on yıl" derken cevap
-    "yirmi yıl" yazarsa ve alıntı yoksa geçer. Belge cevaplarında alıntı şart değildir (Faz 7'de karar verilecek)."""
+    """Üçüncü bilinen sınır: doğrulayıcı yalnızca rakamla yazılan sayılara bakar. Faz 7'den beri belge cevabında
+    alıntı şarttır; alıntısız "yirmi yıl" artık geçmez. Ama gerçek bir alıntının yanına yazıyla yanlış bir süre
+    yazılırsa geçer: iddia alıntıyla karşılaştırılmaz."""
     soru = "Defterleri kaç yıl saklamalıyız?"
-    sonuc = dogrula("Ticari defterleri yirmi yıl saklamak zorundasınız.", soru, [KANUN_CAGRISI], BUGUN)
-    assert sonuc.gecerli and sonuc.sayilar == [] and sonuc.alintilar == []
+    alintisiz = dogrula("Ticari defterleri yirmi yıl saklamak zorundasınız.", soru, [KANUN_CAGRISI], BUGUN)
+    assert alintisiz.sayilar == [] and alintisiz.alinti_eksik and not alintisiz.gecerli
+    alintili = dogrula('Ticari defterleri yirmi yıl saklamak zorundasınız: "ticari defterlerini on yıl süreyle '
+                       'saklamakla yükümlüdür" [KANUN-6102#m82]', soru, [KANUN_CAGRISI], BUGUN)
+    assert alintili.gecerli and alintili.sayilar == []
     assert not dogrula("Ticari defterleri 20 yıl saklamak zorundasınız.", soru, [KANUN_CAGRISI], BUGUN).gecerli
+
+
+def test_belge_aramasi_sonuc_dondurduyse_alinti_zorunlu():
+    """Faz 7 kararı: bu turda belge araması sonuç döndürdüyse cevapta en az bir geçerli alıntı olmalı."""
+    soru = "Defterleri kaç yıl saklamalıyız?"
+    assert dogrula("Belgelerde bu konuda bir süre geçmiyor.", soru, [KANUN_CAGRISI], BUGUN).alinti_eksik
+    bos = {**KANUN_CAGRISI, "yanit": {**KANUN_CAGRISI["yanit"], "sonuc": {"sorgu": "x", "sonuclar": []}}}
+    assert dogrula("Belgelerde bu konuda bir madde bulunamadı.", soru, [bos], BUGUN).gecerli
+    assert dogrula("Bu soru belgeyle ilgili değil.", soru, [], BUGUN).gecerli

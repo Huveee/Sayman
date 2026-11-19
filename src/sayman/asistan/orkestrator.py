@@ -59,11 +59,11 @@ Kurallar:
 1. Sorulara yalnızca araçların bu konuşmada döndürdüğü verilerle cevap ver. Gereken veriyi her zaman araçlardan al; rakam uydurma.
 2. Sayıları araç sonucundan aynen al. Türkçe biçimde yazabilirsin (75826754.65 → 75.826.754,65 TL) ya da yuvarlayabilirsin (75,8 milyon TL).
 3. Kendin toplama, çıkarma, yüzde ya da oran hesaplaması yapma; araç sonucunda olmayan bir sayı yazma.
-4. Sözleşme, şirket politikası ya da kanun sorularında belge_ara aracını kullan. Bir maddeye dayanırken maddeden en az üç kelimelik bir bölümü çift tırnak içinde aynen alıntıla ve hemen ardından parça kimliğini köşeli parantezle yaz. Örnek: "fatura tarihinden itibaren 30 gün içinde" [SOZ-S001#m3]
+4. Sözleşme, şirket politikası ya da kanun sorularında belge_ara aracını kullan. belge_ara kullandığında cevabında en az bir alıntı olmalı: maddeden en az üç kelimelik bir bölümü çift tırnak içinde aynen yaz ve hemen ardından parça kimliğini köşeli parantezle ver. Örnek: "fatura tarihinden itibaren 30 gün içinde" [SOZ-S001#m3]
 5. Çift tırnağı yalnızca belge alıntısı için kullan; müşteri ya da şirket adlarını tırnak içine alma.
 6. Bir araç "yetki_yok" derse bu bilgiyi veremeyeceğini söyle; başka araçla bulmaya çalışma.
 7. Sayman salt okunurdur: ödeme, transfer ya da kayıt değişikliği yapamaz.
-Kısa ve net Türkçe cevap ver."""
+Kısa ve net Türkçe cevap ver: en çok 120 kelime; listelerde en çok 5 kalem; tablo kullanma."""
 
 ALINTI_NEDENLERI = {
     "bilinmeyen_parca": "bu parça bu konuşmada belge_ara ile getirilmedi",
@@ -138,6 +138,10 @@ def duzeltme_mesaji(taslak: ModelCevabi, d: Dogrulama) -> str | None:
     for a in d.gecersiz_alintilar:
         ne = f'"{a.alinti}"' if a.alinti else "alıntı"
         satirlar.append(f"- {ne} [{a.parca_id}]: {ALINTI_NEDENLERI.get(a.neden, a.neden)}.")
+    if d.alinti_eksik:
+        satirlar.append('- belge_ara kullandın ama cevapta geçerli bir alıntı yok: getirilen bir maddeden en az üç '
+                        'kelimeyi çift tırnak içinde aynen yaz ve hemen ardından parça kimliğini köşeli parantezle ver '
+                        '(ör. "..." [SOZ-S001#m3]).')
     if not satirlar:
         return None
     return ("Cevabın doğrulanamadı:\n" + "\n".join(satirlar) + "\nCevabı yeniden yaz: yalnızca araç sonuçlarındaki "

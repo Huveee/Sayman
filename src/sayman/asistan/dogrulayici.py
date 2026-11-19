@@ -20,13 +20,16 @@ Sayılar:
   kontrolü denetler. Belge sonuçlarında madde metni, belge adı ve madde başlığı metin olarak okunur; parça
   kimliğindeki kanun ve madde numarası da kaynaktır ("6102 sayılı Kanun", "1535. madde").
 
-Alıntılar: Faz 5 alıntı kontrolü, yalnızca bu turda belge aramasının döndürdüğü madde metinlerine karşı.
+Alıntılar: Faz 5 alıntı kontrolü, yalnızca bu turda belge aramasının döndürdüğü madde metinlerine karşı. Bu turda
+belge araması sonuç döndürdüyse cevapta en az bir geçerli alıntı olmalıdır (Faz 7 kararı); "bulamadım" diyen bir
+cevap da baktığı maddeden alıntı yapar.
 
 Bilinen sınırlar:
 - Sayının neye ait olduğuna bakılmaz: A müşterisinin tutarı B müşterisi için yazılırsa geçer (kör nokta).
 - Kullanıcının sorusundaki sayılar kaynaktır: "DSO 59 gün mü?" sorusuna "Evet, 59 gün" cevabı geçer (ikinci kör nokta).
 - Yalnızca rakamla yazılan sayılara bakılır: "yirmi yıl" denetlenmez (üçüncü kör nokta). Belge cevaplarında alıntı
-  şart olmadığı için böyle bir cevap hiçbir kontrole takılmadan geçebilir.
+  şart olduğu için cevap gerçek bir alıntı taşır, ama alıntının yanındaki iddia alıntıyla karşılaştırılmaz:
+  'yirmi yıl saklanır: "on yıl süreyle saklamakla yükümlüdür" [KANUN-6102#m82]' geçer.
 - Çift tırnak yalnızca belge alıntısı içindir: parça kimliği olmayan tırnaklı metin "kimliksiz_alinti" olarak
   reddedilir (üç ya da daha çok kelimelik ya da rakam içeren tırnaklı bir müşteri adı da). Bu bilerek katıdır;
   gevşetilirse sayılar tırnak içine saklanabilirdi. Rakamsız, bir-iki kelimelik tırnaklı söz ('"kaç yıl" sorusuna')
@@ -119,6 +122,7 @@ class SayiSonucu:
 class Dogrulama:
     sayilar: list[SayiSonucu] = field(default_factory=list)
     alintilar: list[AlintiSonucu] = field(default_factory=list)
+    alinti_gerekli: bool = False     # bu turda belge araması sonuç döndürdü (Faz 7 kararı: alıntı zorunlu)
 
     @property
     def kaynaksiz(self) -> list[SayiSonucu]:
@@ -129,8 +133,12 @@ class Dogrulama:
         return [a for a in self.alintilar if not a.gecerli]
 
     @property
+    def alinti_eksik(self) -> bool:
+        return self.alinti_gerekli and not any(a.gecerli for a in self.alintilar)
+
+    @property
     def gecerli(self) -> bool:
-        return not self.kaynaksiz and not self.gecersiz_alintilar
+        return not self.kaynaksiz and not self.gecersiz_alintilar and not self.alinti_eksik
 
 
 # ---------------------------------------------------------------- metinden sayı okuma
@@ -395,4 +403,5 @@ def dogrula(cevap: str, soru: str, cagrilar: list[dict], bugun: dt.date) -> Dogr
     sonuc.alintilar = [a for a in cevabi_kontrol_et(cevap, metinler)
                        if not (a.neden == "kimliksiz_alinti" and not any(ch.isdigit() for ch in a.alinti)
                                and len(a.alinti.split()) < EN_AZ_KELIME)]
+    sonuc.alinti_gerekli = bool(metinler)
     return sonuc

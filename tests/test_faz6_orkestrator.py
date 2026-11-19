@@ -348,3 +348,17 @@ def test_en_uzun_belge_sonucu_baglam_tahminine_sigar(sunucu):
     assert Asistan(sunucu, None)._token_tahmini(mesajlar, bilinen=(2776, 2)) < sinir
     json_gibi = Asistan(sunucu, None, Ayar(belge_karakter_token=a.karakter_token))
     assert json_gibi._token_tahmini(mesajlar, bilinen=(2776, 2)) > sinir
+
+def test_belge_cevabinda_alinti_yoksa_duzeltme_istenir(sunucu):
+    """Faz 7 kararı: belge araması sonuç döndürdüyse cevapta en az bir geçerli alıntı olmalı."""
+    model = SahteModel(arac("belge_ara", sorgu="Alfa Ltd. ödeme vadesi"),
+                       cevap("Alfa Ltd. faturayı 30 gün içinde öder."),
+                       cevap('Alfa Ltd. 30 gün içinde öder: "faturayı 30 gün içinde öder" [SOZ-M1#m3]'))
+    tur, _, tur_satiri = calistir(sunucu, model, soru="Alfa Ltd. faturayı kaç günde öder?")
+    assert tur.durum == "tamam" and len(tur.taslaklar) == 2
+    assert tur.dogrulamalar[0].alinti_eksik and not tur.dogrulamalar[0].gecerli
+    assert "belge_ara kullandın ama cevapta geçerli bir alıntı yok" in model.cagrilar[2][-1]["content"]
+
+
+def test_sistem_istemi_kisa_cevap_ve_alinti_kurali():
+    assert "en çok 120 kelime" in SISTEM_ISTEMI and "en az bir alıntı olmalı" in SISTEM_ISTEMI
