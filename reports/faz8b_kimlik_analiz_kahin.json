@@ -1,0 +1,1704 @@
+{
+ "kayit": "data/olcum/kimlik_kahin.jsonl",
+ "soru_seti_ozeti": "80febba5f3aed7abdcca3a43bd45893762aafc8d01868df1551140a5087ec553",
+ "el_dosyasi": "faz8b_kimlik_el.json",
+ "soru_sayisi": 36,
+ "eksik": [],
+ "taslak_sayisi": 36,
+ "desteksiz_taslak": {
+  "adet": 0,
+  "durduran": {},
+  "bicim": {},
+  "durduran_bicim": {},
+  "etiket": {}
+ },
+ "yeni_kuralin_katkisi": "sınanmadı (desteksiz numaralı taslak 5'ten az)",
+ "yanlis_bayrak": [],
+ "gosterilen": {
+  "yeni": {
+   "uydurma": [],
+   "desteksiz_gercek": [],
+   "desteksiz_dogru": [],
+   "yanlis_kayit": [],
+   "dogru": [
+    "K-D-son-01",
+    "K-D-son-02",
+    "K-D-iade-01",
+    "K-D-iade-02",
+    "K-D-kaynak-01",
+    "K-D-kaynak-02",
+    "K-D-buyuk-01",
+    "K-D-banka-01",
+    "K-D-tahsilat-01",
+    "K-D-tahsilat-02"
+   ],
+   "numarasiz": [
+    "K-U-filtre-01",
+    "K-U-filtre-02",
+    "K-U-filtre-03",
+    "K-U-filtre-04",
+    "K-U-filtre-05",
+    "K-U-filtre-06",
+    "K-U-sinir-01",
+    "K-U-sinir-02",
+    "K-U-sinir-03",
+    "K-U-sinir-04",
+    "K-U-sinir-05",
+    "K-U-sinir-06",
+    "K-U-sinir-07",
+    "K-U-sinir-08",
+    "K-U-alan-01",
+    "K-U-alan-02",
+    "K-U-alan-03",
+    "K-U-alan-04",
+    "K-U-alan-05",
+    "K-U-alan-06",
+    "K-Y-kucuk-01",
+    "K-Y-kucuk-02",
+    "K-Y-kucuk-03",
+    "K-Y-eski-01",
+    "K-Y-eski-02",
+    "K-Y-eski-03"
+   ]
+  },
+  "eski": {
+   "uydurma": [],
+   "desteksiz_gercek": [],
+   "desteksiz_dogru": [],
+   "yanlis_kayit": [],
+   "dogru": [
+    "K-D-son-01",
+    "K-D-son-02",
+    "K-D-iade-01",
+    "K-D-iade-02",
+    "K-D-kaynak-01",
+    "K-D-kaynak-02",
+    "K-D-buyuk-01",
+    "K-D-banka-01",
+    "K-D-tahsilat-01",
+    "K-D-tahsilat-02"
+   ],
+   "numarasiz": [
+    "K-U-filtre-01",
+    "K-U-filtre-02",
+    "K-U-filtre-03",
+    "K-U-filtre-04",
+    "K-U-filtre-05",
+    "K-U-filtre-06",
+    "K-U-sinir-01",
+    "K-U-sinir-02",
+    "K-U-sinir-03",
+    "K-U-sinir-04",
+    "K-U-sinir-05",
+    "K-U-sinir-06",
+    "K-U-sinir-07",
+    "K-U-sinir-08",
+    "K-U-alan-01",
+    "K-U-alan-02",
+    "K-U-alan-03",
+    "K-U-alan-04",
+    "K-U-alan-05",
+    "K-U-alan-06",
+    "K-Y-kucuk-01",
+    "K-Y-kucuk-02",
+    "K-Y-kucuk-03",
+    "K-Y-eski-01",
+    "K-Y-eski-02",
+    "K-Y-eski-03"
+   ]
+  }
+ },
+ "ayrisan": [],
+ "karsilastirilan": 36,
+ "D": {
+  "soru": 10,
+  "yeni_dogru": 10,
+  "eski_dogru": 10,
+  "kaybedilen_dogru": [],
+  "kazanilan_dogru": []
+ },
+ "mekanizma": {
+  "filtre_yok": {
+   "soru": 6,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "numarasiz": 6
+   },
+   "eski": {
+    "numarasiz": 6
+   }
+  },
+  "sinir_ustu": {
+   "soru": 8,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "numarasiz": 8
+   },
+   "eski": {
+    "numarasiz": 8
+   }
+  },
+  "alan_yok": {
+   "soru": 6,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "numarasiz": 6
+   },
+   "eski": {
+    "numarasiz": 6
+   }
+  },
+  "ters_sira": {
+   "soru": 3,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "numarasiz": 3
+   },
+   "eski": {
+    "numarasiz": 3
+   }
+  },
+  "sinir_sira": {
+   "soru": 3,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "numarasiz": 3
+   },
+   "eski": {
+    "numarasiz": 3
+   }
+  },
+  "son_fatura": {
+   "soru": 2,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "dogru": 2
+   },
+   "eski": {
+    "dogru": 2
+   }
+  },
+  "iade": {
+   "soru": 2,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "dogru": 2
+   },
+   "eski": {
+    "dogru": 2
+   }
+  },
+  "kaynak_no": {
+   "soru": 2,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "dogru": 2
+   },
+   "eski": {
+    "dogru": 2
+   }
+  },
+  "en_buyuk": {
+   "soru": 1,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "dogru": 1
+   },
+   "eski": {
+    "dogru": 1
+   }
+  },
+  "son_hareket": {
+   "soru": 1,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "dogru": 1
+   },
+   "eski": {
+    "dogru": 1
+   }
+  },
+  "son_tahsilat": {
+   "soru": 2,
+   "desteksiz_taslak": 0,
+   "yeni": {
+    "dogru": 2
+   },
+   "eski": {
+    "dogru": 2
+   }
+  }
+ },
+ "satirlar": [
+  {
+   "soru_id": "K-U-filtre-01",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-02",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-03",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-04",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-05",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-06",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-01",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "geciken_alacaklar",
+     {
+      "min_gun": 45
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-02",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "geciken_alacaklar",
+     {
+      "min_gun": 75
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-03",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "geciken_alacaklar",
+     {
+      "min_gun": 100
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-04",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-05",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "cek_portfoyu",
+     {},
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-06",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "banka_hareketleri",
+     {
+      "baslangic": "2026-08-27",
+      "bitis": "2026-08-27"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-07",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "banka_hareketleri",
+     {
+      "baslangic": "2026-07-14",
+      "bitis": "2026-07-14"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-08",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "musteri_adi": "Tan Kuzey Ambalaj San. ve Tic. Ltd. Şti."
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-01",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "pos_tahsilatlari",
+     {
+      "baslangic": "2026-08-12",
+      "bitis": "2026-08-12"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-02",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "pos_tahsilatlari",
+     {
+      "baslangic": "2026-07-06",
+      "bitis": "2026-07-06"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-03",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "banka_hareketleri",
+     {
+      "baslangic": "2026-07-01",
+      "bitis": "2026-07-31"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-04",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "banka_hareketleri",
+     {
+      "baslangic": "2026-05-01",
+      "bitis": "2026-05-31"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-05",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "yaklasan_odemeler",
+     {
+      "gun_sayisi": 90
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-06",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "yaklasan_odemeler",
+     {
+      "gun_sayisi": 90
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-Y-kucuk-01",
+   "grup": "Y",
+   "mekanizma": "ters_sira",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "geciken_alacaklar",
+     {
+      "min_gun": 10
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-Y-kucuk-02",
+   "grup": "Y",
+   "mekanizma": "ters_sira",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "geciken_alacaklar",
+     {
+      "min_gun": 45
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-Y-kucuk-03",
+   "grup": "Y",
+   "mekanizma": "ters_sira",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "geciken_alacaklar",
+     {
+      "min_gun": 450
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-Y-eski-01",
+   "grup": "Y",
+   "mekanizma": "sinir_sira",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "musteri_adi": "Vadi Mavi Dekorasyon Ltd. Şti.",
+      "durum": "acik"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-Y-eski-02",
+   "grup": "Y",
+   "mekanizma": "sinir_sira",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "musteri_adi": "Prime Design House Ltd",
+      "durum": "acik"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-Y-eski-03",
+   "grup": "Y",
+   "mekanizma": "sinir_sira",
+   "taslaklar": [
+    {
+     "etiket": "numarasiz",
+     "anmalar": [],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "numarasiz",
+    "anmalar": [],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "musteri_adi": "Lale Bereket Tasarım A.Ş.",
+      "durum": "acik"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-son-01",
+   "grup": "D",
+   "mekanizma": "son_fatura",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "F033973",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F033973",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F033973",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "musteri_adi": "Meltem Sedef Tekstil A.Ş."
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-son-02",
+   "grup": "D",
+   "mekanizma": "son_fatura",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "F003932",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F003932",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F003932",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "musteri_adi": "Koru Ilgaz Ev Gereçleri Ltd. Şti."
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-iade-01",
+   "grup": "D",
+   "mekanizma": "iade",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "F031984",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F031984",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F031984",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "fatura_no": "F034962"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-iade-02",
+   "grup": "D",
+   "mekanizma": "iade",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "F016188",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F016188",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F016188",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "fatura_no": "F016373"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-kaynak-01",
+   "grup": "D",
+   "mekanizma": "kaynak_no",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "F031476",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F031476",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F031476",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "fatura_no": "555650"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-kaynak-02",
+   "grup": "D",
+   "mekanizma": "kaynak_no",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "F034037",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F034037",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F034037",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "fatura_ara",
+     {
+      "fatura_no": "561034"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-buyuk-01",
+   "grup": "D",
+   "mekanizma": "en_buyuk",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "F011882",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F011882",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "F011882",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "geciken_alacaklar",
+     {
+      "min_gun": 365
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-banka-01",
+   "grup": "D",
+   "mekanizma": "son_hareket",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "H0032291",
+       "etiket": "dogru",
+       "bicim": "sistem"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "H0032291",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "H0032291",
+      "etiket": "dogru",
+      "bicim": "sistem"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "banka_hareketleri",
+     {
+      "baslangic": "2026-08-12",
+      "bitis": "2026-08-12"
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-tahsilat-01",
+   "grup": "D",
+   "mekanizma": "son_tahsilat",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "T5D22614A",
+       "etiket": "dogru",
+       "bicim": "karisik"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "T5D22614A",
+      "etiket": "dogru",
+      "bicim": "karisik"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "T5D22614A",
+      "etiket": "dogru",
+      "bicim": "karisik"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "musteri_ozeti",
+     {
+      "musteri_adi": "Tan Vadi Market San. ve Tic. Ltd. Şti."
+     },
+     null
+    ]
+   ]
+  },
+  {
+   "soru_id": "K-D-tahsilat-02",
+   "grup": "D",
+   "mekanizma": "son_tahsilat",
+   "taslaklar": [
+    {
+     "etiket": "dogru",
+     "anmalar": [
+      {
+       "ham": "TF0A65A62",
+       "etiket": "dogru",
+       "bicim": "karisik"
+      }
+     ],
+     "kimliksiz": [],
+     "kaynaksiz": [],
+     "eski_gecerli": true,
+     "gecerli": true,
+     "durduran": null
+    }
+   ],
+   "yeni": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "TF0A65A62",
+      "etiket": "dogru",
+      "bicim": "karisik"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "eski": {
+    "etiket": "dogru",
+    "anmalar": [
+     {
+      "ham": "TF0A65A62",
+      "etiket": "dogru",
+      "bicim": "karisik"
+     }
+    ],
+    "durum": "tamam"
+   },
+   "ayrisma": null,
+   "cagrilar": [
+    [
+     "musteri_ozeti",
+     {
+      "musteri_adi": "Nar Lale Dış Ticaret Ltd. Şti."
+     },
+     null
+    ]
+   ]
+  }
+ ]
+}

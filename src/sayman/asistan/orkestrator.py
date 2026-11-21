@@ -3,6 +3,11 @@
 Değişmez kural: kullanıcıya gösterilen metin ya doğrulayıcıdan geçmiş bir model cevabıdır ya da aşağıdaki sabit
 metinlerden biridir (METINLER). Reddedilen taslak hiçbir zaman gösterilmez.
 
+Faz 8b, kapsam: doğrulanmış bir cevap, satış rolünün kısıtlı kapsamındaki bir toplamı kapsamını söylemeden veriyorsa
+modelden bir kez düzeltme istenir. Düzeltilmiş cevap kapsamı söyler ve doğrulanırsa o gösterilir. Söylemezse, ya da
+düzeltme doğrulanamazsa ya da tur bir sınıra takılırsa, son doğrulanmış taslak sonuna sabit kapsam notu eklenerek
+gösterilir (KAPSAM_NOTLARI). Böylece kapsam kuralı hiçbir zaman doğrulanmış bir cevabı "üretemedim"e çevirmez.
+
 Bir tur şu durumlardan biriyle biter:
 - tamam: cevap doğrulandı.
 - ret: kimlik kartı geçersiz ya da bu turdaki araç çağrılarının hepsi "yetki_yok" ile reddedildi. Sabit metin döner
@@ -38,7 +43,7 @@ from typing import Callable
 from sayman.araclar.araclar import ARACLAR
 from sayman.araclar.kayit import DenetimKaydi
 from sayman.araclar.kimlik import KimlikHatasi, karti_dogrula
-from sayman.asistan.dogrulayici import Dogrulama, dogrula
+from sayman.asistan.dogrulayici import KAPSAM_NOTLARI, Dogrulama, dogrula
 
 METINLER = {
     "kimlik": "Kimlik doğrulanamadı.",
@@ -118,6 +123,10 @@ class Tur:
     tokenlar: list[dict] = field(default_factory=list)
     sure_s: float = 0.0
     neden: str | None = None
+    kapsam_notu: bool = False                     # Faz 8b: gösterilen cevaba sabit kapsam notu eklendi
+    # Faz 8b ölçümü: her taslağın kaçıncı model çağrısı olduğu, ondan önce kaç araç çağrısı yapıldığı ve uzunluk
+    # sınırında kesilip kesilmediği (eski düzenin hangi taslakta duracağını ve süresini kayıttan çıkarmak için)
+    taslak_adimlari: list[dict] = field(default_factory=list)
 
 
 def arac_tanimlari() -> list[dict]:
@@ -142,6 +151,17 @@ def duzeltme_mesaji(taslak: ModelCevabi, d: Dogrulama) -> str | None:
         satirlar.append('- belge_ara kullandın ama cevapta geçerli bir alıntı yok: getirilen bir maddeden en az üç '
                         'kelimeyi çift tırnak içinde aynen yaz ve hemen ardından parça kimliğini köşeli parantezle ver '
                         '(ör. "..." [SOZ-S001#m3]).')
+    if d.kimliksiz:
+        satirlar.append("- Şu kimlikler bu konuşmadaki araç sonuçlarında yok: " + "; ".join(d.kimliksiz)
+                        + ". Fatura ve çek numaralarını araç sonucundan aynen yaz.")
+    if d.sahipsiz:
+        satirlar.append("- Soru belirli bir müşteriyi soruyor, ama cevaptaki bilgiler o müşteriye ait bir araç "
+                        "sonucundan gelmiyor (şirketin ya da portföyün toplamı olabilir). Müşterinin bilgisini "
+                        "musteri_adi ile çağırdığın bir araçtan al (ör. musteri_ozeti); müşteri bulunamazsa bunu söyle.")
+    if d.kapsam_eksik:
+        kim = "yurtiçi" if "yurtiçi" in d.kapsam_eksik else "yurt dışı"
+        satirlar.append(f"- Araç sonuçları {d.kapsam_eksik} kapsıyor; cevabında bunu açıkça söyle "
+                        f'(ör. "{kim} müşterilerinizin ...").')
     if not satirlar:
         return None
     return ("Cevabın doğrulanamadı:\n" + "\n".join(satirlar) + "\nCevabı yeniden yaz: yalnızca araç sonuçlarındaki "
@@ -177,7 +197,12 @@ class Asistan:
         son_an = bas + a.sure_s
         tur = Tur(tur_id="T" + secrets.token_hex(6), durum="", cevap="")
 
+        notlu: tuple[str, str] | None = None  # (yalnızca kapsamı eksik son doğrulanmış taslak, kapsam)
+
         def bitir(durum: str, cevap: str | None = None, neden: str | None = None) -> Tur:
+            if durum != "tamam" and notlu is not None:  # doğrulanmış taslak var: kapsam notuyla göster
+                durum, cevap, neden = "tamam", notlu[0] + "\n\n" + KAPSAM_NOTLARI[notlu[1]], f"kapsam_notu:{durum}"
+                tur.kapsam_notu = True
             tur.durum, tur.neden = durum, neden
             tur.cevap = cevap if cevap is not None else METINLER[durum]
             tur.sure_s = round(self.saat() - bas, 3)
@@ -245,9 +270,14 @@ class Asistan:
             d = dogrula(c.icerik, soru, tur.cagrilar, bugun)
             tur.taslaklar.append(c.icerik)
             tur.dogrulamalar.append(d)
+            tur.taslak_adimlari.append({"cagri_no": tur.model_cagrisi, "arac_cagrisi": len(tur.cagrilar),
+                                        "kesildi": bool(c.kesildi)})
             mesaj = duzeltme_mesaji(c, d)
             if mesaj is None:
+                notlu = None
                 return bitir("tamam", c.icerik.strip())
+            if d.gecerli and c.icerik.strip() and not c.kesildi:  # yalnızca kapsam eksik
+                notlu = (c.icerik.strip(), d.kapsam_eksik)
             if duzeltme >= a.duzeltme:
                 return bitir("uretemedim")
             duzeltme += 1

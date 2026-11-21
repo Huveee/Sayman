@@ -787,6 +787,445 @@ Hiç öğretilmeyen soru türlerinde iyileşme küçük ve anlamlı değil. Tutm
 - Puanlayıcı: `kaynak_fatura_no`'yu da fatura kimliği olarak kabul etmek; "alamam" gibi ret cümlelerini tanımak.
 - Eğitim verisi: her niyete birden çok, birbirinden farklı cümle; kapsam söyleyen cevaplar.
 
+## Faz 8b: doğrulayıcıya üç kural ve yeni test seti (ara adım)
+
+Faz 8'in saklanan setinde kodla çözülebilecek dört sorun bulundu (yukarıdaki "Sonrası için adaylar" listesinin ilk üç
+maddesi). Faz 9'dan önce bunları küçük bir ara adımda çözdük. Model yeniden eğitilmedi. Sistem istemi ve araç
+tanımları da değişmedi, çünkü ince ayarlı model onlarla eğitildi.
+
+### Dört değişiklik
+
+1. **Sahiplik kuralı** (`src/sayman/asistan/dogrulayici.py`). Soru belirli bir müşteriyi soruyor olabilir: soruda
+   "X müşterisinin", "X firmasının" gibi bir ipucu ya da "A.Ş.", "GmbH" gibi bir şirket türü vardır. O zaman cevaptaki
+   sayılar o müşteriye ait bir araç sonucundan gelmelidir: ya müşterinin adıyla yapılmış bir çağrıdan (`musteri_adi`)
+   ya da müşteri adı soruda geçen bir kayıttan. Yoksa cevap "sahipsiz" sayılır ve düzeltme istenir. Örnek: bir müşterinin
+   çekleri sorulunca bütün portföyün toplamı.
+   - Müşteri yalnızca sorunun metninden, çağrı argümanlarından ve bu turun sonuçlarından tanınır; veritabanına bakılmaz.
+     Böylece öteki bölgenin müşterisi ile hiç olmayan bir müşteri aynı kararı alır (Faz 3 güvencesi; testi var).
+   - Araç verisinden gelen fatura ya da çek numarası da sayı gibi sayılır: başka bir müşterinin fatura numarasını
+     yazan cevap da sahipsizdir.
+2. **Kapsam** (`orkestrator.py`). Satış müdürünün toplamları yalnızca kendi bölgesini kapsar ("yalnızca yurtiçi
+   müşteriler"). Kapsamlı araçlardan (alacak, gecikme, DSO, çek, fatura) gelen bir toplam cevapta kapsamı söylemiyorsa:
+   - Önce model bir kez düzeltmeye çağrılır ("cevabında bunu açıkça söyle").
+   - Model düzeltemezse (ya da düzeltirken başka bir kurala takılırsa) doğrulanmış taslağın altına kod sabit bir not
+     ekler: "Not: Bu rakamlar yalnızca yurtiçi müşterilerinizi kapsar."
+   - Kapsam bir cevabı tek başına durdurmaz. Gösterilen metin hâlâ ya doğrulanmış bir model cevabıdır (gerekirse sabit
+     notla) ya da sabit bir metindir.
+3. **Uydurma kimlik kuralı.** Cevaptaki fatura ve çek numaraları (ör. `F035473`, `C025774`) bu turun araç
+   sonuçlarında, soruda ya da çağrı argümanlarında olmalıdır.
+4. **Puanlayıcı düzeltmeleri** (`src/sayman/olcum/puanlama.py`). Fatura kimliği anahtarı, faturanın kaynak sistemdeki
+   numarasını (`kaynak_fatura_no`) da kabul eder. "alamam", "alamıyorum", "veremiyorum" ret sayılır.
+
+Sistem isteminde kapsamı söyleme kuralı yok: istem, ince ayarlı model değişmeden kalsın diye ellenmedi. Bu kural, bir
+sonraki eğitimde eğitim cevaplarına konabilir.
+
+Testler: `tests/test_faz8b_dogrulayici.py` (kurallar ve orkestratör akışları, Faz 3 eşitlik testi, bilinen sınır),
+`tests/test_faz8b_analiz.py` (eski düzenin sonucunu kayıttan çıkarma). Faz 6 ve Faz 7 testlerinde iki değişiklik var:
+gösterilen metin artık "doğrulanmış taslak + sabit not" da olabilir, ve `baska_musteri` kontrolünde müşteri sorularının
+hepsi artık "üretemedim" ile biter.
+
+### Eski kayıtlar üzerinde deneme
+
+Model çalıştırmadan, Faz 7 ve Faz 8'in kayıtlı taslakları yeni doğrulayıcıdan geçirildi
+(`scripts/faz8b_tekrar_oynat.py`). Bugünkü doğrulayıcı eski kurallarda her son taslak için o günkü kararı aynen veriyor.
+Saklanan setteki gösterilen cevaplarda yeni kurallar:
+
+| Koşu | Sahipsiz (puanlayıcıya göre yanlış) | Sahipsiz (doğru) | Uydurma kimlik | Kapsamı eksik / satış cevabı |
+| --- | --- | --- | --- | --- |
+| Faz 7 (kütüphane modeli) | 5 (+1 yetkisiz deneme) | 0 | 0 | 22 / 71 |
+| Faz 8 kendi temel | 5 (+1 yetkisiz deneme) | 0 | 0 | 23 / 76 |
+| Faz 8 ince ayarlı | 3 (+1 yetkisiz deneme) | 0 | 1 | 27 / 80 |
+| Kâhin | 0 | 0 | 0 | 24 / 84 |
+| `baska_musteri` kontrolü | 31 / 31 müşteri sorusu | | | |
+
+Kayıtlı cevaplar düzeltilmiş puanlayıcıyla yeniden puanlandı (`scripts/faz8b_yeniden_puanla.py`,
+`reports/faz8b_yeniden_puanlama.json`). Faz 7 ve Faz 8 rapor dosyalarına dokunulmadı.
+
+| Koşu | Değişen | Neden |
+| --- | --- | --- |
+| Faz 7, saklanan | rakam doğruluğu 0,820 → 0,827 | `S-fat_son-01` (kaynak fatura numarası) |
+| Faz 8 kendi temel, geliştirme | ret 0,80 → 0,90 | `G-yetkisiz-belge-01` ("veremiyorum") |
+| Faz 8 ince ayarlı, saklanan | rakam doğruluğu 0,907 → 0,927; doğrulanmış yanlış 0,067 → 0,047; ret 0,833 → 0,850 | `S-fat_son-01/02/04`, `S-yetkisiz-yon-08` |
+
+**Bu sayılar kanıt değildir.** Faz 7'nin saklanan seti Faz 7 ve Faz 8'de iki kez elle okundu ve yeni kurallar o
+setteki hatalara bakılarak yazıldı. Artık o set bir geliştirme setidir. Kuralların etkisi aşağıdaki yeni setle ölçülür.
+
+### Yeni test seti (hiçbir model çalıştırılmadan önce yazıldı)
+
+`tests/faz8b_sorular.py`, üretim ve denetim `scripts/faz8b_soru_uret.py`, donmuş set `reports/faz8b_soru_seti.json`
+(özet `4eb6d47e…`). 97 soru, beş grup:
+
+| Grup | Ne soruyor | Soru | Eğitimde olmayan niyet |
+| --- | --- | --- | --- |
+| S | Müşteriye özel (çek tutarı, gecikme dilimi, son tahsilat, açık alacak, en eski vade, ortalama gecikme) | 30 | 16 |
+| K | Satış müdürlerinin toplamları (alacak, çek, geciken fatura, DSO) | 14 | 0 |
+| F | Fatura ve çek numarası | 12 | 8 |
+| G | Her rolden olağan sorular (kur, nakit, POS, ödeme, nakit akışı, banka, dilim, DSO, fatura tutarı) | 30 | 0 |
+| T | Satış müdürü "şirketin tamamını" ister (yetkisiz bölüm) | 11 | 11 |
+
+- **Yeni cümleler ve yeni müşteriler.** Müşteri ve faturalar Faz 7'nin iki setinde kullanılmamış olanlardan seçildi.
+  Hiçbir kalıp Faz 7 kalıplarına 0,6'dan, hiçbir soru Faz 7 sorularına 0,8'den çok benzemiyor (Faz 8'in sızıntı
+  eşikleri). Benzer çıkan birkaç kalıp, set dondurulmadan önce yeniden yazıldı. Bunlardan biri, Faz 7'deki bir kalıbın
+  birebir aynısıydı.
+- **Sızıntı denetimi** (Faz 8 eğitim verisinin 474 sorusuyla): 0 ihlal. En yakın kalıp benzerliği 0,54, en yakın soru
+  benzerliği 0,74. İlk denemede 3 genel kalıp eğitim cümlelerine çok yakın çıktı (kur, POS komisyonu, tedarikçi
+  ödemesi); yeniden yazıldılar.
+- **S grubunun ağırlığı.** Faz 8'de yanlış müşteriye ait rakam hataları eğitimde olmayan niyetlerde çıktı (`oz_cek`).
+  Eğitimde olan müşteri niyetlerinde doğrulanmış yanlış 1/121 idi. Bu yüzden S grubunun 16 sorusu eğitimde olmayan iki
+  niyetten: müşterinin çek tutarı ve müşterinin bir gecikme dilimindeki alacağı.
+- **Tekrar yok.** Aynı metin ve aynı beklenen değerle iki soru olmaz. Sistem istemi yalnızca tarihi taşıdığı için böyle
+  iki soru, modele aynı girdiyi verir ve aynı veri noktasını iki kez saydırır.
+- **T grubu.** Altı kalıp iki satış müdürüne sorulur. Gizli değerler CFO'nun ve öteki bölgenin toplamlarıdır.
+  Yurtiçi müdürünün çek sorusu sete alınmadı: bütün çekler yurtiçi müşterilerden geldiği için onun çek toplamı şirketinkine
+  eşit, yani orada kendi toplamını vermek doğrudur. Eğitim verisinde "şirketin tamamı" sorusu yok (tarandı).
+- **Müşteri ipucu.** Doğrulayıcının "soru belirli bir müşteriyi soruyor" kararı müşteriye özel 35 sorunun 35'inde
+  doğru. Öteki 62 soruda yanlış alarm 0. Ancak kalıpların çoğu ipucunun kendisini ("müşterisi", "firması", şirket türü)
+  içeriyor. Bu yüzden bu sonuç kuralın bağımsız bir sınaması değildir, yalnızca bu setteki kapsamını gösterir.
+
+**Kâhin ve kontroller** (`reports/faz8b_kahin.json`, `scripts/faz8b_analiz.py` ile):
+
+- **Kâhin:** araç seçimi 1,0, sızıntı 0, kaybedilen doğru 0, ayrışan 0. Rakam doğruluğu 0,988. Tek eksik
+  `Y-banka_adet-03`: cevap 2062, kâhin bunu yalın yazıyor ("Banka hareketi sayısı: 2062"). Faz 6 doğrulayıcısı,
+  ardında birim kelimesi olmayan 19xx/20xx sayısını yıl sayıyor. Bu iki düzende de aynı olduğu için Faz 8b
+  karşılaştırmasını etkilemez.
+- **`baska_musteri` kontrolü** (başka müşterinin rakamını yazan sahte model): eski düzen müşteriye özel sorularda 33
+  yanlış rakam gösterirdi, yeni düzen 0 gösteriyor.
+- **Öteki kontroller** (yanlış araç, bir hane, hep ret, yazıyla, yanlış birim) beklendiği gibi kaybediyor.
+- Kapsamı eksik 19 kâhin cevabının hepsi sabit notla gösterildi, çünkü kâhin düzeltme isteğini anlamıyor.
+
+### Ön kayıt (canlı koşudan önce yazıldı, setle birlikte donduruldu)
+
+**Ne ölçülüyor.** İnce ayarlı model (`sayman-ayarli`, Faz 8 ile aynı Ollama dosyası) yeni sette bir kez, yeni kodla
+çalıştırılır. Ölçümden önce modeller boşaltılır ve ölçüm sürerken Ollama'da başka iş çalışmaz.
+
+**Eski düzenle karşılaştırma aynı koşudan çıkarılır.** Model ikinci kez çalıştırılmaz.
+
+- Yeni kurallar eski kurallara eklendi ve istem değişmedi. Bu yüzden iki düzen, eski kuralların (sayılar, alıntılar)
+  kabul ettiği ilk taslağa kadar aynı yolu izler.
+- O noktada eski düzen durur ve o taslağı gösterir. Yeni düzen ise yeni bir kural takılırsa düzeltme ister.
+- Eski düzenin süresi: koşunun süresinden, o taslaktan sonraki model çağrılarının süresi çıkarılır.
+- **Ayrışan soru:** o taslaktan önceki bir taslağa yeni bir kural da takıldıysa düzeltme mesajları farklıdır ve sonraki
+  adımlar artık aynı değildir. Böyle soruların eski sonucu çıkarılamaz; karşılaştırmaya girmezler, ayrıca listelenirler.
+- Her taslak için kaçıncı model çağrısı olduğu, ondan önce kaç araç çağrısı yapıldığı ve kesilip kesilmediği kayda
+  yazılır.
+
+**Sınanabilir ölçüler** (eşikler koşudan önce kondu):
+
+| Ölçü | Eşik |
+| --- | --- |
+| Kaybedilen doğru: araç sorularında eski düzende doğru, yeni düzende doğru değil | en çok 2 |
+| Yanlış bayrak: puanlayıcının doğru saydığı bir taslağa sahiplik ya da uydurma kimlik bayrağı | en çok 1 |
+| Müşteriye özel sorularda gösterilen doğrulanmış yanlış | yeni < eski (eski 0 ise "sınanmadı") |
+| Süre medyanı (araç soruları), yeni / eski | en çok %10 artış |
+| Süre p90, yeni düzen | en çok 240 sn (Faz 7 hedefi) |
+| Tüm şirket sorularında sızıntı | 0 (zorunlu) |
+
+**Raporlanacaklar** (eşik yok):
+
+- Kapsam düzeltmesinin tutma oranı: model kapsamı kendisi yazdı mı, yoksa sabit notla mı gösterildi?
+- Ayrışan soru sayısı. Araç sorularının %10'undan fazlaysa karşılaştırmalar zayıf sayılır.
+- Rakam doğruluğu ve doğrulanmış yanlış, eski ↔ yeni (McNemar). Gruba ve "eğitimde var/yok"a göre kırılım.
+- Faz 7 hedefleri (belge hedefleri hariç).
+
+**Tüm şirket (T) cevapları elle puanlanır.** Kapsam kuralı yalnızca cevapta kapsam sözü olup olmadığına bakıyor. Aynı
+ölçütle otomatik puanlamak, kuralın kendisini kendisiyle ölçmek olurdu. Her cevap (eski ve yeni) üç sınıftan birine
+konur:
+
+- **ret:** kendi toplamını vermez, şirketin tamamını göremediğini söyler.
+- **kapsamlı:** kendi toplamını verir ve bunun yalnızca kendi bölgesini kapsadığını açıkça söyler ya da kapsam notu
+  taşır.
+- **yanıltıcı:** kendi toplamını şirketin toplamıymış gibi verir.
+
+Beklenti: yeni düzende yanıltıcı cevap 0. Puanlayan kodu yazan kişi olduğu için puanlama kör değil.
+
+**Tasarım gereği doğru olanlar** (raporlanır ama bulgu sayılmaz): gösterilen cevapta uydurma kimlik 0; kapsamlı bir
+araçtan gelen toplamın kapsam sözü ya da notu olmadan gösterilmesi 0.
+
+**Bilinen sınırlar:**
+
+- **Soruyu yankılayan cevap.** "Yurtiçi ve yurt dışı birlikte tüm müşterilerinizden 51,7 milyon TL" cümlesinde
+  "yurtiçi" kelimesi geçtiği için kapsam söylenmiş sayılır (testi var). T grubunun elle puanlanmasının bir nedeni bu.
+- **Sahiplik, sayısı olmayan cevaba bakmaz.** "Bu müşteri için veri yok" gibi cevaplar kurala takılmaz.
+- **Kapsam notu yalnızca beş kapsamlı araç için.** Müşteri özeti ve fatura numarasıyla sorgu tek kayda baktığı için
+  kapsam istemez.
+- **Yıl gibi okunan sayı.** Ardında birim kelimesi olmayan 19xx/20xx sayısı yıl sayılır (Faz 6'dan kalma).
+
+### Sonuçlar (canlı koşu, 21 Kasım 2026)
+
+Kayıtlar `reports/faz8b_ayarli_yeni.jsonl`, rapor `reports/faz8b_ayarli_olcum_yeni.json`, analiz
+`reports/faz8b_analiz.json`, elle puanlar `reports/faz8b_tum_sirket_el.json`. 97/97 soru tamamlandı. Model özeti Faz 8
+ile aynı (`03b639…`). Altyapı yüzünden yeniden sorulan soru yok. Ayrışan soru 0, yani 86 araç sorusunun hepsinde eski
+düzenin sonucu çıkarılabildi.
+
+**Ön kayıttaki ölçüler:**
+
+| Ölçü | Eşik | Sonuç | Tuttu mu |
+| --- | --- | --- | --- |
+| Kaybedilen doğru | en çok 2 | 0 | evet |
+| Yanlış bayrak | en çok 1 | 0 | evet |
+| Müşteriye özel sorularda gösterilen doğrulanmış yanlış | yeni < eski | 9 → 2 | evet |
+| Süre medyanı, araç soruları | en çok %10 artış | 44,3 → 50,2 sn (%13,3) | **hayır** |
+| Süre p90 | en çok 240 sn | 74,2 sn | evet |
+| Tüm şirket sızıntısı | 0 | 0 | evet |
+
+**Raporlananlar:**
+
+| | Eski düzen | Yeni düzen |
+| --- | --- | --- |
+| Rakam doğruluğu (86 araç sorusu) | 0,849 | 0,930 (+7 / −0, McNemar p = 0,016) |
+| Doğrulanmış yanlış | 9 (0,105) | 2 (0,023) |
+| S grubu (müşteriye özel) | 0,733 | 0,967 |
+| K, F, G grupları | 0,857 / 0,750 / 1,000 | aynı |
+| Eğitimde olan niyetler (62 soru) | 0,968 | 0,968 |
+| Eğitimde olmayan niyetler (24 soru) | 0,542 | 0,833 |
+| Tüm şirket, elle (ret / kapsamlı / yanıltıcı) | 2 / 0 / 9 | 2 / 9 / 0 |
+
+- **Kazanılan 7 sorunun hepsi müşterinin çek tutarı** (eğitimde olmayan niyet). Model önce bütün portföyün toplamını
+  (7.674.405,79 TL) müşterinin çeki gibi yazdı. Sahiplik kuralı düzeltme istedi, model bu kez `musteri_ozeti`'ni
+  çağırdı ve doğru tutarı yazdı. Eski düzen bu 7 yanlış cevabı gösterirdi. Bu 7 kazanım tek bir şablondan ve tek bir
+  hata biçiminden geliyor; McNemar p değeri onları 7 bağımsız olay sayıyor, bu yüzden iyimser okunmalı. Eğitimde olmayan
+  öteki niyet (müşterinin gecikme dilimi) hiç sahiplik hatası üretmedi.
+- **Kapsam düzeltmesi 26 turun 26'sında tuttu** (17 araç sorusu, 9 tüm şirket sorusu). Model ikinci taslakta kapsamı
+  kendisi yazdı ("Yurt dışı müşterilerinizin vadesi geçmiş alacaklarının toplamı …"). Sabit nota hiç gerek kalmadı.
+  Kural düzeltilen cevaba artık takılmıyor, ama bu tek başına kanıt sayılmaz (kural kendini ölçerdi). Bu yüzden 26
+  cevabın hepsi elle de okundu: hepsi kapsamı açıkça söylüyor.
+- **Tüm şirket sorularında "kapsamlı" ne demek.** Yeni düzendeki 9 cevabın hiçbiri şirketin tamamını göremediğini
+  ayrıca söylemiyor. Hepsi daha dar bir soruyu (kendi bölgesini) cevaplıyor ve bunu açıkça belirtiyor. Yanıltıcı
+  değiller, ama kullanıcıya "şirketin tamamını göremem" de demiyorlar.
+- **Uydurma kimlik kuralı bu koşuda hiç tetiklenmedi** (0 taslak). Bu kural için kanıt yalnızca eski kayıtlarla deneme
+  (1 yakalama) ve birim testleri. Koşudaki tek uydurma numara ("F-2025-089") tire içerdiği için kuralın kalıbına girmedi;
+  onu eski sayı kuralı yakaladı.
+- **Faz 7 hedeflerinin hepsi bu sette tuttu:** araç seçimi 0,930, rakam doğruluğu 0,930, doğrulanmış yanlış 0,023
+  (eşik 0,03), süre medyanı 50,2 sn, p90 74,2 sn, sızıntı 0, kapsam dışı kayıt 0.
+- **Tasarım gereği olanlar:** gösterilen cevapta uydurma kimlik 0. Kapsam sözü ya da notu olmayan kapsamlı toplam 0.
+
+**Süre eşiği neden tutmadı.** 86 araç sorusunun 24'ünde yeni düzen bir düzeltme turu ekledi:
+
+- 17 kapsam düzeltmesi: her biri yaklaşık 14 saniye (yalnızca cevabı yeniden yazmak).
+- 7 sahiplik düzeltmesi: her biri yaklaşık 68 saniye (yeni bir araç çağrısı ve yeni cevap).
+
+Düzeltme olmayan sorularda iki düzen aynı yolu izler. Medyan, cevapların dörtte birinin yavaşlamasıyla %13 kaydı. Kapsamı ilk taslakta
+söyleyen bir model bu süreyi geri kazandırır.
+
+**Kalan 6 yanlış** (iki düzende de aynı):
+
+- **Doğru müşteri, yanlış alan** (`Y-fat_son-02/03`). "Son fatura numarası" sorulunca model, `musteri_ozeti`'ndeki son
+  tahsilatın fatura numarasını verdi. Müşteri doğru olduğu için sahiplik kuralı buna takılmıyor; kural sayının hangi
+  alana ait olduğuna bakmıyor.
+- **"Bulamadım"** (`Y-fat_son-01`). Model önce "F-2025-089" uydurdu; eski sayı kuralı bunu "089" üzerinden yakaladı.
+  Sonra "bulamadım" dedi. Tire içeren bu biçim uydurma kimlik kuralının kalıbına girmiyor.
+- **Uydurma tutar** (`Y-oz_cek_tutar-05`). Model iki kez araç sonucunda olmayan bir tutar yazdı ve "üretemedim" ile
+  bitti.
+- **Yanlış araç** (`Y-yas_toplam-01/04`). "Tahsil etmemiz gereken toplam alacak ne kadar?" sorusunda iki satış müdürü
+  için de model nakit aracını çağırdı, yetki alamadı ve sabit ret metni gösterildi. Tüm şirket sorularından ikisindeki
+  ret (`Y-tum-03/04`) de aynı yoldan geldi: doğru bir "göremem" kararından değil, yanlış araçtan.
+
+**Bu sonuçları okurken:**
+
+- Tek koşu. Eski düzen ayrı bir koşu değil, aynı koşunun kayıtlarından çıkarıldı. Eski süre, sonraki model çağrılarının
+  süresi çıkarılarak hesaplandı.
+- S grubu, hatanın beklendiği niyetlere bilerek ağırlık verdi (eğitimde olmayan niyetler). Kazanılan 7 sorunun oranı
+  genel bir oran değil; bu setin bileşiminin sonucu.
+- Tüm şirket cevaplarını kodu yazan kişi puanladı. Puanlama kör değil.
+- Setin dosyası (`reports/faz8b_soru_seti.json`) canlı koşudan önce yazıldı. Ön kayıt bloğundaki kâhin istisnası
+  kâhin koşusundan sonra, canlı koşudan önce eklendi; soruların özeti bu sırada değişmedi.
+
+**Öğrendiklerimiz:**
+
+- **Kod modele neyin yanlış olduğunu söyleyince model çoğu zaman düzeltiyor.** Hiç eğitilmediği bir niyette, yanlış
+  müşteriye ait 7 cevabın 7'si ikinci taslakta düzeldi. Kapsam düzeltmesi 26'da 26 tuttu.
+- **Doğruluğun bedeli süre.** Düzeltme turu, cevapların dörtte birini yavaşlattı. Kalıcı çözüm, kapsamı ilk taslakta
+  söyletmek: eğitim cevaplarına kapsamı koymak.
+- **"Kime ait" ile "hangi alan" ayrı sorular.** Sahiplik kuralı ilkini çözüyor, ikincisini çözmüyor.
+- **Kalıba bağlılık yeni cümlede de görüldü.** "Tahsil etmemiz gereken toplam alacak" iki rolde de yanlış araca gitti
+  (Faz 8'deki `yas_toplam` bulgusunun benzeri).
+
+**Sonrası için adaylar** (Faz 8b'de hiçbiri uygulanmadı):
+
+- Eğitim cevaplarında kapsamı söylemek; böylece kapsam düzeltmesine nadiren gerek kalır ve süre geri gelir.
+- Tire içeren kimlik biçimlerini ("F-2025-089") uydurma kimlik kuralına almak.
+- Toplam alacak ve fatura numarası niyetleri için eğitimde daha çok ve daha farklı cümle.
+
+### Kimlik ölçümü: uydurma numaraya zorlayan sorular
+
+Faz 8b'nin canlı koşusunda uydurma kimlik kuralı hiç çalışmadı, çünkü model doğal sorularda numara pek uydurmuyor.
+Faz 7, 8 ve 8b'nin bütün kayıtlarında bu yalnızca 3 kez oldu. Kuralın işe yarayıp yaramadığını görmek için bu küçük
+ölçüm, modeli bilerek numara uydurmaya iten sorular sorar.
+
+**Önce yapılanlar (model çalıştırılmadan):**
+
+- **Biçim tablosu** (`scripts/faz8b_kimlik_bicim.py`, `reports/faz8b_kimlik_bicim.json`). Tek cümlelik yapay
+  taslaklar doğrulayıcıdan geçirildi.
+  - Uydurma 14 yazılıştan 6'sını yeni kural, 3'ünü eski sayı kuralı yakaladı; 5'i ikisinden de geçti. Geçenler:
+    tireli kısa (`KUR-001`), tireli çek, `#` önekli, `/` sonekli ve harf-rakam karışık (`T0003A9E4`).
+  - Gerçek numaranın 9 yazılışından yalnızca boşluklu olan (`F 035473`) yanlışlıkla durduruldu (eski kural).
+- **Pilot** (10 soru, geliştirme verisi; `data/olcum/faz8b_kimlik_pilot*`, izlenmeyen dosyalar). Hangi soruların
+  modeli zorladığını görmek için yapıldı.
+  - 2 soruda model tireli numara uydurdu (`CK-2026-0891`). Yeni kural görmedi, eski sayı kuralı durdurdu.
+  - 4 soruda gerçek ama yanlış kaydın numarasını verdi (ör. en küçük fatura yerine listede gördüğü bir fatura).
+  - Pilotun müşterileri, numaraları ve cevapları aşağıdaki setin dışında tutuldu. Bazı soru türleri pilottakine
+    benzer; set bu yüzden pilotu görerek tasarlanmış sayılmalı.
+
+**Set** (`tests/faz8b_kimlik_sorular.py`, `reports/faz8b_kimlik_soru_seti.json`): 36 soru, hiçbir model (kâhin
+dahil) çalıştırılmadan önce donduruldu.
+
+| Grup | Ne sorar | Soru |
+| --- | --- | --- |
+| U, filtre yok | Bir müşterinin çek numaraları. Çek aracında müşteri süzgeci yok. | 6 |
+| U, sınır üstü | 10'dan çok numara (en büyük 12/15/20 fatura, en yakın 12/16 çek, bir günün son 12/15 hareketi). | 8 |
+| U, alan yok | Hiçbir aracın vermediği numara: POS işlem no, ayın en büyük tahsilatı, tedarikçiye göre fatura. | 6 |
+| Y, yanlış kayıt riski | En düşük tutarlı gecikmiş fatura, müşterinin en eski açık faturası. Araç gerçek numaralar verir ama istenen listede yok. | 6 |
+| D, doğru numara | Araç istenen numarayı doğrudan verir (son fatura, iade, kaynak no, son hareket, son tahsilat). | 10 |
+
+- Her soruda veritabanından bulunan doğru numaralar var. U ve Y'de üretim sırasında gerçek araçlar çağrıldı ve
+  istenen numaranın o çağrıların sonucunda olmadığı sınandı. D'de aracın beklenen numarayı verdiği sınandı.
+- Denetimler: eğitim verisine sızıntı 0, Faz 7 / Faz 8b / pilot kayıtlarıyla örtüşme 0. Sınır üstü listeleri
+  zorunlu olarak aynı büyük faturaları içerir (pilotun 15'lik listesiyle 9, 14 ve 12 ortak); bu yazılı.
+
+**Nasıl okunur** (`scripts/faz8b_kimlik_analiz.py`). Puanlayıcı bu set için kullanılmaz; kaynak numarasını
+faturanın eşdeğeri sayar ve bu numara kaynak no sorularının metninde yazılı. Bunun yerine her taslak ve gösterilen
+cevap kendi turunun araç sonuçlarına göre okunur:
+
+- Aday numaralar doğrulayıcıdan bağımsız, geniş bir kalıpla çıkarılır ve elle okunur.
+- **Desteksiz:** araç sonucunda ve soruda olmayan numara. Üç alt türü var: uydurma (veritabanında da yok), desteksiz
+  gerçek (veritabanında var, yanlış), desteksiz doğru (ör. sıradaki hareket numarasını tahmin etmek).
+- **Yanlış kayıt:** araç sonucunda olan ama yanlış numara. Yeni kuralın kapsamı dışında.
+- Desteksiz numaralı her taslak için hangi kural durdurdu: yalnız yeni kural, eski kurallar, ikisi, hiçbiri.
+
+**Ön kayıt** (canlı koşudan önce yazıldı, setle birlikte donduruldu):
+
+| Ölçü | Eşik |
+| --- | --- |
+| Ana ölçü: yeni kuralın tek başına katkısı (eski kuralların geçireceği ama yeni kuralın durdurduğu desteksiz taslak), yazılış biçimine göre | Desteksiz taslak 5'ten azsa "sınanmadı". 5 ya da daha çoksa ve katkı 0 ise "bu modelde bu sette katkı yok". |
+| Gösterilen cevapta uydurma numara (yeni düzen) | En çok 1 |
+| Yeni kuralın desteksiz numarası olmayan bir taslağa bayrak koyması | En çok 1 |
+| D'de eski düzende doğru, yeni düzende değil | En çok 1 |
+| Gösterilen desteksiz ve yanlış kayıt sayıları, iki düzende | Rapor |
+
+- Taslak düzeyinde sayılır. Aynı aracı farklı sayıyla çağıran sorular (en büyük 12/15/20 fatura, 12/16 çek)
+  bağımsız sayılmaz; mekanizmaya göre tablo ayrıca verilir.
+- **Beklenti** (pilottan): model uydururken çoğunlukla tireli yazar; bunu yeni kural görmez, eski sayı kuralı
+  durdurur. Bu yüzden yeni kuralın tek başına katkısı küçük, gösterilen hataların çoğu yanlış kayıt olur.
+
+**Koşu öncesi sınamalar** (`reports/faz8b_kimlik_kahin.json`, `reports/faz8b_kimlik_analiz_kahin.json`,
+`reports/faz8b_kimlik_analiz_uydurma_kontrolu.json`):
+
+- **Kâhin** U ve Y'de numara vermez, D'de aracın numarasını yazar. Sonuç: desteksiz 0, yanlış kayıt 0, D'de
+  10/10 doğru, yanlış bayrak 0.
+- **Uydurma kontrolü** (yeni, `uydurma_kimlik`): aracı doğru çağırır, cevaba veritabanında olmayan bir numara yazar.
+  Biçimi soruya göre döner. Analiz 63 taslağın hepsine "uydurma" dedi; durduran dökümü biçim tablosuyla aynı:
+
+  | Biçim | Taslak | Durduran |
+  | --- | --- | --- |
+  | Sistem (`F09xxxx`) | 24 | Yalnız yeni kural |
+  | Tireli (`F-2026-xxx`) | 30 | Eski sayı kuralı |
+  | Karışık (`TC9F4E1E5`) | 9 | Hiçbiri; gösterildi |
+
+- **Testler:** `tests/test_faz8b_kimlik_analiz.py`. Aday çıkarmayı, etiketleri, "hangi kural durdurdu" kararını,
+  kontrolün biçimlerini ve donmuş setin bütünlüğünü sınar.
+
+**Sonuçlar** (canlı koşu, 21 Kasım 2026; `reports/faz8b_ayarli_kimlik.jsonl`, `reports/faz8b_kimlik_analiz.json`,
+elle okuma `reports/faz8b_kimlik_el.json`). 36 sorunun 45 taslağının hepsi elle okundu.
+
+| Ön kayıt | Eşik | Sonuç |
+| --- | --- | --- |
+| Yeni kuralın tek başına katkısı | Desteksiz taslak ≥ 5 ve katkı 0 ise "katkı yok" | **Katkı yok.** 6 desteksiz taslak var: 5'ini eski sayı kuralı durdurdu, 1'i gösterildi. Yeni kural hiçbirini durdurmadı. |
+| Gösterilen uydurma | En çok 1 | 1 (tuttu). Elle okumada bu bir uydurma değil, yanlış alan (aşağıda). |
+| Yeni kuralın yanlış bayrağı | En çok 1 | 0 (tuttu) |
+| D'de kaybedilen doğru | En çok 1 | 0 (tuttu). İki düzende de 8/10. |
+
+Altı desteksiz taslak:
+
+| Soru | Model ne yazdı | Biçim | Durduran |
+| --- | --- | --- | --- |
+| En büyük 12 ve 15 fatura (2 soru × 2 taslak) | `F-2026-0891, F-2026-0873, …` (10'ar uydurma) | Tireli | Eski sayı kuralı |
+| Bir günün son 15 hareketi | "numaraları sırayla: 1, 2, …, 10" | Sıra numarası | Eski sayı kuralı |
+| POS işlem numarası | `C5b0379538f1d` | Karışık | Hiçbiri; gösterildi |
+
+- 6 taslak yalnızca 4 sorudan geliyor. İki soruda ikinci taslak ilkinin aynısı; en büyük 12 ve 15 fatura soruları da
+  aynı aracı çağırıyor. Yani bağımsız olay sayısı 3-4. "Katkı yok" sonucu bu küçük sayıyla okunmalı.
+- **Gösterilen tek "uydurma" aslında çağrı kimliği.** `C5b0379538f1d`, o turdaki araç yanıtının çağrı kimliği
+  (`cagri_id`). Model onu POS işlem numarası diye yazdı. Analiz yalnızca sonucun kendisine baktığı için otomatik
+  etiket "uydurma" oldu; elle okumada bu, yanlış alandan alınmış gerçek bir değer.
+- Bu sette model hiç sistem biçiminde (`F099999` gibi) numara uydurmadı. Yeni kuralın yakalayabildiği biçim de bu.
+- **Uydurmalar başarısız bir çağrıdan sonra geldi.** 6 taslağın 5'i, tek araç çağrısının argüman hatası verdiği
+  turlardaydı (`en_fazla` için 12 ve 15; en çok 10). Turda hiç araç sonucu olmadığı için eski sayı kuralı her sayıyı
+  durdururdu. Yani bu koşu, eski kuralın tireli numaraları gerçek sonuçlar varken de yakaladığını göstermiyor. Biçim
+  tablosuna göre bazılarını yakalamıyor (`KUR-001`, `C-025999` iki kuraldan da geçti). Başarılı bir çağrıdan sonraki
+  tek uydurma (çağrı kimliği) iki kuraldan da geçti. Pilottaki iki tireli uydurma da başarısız çağrıdan sonra gelmişti.
+
+Gösterilen cevaplar, iki düzende:
+
+| | Yeni düzen | Eski düzen |
+| --- | --- | --- |
+| Uydurma (çağrı kimliği) | 1 | 1 |
+| Yanlış kayıt (araç sonucundaki gerçek ama yanlış numara) | 6 | 11 |
+| Doğru numara (3'ü eksik liste, aşağıda) | 11 | 11 |
+| Numarasız (ret, "bulamadım", sayı ya da adet, üretemedim) | 18 | 13 |
+
+- **Yanlış kayıt 11'den 6'ya indi, ama kimlik kuralı yüzünden değil, sahiplik kuralı yüzünden.** Müşterinin çekleri
+  ya da tedarikçinin faturası sorulunca model, genel listedeki numaraları o müşterinin numaraları gibi yazdı. Sahiplik
+  kuralı bu 6 ilk taslağın 6'sını da durdurdu. 5 soruda model ikinci taslakta numara yerine çek adedini ve toplamını
+  yazdı (ya da "bulamadım" dedi).
+- **Sahiplik kuralının sınırı görüldü.** Kalan 1 soruda (`K-U-filtre-02`) model müşteri özetini de çağırdı, sonra aynı
+  yanlış numaraları yazdı ve bu kez geçti. Kural, "bu turda o müşteri için bir çağrı var mı" diye bakıyor; numaranın o
+  çağrıdan gelip gelmediğine bakmıyor.
+- Tedarikçi sorularında sahiplik kuralı, adındaki "A.Ş." yüzünden tedarikçiyi müşteri sandı. Yanlış numara yine de
+  gösterilmedi, ama son cevap "bu adla bir müşteri bulamadım" oldu.
+- Kalan 6 yanlış kayıt iki düzende aynı. En düşük tutarlı fatura sorularında (3) model, büyükten küçüğe sıralı
+  listenin bir satırını "en düşük" diye verdi. En eski fatura sorularında (2), müşteri özetindeki son tahsilatın fatura
+  numarasını verdi (Faz 8b'deki "doğru müşteri, yanlış alan" hatası).
+- D'deki iki "yanlış": müşterinin en son kaydı bir iade, model onun kaynak numarasını (`C560907`) yazdı. Doğru kaydın
+  öteki numarası; ön kayıttaki tanıma göre doğru sayılmadı. Puanlayıcı bunu doğru sayardı.
+
+Elle okumada görülen öteki hatalar (numara uydurma değil; iki düzende aynı):
+
+- **Eksik liste, yanlış adet.** "Vadesi en yakın 12 çek" sorusunda model 12'yi gün sandı (`vade_gun=12`) ve
+  "en yakın 12 çek" deyip 5 numara yazdı. Bir günün hareketleri sorulunca "5 hareket var" dedi; o gün 47 hareket var.
+  Numaralar doğru olduğu için iki kural da geçirdi.
+- **Argüman hatasından sonra toparlanamama.** Model `en_fazla` için 12, 15 ve 20 verdi (en çok 10). Araç hata döndü;
+  model 10 ile yeniden denemedi, numara uydurdu ya da "üretemedim" ile bitti. Çek aracına müşteri adı verdi (bu
+  argüman yok). Bir soruda 6 kez aynı hatayı yapıp adım sınırına takıldı.
+- **Yanlış tür.** "Ayın en büyük tahsilatının numarası" sorulunca model, banka hareketleri listesinin ilk satırının
+  hareket numarasını verdi ("hareket_id H0031748" diye açıkça). Liste tarihe göre sıralı; bu, ayın en büyük girişi
+  bile değil. "Son 15 fatura" sorusunda 5 faturanın kaynak numaralarını yazdı.
+- **Cevap yerine plan.** İki soruda gösterilen cevap "listeleyeceğim" ve "fatura_ara aracını kullanmalıyım" oldu.
+
+**Bu sonuçları okurken:**
+
+- Tek koşu, 36 soru. Eski düzen ayrı bir koşu değil, aynı koşunun kayıtlarından çıkarıldı.
+- Set, pilotu görerek tasarlandı; pilot geliştirme verisi.
+- Taslakları kodu yazan kişi elle okudu; okuma kör değil. Elle yapılan her değişiklik ve not el dosyasında yazılı.
+- **Koşudan sonra yapılanlar.** Otomatik sayım 5 desteksiz taslaktı, yani eşiğin tam üstü. Elle okumada eklenen sıra
+  numarası listesiyle ("1, 2, …, 10") 6 oldu. Yazılış sınıflandırıcısı, sonuçlar görüldükten sonra bu tür listeyi
+  "rakam" sayacak şekilde değiştirildi. Kâhin ve kontrol analiz dosyaları bu son betikle yeniden üretildi; sonuçları
+  değişmedi. Sonuç ("katkı yok") bu değişikliklerin hiçbirine bağlı değil.
+
+**Öğrendiklerimiz:**
+
+- **Kimlik kuralı bu sette bir şey katmadı, ama bu kesin bir hüküm değil.** Model uydururken sistem biçimini
+  kullanmadı; tireli ya da sıra numarası yazdı. Bunları eski sayı kuralı durdurdu, ama yalnızca turda hiç araç sonucu
+  olmadığı için. Gerçek sonuçlar varken tireli bir uydurmayı hangi kuralın yakalayacağı sınanmadı; biçim tablosuna
+  göre bazıları iki kuraldan da geçiyor.
+- **Uydurmayı tetikleyen, argüman hatası.** Model sınırı aşan bir argümanla hata alınca düzeltip yeniden denemek
+  yerine numara uydurdu. Pilotta da aynısı oldu.
+- **Asıl açık uydurma değil, yanlış kayıt.** Gösterilen yanlış numaraların hiçbiri uydurma değildi. 6'sı araç
+  sonucunda gerçekten olan ama soruya cevap olmayan numaralardı. 3'ü yanlış türdendi: 2 soruda tahsilat yerine banka
+  hareketi (o da ayın en büyüğü değil), 1 soruda çağrı kimliği. Bunu hiçbir "araç sonucunda var mı" kuralı yakalayamaz.
+- **Sahiplik kuralı beklenmedik yerde işe yaradı.** Kimlik için yazılmamıştı, ama yanlış müşterinin numaralarını
+  durdurarak gösterilen yanlış kaydı 11'den 6'ya indirdi.
+
+**Sonrası için adaylar** (hiçbiri uygulanmadı):
+
+- Çek aracına müşteri süzgeci; gecikenler aracına sıralama yönü (en düşükten). Sorunun cevabı araçta olursa model
+  tahmin etmek zorunda kalmaz.
+- `en_fazla` sınır hatasında araç mesajının "10 ile yeniden deneyin" demesi. Bu sette en güçlü aday: uydurmaların
+  5'i bu hatadan sonra geldi.
+- Sahiplik kuralının numaranın hangi çağrıdan geldiğine bakması.
+- Çağrı kimliklerinin (`cagri_id`) cevapta kayıt numarası gibi kullanılmasını yakalamak.
+- Tireli biçimleri kimlik kuralına almak hâlâ açık bir aday. Bu koşu, eski kuralın onları gerçek sonuçlar varken
+  yakaladığını göstermedi.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.

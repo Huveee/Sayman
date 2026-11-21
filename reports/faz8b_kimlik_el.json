@@ -1,0 +1,16 @@
+{
+ "aciklama": "Faz 8b kimlik ölçümü, elle okuma (canlı koşunun 45 taslağının hepsi okundu). 'ekle': otomatik kalıbın kaçırdığı ve elle numara sayılan yazılış; 'cikar': yanlışlıkla aday sayılan yazılış. 'not': etiketi değiştirmeyen okuma notu.",
+ "sorular": {
+  "K-U-sinir-07": {"ekle": ["1, 2, 3, 4, 5, 6, 7, 8, 9, 10"],
+                   "not": "2. taslak hareket numarası yerine sıra numaraları yazdı ('numaraları sırayla: 1, 2, ..., 10'). Uydurma liste sayıldı; eski sayı kuralı durdurdu."},
+  "K-U-alan-02": {"not": "C5b0379538f1d bu turdaki aracın çağrı kimliği (cagri_id); model onu POS işlem numarası diye yazdı. Analiz yalnızca 'sonuc' alanına baktığı için otomatik etiket 'uydurma'. Elle okuma: uydurma değil, yanlış alan. Gösterildi (iki kural da görmedi)."},
+  "K-D-son-01": {"not": "C560907, doğru kaydın (F033973, bir iade) kaynak numarası. Ön kayıttaki tanımla 'doğru' değil (istenen biçim F); doğru kaydın öteki numarası."},
+  "K-D-son-02": {"not": "C498342, doğru kaydın (F003932, bir iade) kaynak numarası; K-D-son-01 ile aynı durum."},
+  "K-U-sinir-08": {"not": "15 yerine 5 numara; aracın verdiği son 5 faturanın kaynak numaraları (F numaraları değil). Uydurma değil; eksik ve öteki numara."},
+  "K-U-alan-03": {"not": "Tahsilat numarası yerine banka hareketi numarası (H0031748), açıkça 'hareket_id' diye. Aracın listesindeki ilk (en yeni) hareket; ayın en büyük girişi H0030163. Yanlış kayıt ve yanlış tür; otomatik etiket türü farklı olduğu için saymıyor."},
+  "K-U-alan-04": {"not": "K-U-alan-03 ile aynı: H0028514 aracın ilk satırı; ayın en büyük girişi H0027071."},
+  "K-U-sinir-04": {"not": "'Vadesi en yakın 12 çek' deyip 5 numara yazdı (vade_gun=12 ile çağırdı: 12 çeki 12 gün sandı). Numaralar doğru, liste eksik."},
+  "K-U-sinir-05": {"not": "K-U-sinir-04 ile aynı (vade_gun=16)."},
+  "K-U-sinir-06": {"not": "'27 Ağustos'ta 5 hareket var' dedi; o gün 47 hareket var (araç sonucunda yazılı). Numaralar doğru, adet sözü yanlış."}
+ }
+}

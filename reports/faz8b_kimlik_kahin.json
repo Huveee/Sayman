@@ -1,0 +1,227 @@
+{
+ "olcum_zamani": "2026-11-21T20:28:01+03:00",
+ "soru_seti_ozeti": "80febba5f3aed7abdcca3a43bd45893762aafc8d01868df1551140a5087ec553",
+ "modeller": {
+  "kahin": {
+   "kimlik": {
+    "sure_s": 2.1,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 1.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 36
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 10,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 10
+    }
+   }
+  },
+  "yanlis_arac": {
+   "kimlik": {
+    "sure_s": 0.7,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.6,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "uretemedim": 16,
+     "tamam": 20
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 6,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 8
+    },
+    "hata_turleri": {
+     "yanlis_arac": 10
+    }
+   }
+  },
+  "bir_hane": {
+   "kimlik": {
+    "sure_s": 1.5,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.2,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 28,
+     "uretemedim": 8
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 2,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 16
+    },
+    "hata_turleri": {
+     "dogrulanamadi": 8,
+     "deger_eksik": 2
+    }
+   }
+  },
+  "hep_ret": {
+   "kimlik": {
+    "sure_s": 0.5,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 36
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 10,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "gereksiz_ret": 10
+    }
+   }
+  },
+  "baska_musteri": {
+   "kimlik": {
+    "sure_s": 1.4,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 1.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 36
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 10,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 10
+    }
+   }
+  },
+  "yaziyla": {
+   "kimlik": {
+    "sure_s": 1.4,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 36
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 10,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "gereksiz_ret": 10
+    }
+   }
+  },
+  "yanlis_birim": {
+   "kimlik": {
+    "sure_s": 1.8,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 1.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 36
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 10,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 10
+    }
+   }
+  },
+  "uydurma_kimlik": {
+   "kimlik": {
+    "sure_s": 2.2,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": null,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "uretemedim": 27,
+     "tamam": 9
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 20
+    },
+    "hata_turleri": {
+     "dogrulanamadi": 10
+    }
+   }
+  }
+ },
+ "belge_tavani": {}
+}

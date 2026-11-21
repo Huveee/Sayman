@@ -24,8 +24,22 @@ Alıntılar: Faz 5 alıntı kontrolü, yalnızca bu turda belge aramasının dö
 belge araması sonuç döndürdüyse cevapta en az bir geçerli alıntı olmalıdır (Faz 7 kararı); "bulamadım" diyen bir
 cevap da baktığı maddeden alıntı yapar.
 
+Faz 8b kuralları (Faz 7 ve 8'in saklanan setinde bulunan hatalar için; eski kararlar `eski_gecerli`de durur):
+- Sahiplik: soru belirli bir müşteriyi soruyorsa (soruda "X müşterisinin" gibi bir ipucu ya da "A.Ş.", "GmbH" gibi
+  bir şirket türü var) ve cevapta araç verisinden gelen bir sayı ya da tarih varsa, bu turda o müşteriye ait bir
+  sonuç olmalıdır: soruda geçen müşteri adıyla yapılmış bir çağrı (musteri_adi) ya da müşteri adı soruda geçen bir
+  kayıt. Yoksa cevap "sahipsiz" sayılır (ör. bir müşterinin çekleri sorulunca bütün portföyün toplamı). Müşteri
+  yalnızca sorunun metninden, çağrı argümanlarından ve bu turun sonuçlarından tanınır; veritabanına bakılmaz. Böylece
+  öteki bölgenin müşterisi ile hiç olmayan bir müşteri aynı kararı alır (Faz 3 güvencesi).
+- Kimlik: cevaptaki harf + rakam kimlikleri (F035729, C560866) bu turun araç sonuçlarında ya da soruda aynen
+  geçmelidir. Uydurulmuş "C560878" yakalanır.
+- Kapsam: satış rolünde toplam veren bir müşteri aracının (alacak yaşlandırma, gecikenler, DSO, çek portföyü, fatura
+  listesi) sayısı cevapta kullanılıyorsa cevap kapsamı söylemelidir ("yurtiçi", "yurt dışı"). Söylemezse cevap
+  reddedilmez; orkestratör bir kez düzeltme ister, olmazsa cevabın sonuna sabit kapsam notunu ekler.
+
 Bilinen sınırlar:
-- Sayının neye ait olduğuna bakılmaz: A müşterisinin tutarı B müşterisi için yazılırsa geçer (kör nokta).
+- Sayının neye ait olduğuna yalnızca müşteri düzeyinde bakılır (sahiplik kuralı): soru bir müşteriyi açıkça
+  anmıyorsa, ya da o müşteriye ait bir sonuç varken cevap başka bir sonucun sayısını kullanıyorsa geçer.
 - Kullanıcının sorusundaki sayılar kaynaktır: "DSO 59 gün mü?" sorusuna "Evet, 59 gün" cevabı geçer (ikinci kör nokta).
 - Yalnızca rakamla yazılan sayılara bakılır: "yirmi yıl" denetlenmez (üçüncü kör nokta). Belge cevaplarında alıntı
   şart olduğu için cevap gerçek bir alıntı taşır, ama alıntının yanındaki iddia alıntıyla karşılaştırılmaz:
@@ -123,6 +137,9 @@ class Dogrulama:
     sayilar: list[SayiSonucu] = field(default_factory=list)
     alintilar: list[AlintiSonucu] = field(default_factory=list)
     alinti_gerekli: bool = False     # bu turda belge araması sonuç döndürdü (Faz 7 kararı: alıntı zorunlu)
+    kimliksiz: list[str] = field(default_factory=list)   # Faz 8b: araç sonuçlarında olmayan kimlikler
+    sahipsiz: bool = False           # Faz 8b: müşteri sorusu, ama o müşteriye ait sonuç yok
+    kapsam_eksik: str | None = None  # Faz 8b: kısıtlı kapsamın adı, cevap kapsamı söylemiyorsa (cevabı reddetmez)
 
     @property
     def kaynaksiz(self) -> list[SayiSonucu]:
@@ -137,8 +154,13 @@ class Dogrulama:
         return self.alinti_gerekli and not any(a.gecerli for a in self.alintilar)
 
     @property
-    def gecerli(self) -> bool:
+    def eski_gecerli(self) -> bool:
+        """Faz 6-8 kuralları (sayılar ve alıntılar)."""
         return not self.kaynaksiz and not self.gecersiz_alintilar and not self.alinti_eksik
+
+    @property
+    def gecerli(self) -> bool:
+        return self.eski_gecerli and not self.kimliksiz and not self.sahipsiz
 
 
 # ---------------------------------------------------------------- metinden sayı okuma
@@ -360,9 +382,9 @@ def kaynaklar(soru: str, cagrilar: list[dict], bugun: dt.date) -> list[Kaynak]:
             k += _belge_kaynaklari(y.get("sonuc") or {}, cid)
         else:
             _degerlerden(y.get("sonuc"), "sonuc", cid, k)
-        if y.get("tarih") and _ISO_TAM.match(y["tarih"]):
+        if y.get("tarih") and _ISO_TAM.match(y["tarih"]):  # aracın çalıştığı gün (veri değil)
             t = dt.date.fromisoformat(y["tarih"])
-            k += [Kaynak("tarih", "tarih", cid, tarih=t), Kaynak("yil", "tarih", cid, Decimal(t.year))]
+            k += [Kaynak("tarih", "cagri_tarihi", cid, tarih=t), Kaynak("yil", "cagri_tarihi", cid, Decimal(t.year))]
         k += _argumanlardan(c.get("argumanlar") or {}, cid)
     return k
 
@@ -386,6 +408,145 @@ def _eslesir(s: Sayi, k: Kaynak) -> bool:
         return hedef in (oran.quantize(Decimal(1), ROUND_HALF_UP), oran.quantize(Decimal(1), ROUND_FLOOR))
 
 
+# ---------------------------------------------------------------- Faz 8b: sahiplik, kimlik ve kapsam
+
+TUM_SIRKET = "tüm şirket"
+# Toplam veren müşteri araçları: satış rolünde sonuçları yalnızca o rolün müşterilerinin toplamıdır.
+KAPSAMLI_ARACLAR = frozenset({"alacak_yaslandirma", "geciken_alacaklar", "dso_hesapla", "cek_portfoyu", "fatura_ara"})
+KAPSAM_SOZLERI = {"yalnızca yurtiçi müşteriler": re.compile(r"yurt\s?i[çc]i", re.IGNORECASE),
+                  "yalnızca yurt dışı müşteriler": re.compile(r"yurt\s?d[ıi][şs][ıi]|ihracat", re.IGNORECASE)}
+# Sabit not: "yetki" ve "kapsam" kelimelerini bilerek içermez (puanlayıcı bunları ret işareti sayar).
+KAPSAM_NOTLARI = {"yalnızca yurtiçi müşteriler": "Not: Bu rakamlar yalnızca yurtiçi müşterilerinizi kapsar.",
+                  "yalnızca yurt dışı müşteriler": "Not: Bu rakamlar yalnızca yurt dışı müşterilerinizi kapsar."}
+# "X müşterisinin": hemen önünde büyük harfle başlayan bir ad olmalı ("faturanın müşterisi kim?" müşteri anmaz).
+_MUSTERI_IPUCU = re.compile(r"(?<![\w.])[A-ZÇĞİÖŞÜ][\w.]*\s+(?:müşterisi|firması)\w*")
+_SIRKET_TURU = re.compile(r"(?<![\w.])(?:A\.Ş\.?|AŞ|BV|SL|AG|(?i:a\.ş\.|ltd\.?|şti\.?|gmbh|sarl|srl|lda|inc\.?|llc|plc))"
+                          r"(?!\w)")
+SIRKET_KELIMELERI = frozenset("ltd şti san ve tic a ş aş gmbh sarl bv sl srl ag pty lda inc llc plc co".split())
+_KIMLIK = re.compile(r"(?<![\w#\-\[/])([A-Za-z]{1,4}\d{3,})(?![\w#\-\]/])")
+_KIMLIK_PARCASI = re.compile(r"[A-Za-z0-9]+")
+
+
+def _ad(metin: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", _kucult(metin)).split())
+
+
+def ad_bicimleri(ad: str) -> set[str]:
+    """Bir müşteri adının soruda aranacak yazılışları: tam ad, sondaki şirket türü kelimeleri atılmış hâlleri ve ilk
+    iki kelime ("Vadi Mavi Dekorasyon Ltd. Şti." → "vadi mavi dekorasyon ltd şti", "vadi mavi dekorasyon", "vadi mavi")."""
+    k = _ad(ad).split()
+    bicimler = {" ".join(k)} if k else set()
+    while len(k) > 2 and k[-1] in SIRKET_KELIMELERI:
+        k = k[:-1]
+        bicimler.add(" ".join(k))
+    if len(k) >= 2:
+        bicimler.add(" ".join(k[:2]))
+    return bicimler
+
+
+def _soruda_mi(ad: str, soru_n: str) -> bool:
+    return any(f" {b} " in f" {soru_n} " for b in ad_bicimleri(ad))
+
+
+def musteri_sorusu_mu(soru: str) -> bool:
+    """Soru belirli bir müşteriyi anıyor mu? Yalnızca sorunun metnine bakılır."""
+    return bool(_MUSTERI_IPUCU.search(soru) or _SIRKET_TURU.search(soru))
+
+
+def _musteri_kayitlari(deger):
+    """Sonuçtaki "musteri" alanlı kayıtların müşteri adları."""
+    if isinstance(deger, dict):
+        if isinstance(deger.get("musteri"), str):
+            yield deger["musteri"]
+        for v in deger.values():
+            yield from _musteri_kayitlari(v)
+    elif isinstance(deger, list):
+        for v in deger:
+            yield from _musteri_kayitlari(v)
+
+
+def _ozel_mi(c: dict) -> bool:
+    """Çağrı tek bir müşteriye ya da faturaya mı yönelik (toplam değil)?"""
+    a = c.get("argumanlar") or {}
+    return any(isinstance(a.get(k), str) and a[k].strip() for k in ("musteri_adi", "fatura_no"))
+
+
+def _sahipli_mi(soru: str, cagrilar: list[dict]) -> bool:
+    """Bu turda soruda anılan müşteriye ait bir sonuç var mı: adı soruda geçen bir müşteriyle yapılmış bir çağrı ya da
+    müşteri adı soruda geçen bir kayıt."""
+    soru_n = _ad(soru)
+    for c in cagrilar:
+        if c.get("hata_mi") or c["arac"] == "belge_ara":
+            continue
+        ad = (c.get("argumanlar") or {}).get("musteri_adi")
+        if isinstance(ad, str) and ad.strip() and _soruda_mi(ad, soru_n):
+            return True
+        if any(_soruda_mi(m, soru_n) for m in _musteri_kayitlari((c.get("yanit") or {}).get("sonuc"))):
+            return True
+    return False
+
+
+def _veri_kaynaklari(s: SayiSonucu, cagri: dict[str, dict]) -> list[dict]:
+    """Sayının kaynağı olan araç çağrıları (soru, bugün, argümanlar, aracın çalıştığı gün ve belge araması dışında)."""
+    return [cagri[cid] for cid, alan in s.kaynaklar
+            if cid in cagri and not alan.startswith("arguman:") and alan != "cagri_tarihi"
+            and cagri[cid]["arac"] != "belge_ara"]
+
+
+def _bilinen_kimlikler(soru: str, cagrilar: list[dict], yalniz_veri: bool = False) -> set[str]:
+    """Soruda ve bu turun araç sonuçlarında geçen kimlik parçaları. yalniz_veri: yalnızca belge araması dışındaki
+    araçların sonuçları (soru ve argümanlar hariç)."""
+    bilinen = set() if yalniz_veri else {p.upper() for p in _KIMLIK_PARCASI.findall(soru)}
+
+    def topla(deger):
+        if isinstance(deger, dict):
+            for v in deger.values():
+                topla(v)
+        elif isinstance(deger, list):
+            for v in deger:
+                topla(v)
+        elif isinstance(deger, str):
+            bilinen.update(p.upper() for p in _KIMLIK_PARCASI.findall(deger))
+
+    for c in cagrilar:
+        if c.get("hata_mi") or (yalniz_veri and c["arac"] == "belge_ara"):
+            continue
+        topla((c.get("yanit") or {}).get("sonuc"))
+        if not yalniz_veri:
+            topla(c.get("argumanlar") or {})
+    return bilinen
+
+
+def kimlikler(metin: str, atla: list[tuple[int, int]] = ()) -> list[str]:
+    """Metindeki harf + rakam kimlikleri (F035729, C560866); atla aralıklarındakiler hariç."""
+    return [m.group(1) for m in _KIMLIK.finditer(metin)
+            if not any(b <= m.start() and m.end() <= s for b, s in atla)]
+
+
+def _faz8b(sonuc: Dogrulama, cevap: str, soru: str, cagrilar: list[dict], atla: list[tuple[int, int]]) -> None:
+    cagri = {c["yanit"]["cagri_id"]: c for c in cagrilar
+             if not c.get("hata_mi") and isinstance(c.get("yanit"), dict) and c["yanit"].get("cagri_id")}
+    bilinen = _bilinen_kimlikler(soru, cagrilar)
+    cevap_kimlikleri = kimlikler(cevap, atla)
+    sonuc.kimliksiz = [k for k in cevap_kimlikleri if k.upper() not in bilinen]
+    sorudaki = {p.upper() for p in _KIMLIK_PARCASI.findall(soru)}
+    veri_kimlikleri = _bilinen_kimlikler(soru, cagrilar, yalniz_veri=True) - sorudaki
+    veri = [(s, _veri_kaynaklari(s, cagri)) for s in sonuc.sayilar if s.gecerli]
+    veri = [(s, k) for s, k in veri if k]
+    veriden_kimlik = any(k.upper() in veri_kimlikleri for k in cevap_kimlikleri)
+    if (veri or veriden_kimlik) and musteri_sorusu_mu(soru) and not _sahipli_mi(soru, cagrilar):
+        sonuc.sahipsiz = True
+    for s, kaynak in veri:
+        if s.tur == "tarih":  # kapsam tutarlar, adetler ve günler içindir
+            continue
+        for c in kaynak:
+            kapsam = (c.get("yanit") or {}).get("kapsam")
+            if (c["arac"] in KAPSAMLI_ARACLAR and kapsam in KAPSAM_SOZLERI and not _ozel_mi(c)
+                    and not KAPSAM_SOZLERI[kapsam].search(cevap)):
+                sonuc.kapsam_eksik = kapsam
+                return
+
+
 def dogrula(cevap: str, soru: str, cagrilar: list[dict], bugun: dt.date) -> Dogrulama:
     kaynak = kaynaklar(soru, cagrilar, bugun)
     sonuc = Dogrulama()
@@ -393,6 +554,7 @@ def dogrula(cevap: str, soru: str, cagrilar: list[dict], bugun: dt.date) -> Dogr
     for s in metinden_sayilar(cevap, atla):
         bulunan = tuple(dict.fromkeys((k.cagri_id, k.alan) for k in kaynak if _eslesir(s, k)))
         sonuc.sayilar.append(SayiSonucu(s.metin, s.tur, bool(bulunan), bulunan))
+    _faz8b(sonuc, cevap, soru, cagrilar, atla)
     metinler = {}
     for c in cagrilar:
         if not c.get("hata_mi") and c["arac"] == "belge_ara":

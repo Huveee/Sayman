@@ -406,7 +406,8 @@ def test_kahin_tam_puan_kontroller_kaybeder(soru_seti, olc, tmp_path, monkeypatc
     puanlar, o = olc_model("baska_musteri")
     musteri = [p for p in puanlar if p["bolum"] == "arac"
                and next(s for s in sorular if s["soru_id"] == p["soru_id"]).get("diger_musteri")]
-    assert musteri and all(p["durum"] == "tamam" and not p["cevap_dogru"] for p in musteri)  # doğrulayıcının kör noktası
+    # Faz 7'de doğrulayıcının kör noktasıydı (hepsi gösteriliyordu); Faz 8b sahiplik kuralı hepsini durdurur.
+    assert musteri and all(p["durum"] == "uretemedim" and not p["cevap_dogru"] for p in musteri)
     _, o = olc_model("yaziyla")
     assert o["arac"]["cevap_dogrulugu"] == 0.0 and o["belge"]["cevap_dogrulugu"] == 0.0
     # Gösterilen yazıyla sayılar "doğrulanmış yanlış sayı" sayılır. Kalan %12: beklenen değeri yalnızca tarih, ad ya

@@ -16,12 +16,18 @@ Negatif kontroller kâhinin bozulmuş hâlleridir; her biri kendi metriğinde ka
 - yanlis_birim: tutarları doğru sayıyla ama yanlış para birimiyle yazar (EUR tutarına "TL", TL tutarına "EUR") →
   doğrulayıcı geçirir (birime bakmaz), puanlayıcı tutarlı sorularda yanlış sayar. Geliştirme setinde gerçek modelin
   bir cevabında bulundu ("383.072,08 TL", beklenen EUR).
+- uydurma_kimlik (Faz 8b kimlik ölçümü): aracı doğru çağırır ama cevaba araç sonucunda olmayan bir kayıt numarası
+  yazar. Biçim soru kimliğine göre döner: sistem biçimi (F09xxxx), tireli (F-2026-xxx), harf-rakam karışık (TA3B7C1D9
+  gibi). Doğruluk bilindiği için kimlik analizinin etiketlerini ve "hangi kural durdurdu" dökümünü sınar.
+
+Kâhin, kimlik setinin "kimlik_yok" sorularında (istenen numara araç sonucunda yok) numara vermez, bunu söyler.
 """
 
 from __future__ import annotations
 
 import json
 import re
+import zlib
 from decimal import Decimal
 
 from sayman.asistan.orkestrator import ModelCevabi
@@ -29,7 +35,9 @@ from sayman.belge.kutuphane import gorebilir
 from sayman.olcum.puanlama import yol_al
 from sayman.olcum.yazilis import duz_sayi, kucult, sayi_yaziyla, tr_sayi, tr_tarih
 
-KONTROLLER = ("yanlis_arac", "bir_hane", "hep_ret", "baska_musteri", "yaziyla", "yanlis_birim")
+KONTROLLER = ("yanlis_arac", "bir_hane", "hep_ret", "baska_musteri", "yaziyla", "yanlis_birim",
+              "uydurma_kimlik")
+UYDURMA_BICIMLERI = ("sistem", "tireli", "karisik")
 _YEDEK_ARACLAR = [("doviz_kuru", {"para_birimi": "USD"}, ["alis"], "kur"),
                   ("dso_hesapla", {"donem": "son_30_gun"}, ["dso_gun"], "gun")]
 
@@ -141,6 +149,19 @@ def _sayisiz_pencere(metin: str, anahtarlar: list[dict]) -> str:
     return " ".join(kelimeler[:4]).rstrip(" .,;:")
 
 
+def uydurma_kimlik(soru_id: str) -> tuple[str, str]:
+    """(biçim, numara): veritabanında olmayan bir kayıt numarası; biçim soru kimliğine göre döner."""
+    crc = zlib.crc32(soru_id.encode("utf-8"))
+    bicim = UYDURMA_BICIMLERI[crc % 3]
+    if bicim == "sistem":  # fatura numaraları F041314'e kadar; F09xxxx yok
+        return bicim, f"F09{crc % 10000:04d}"
+    if bicim == "tireli":
+        return bicim, f"F-2026-{crc % 1000:03d}"
+    # harf ve tek rakam sırayla: yeni kuralın kalıbına (harf + en az 3 rakam) uymaz
+    return bicim, "T" + "".join("ABCDEF"[(crc >> (4 * i)) % 6] if i % 2 == 0 else str((crc >> (4 * i)) % 10)
+                                for i in range(8))
+
+
 class Kahin:
     """Asistan'a model olarak verilir. Çalıştırıcı her sorudan önce `soru` alanını soru setindeki kayıtla doldurur."""
 
@@ -188,6 +209,8 @@ class Kahin:
     def _cevap(self, s: dict, sonuclar: list[dict]) -> str:
         if self.kontrol == "hep_ret":
             return "Bu bilgiyi veremem."
+        if self.kontrol == "uydurma_kimlik":
+            return f"Kayıt numarası: {uydurma_kimlik(s['soru_id'])[1]}."
         if self.kontrol == "yanlis_arac":
             arac, _, yol, tur = self._yedek(s)
             sonuc = next((r["sonuc"] for r in sonuclar if r.get("arac") == arac and "sonuc" in r), None)
@@ -200,6 +223,8 @@ class Kahin:
             return self._belge_cevabi(s, sonuclar)
         if s["tur"] == "belge_yetkisi":
             return "Bu konuda erişebildiğim bir belge bulamadım."
+        if s["tur"] == "kimlik_yok":
+            return "Araç sonuçlarında istenen numara yok; bu yüzden numara veremiyorum."
         return "Bu bilgi yetki alanımın dışında; size gösteremiyorum."
 
     def _arac_cevabi(self, s: dict, sonuclar: list[dict]) -> str:
@@ -209,7 +234,12 @@ class Kahin:
             sonuc = next((r["sonuc"] for r in sonuclar if r.get("arac") == alt["arac"] and "sonuc" in r), None)
             if sonuc is None or sonuc.get("bulunamadi") or sonuc.get("birden_fazla"):
                 return "Sonuç alınamadı."
-            anahtarlar = [{**a, "deger": yol_al(sonuc, a["yol"])} for a in anahtarlar]
+            try:
+                anahtarlar = [{**a, "deger": yol_al(sonuc, a["yol"])} for a in anahtarlar]
+            except (KeyError, IndexError, StopIteration, TypeError):  # öteki müşteride bu kayıt yok
+                return "Sonuç alınamadı."
+            if any(a["deger"] is None for a in anahtarlar):  # öteki müşteride bu alan boş (ör. hiç ödemesi yok)
+                return "Sonuç alınamadı."
         degerler = [deger_yaz(a) for a in anahtarlar]
         if self.kontrol == "yanlis_birim":  # tutarın sayısı doğru, para birimi yanlış
             degerler = [f"{tr_sayi(abs(Decimal(str(a['deger']))), 2)} {'EUR' if _birim(a.get('birim')) == 'TL' else 'TL'}"

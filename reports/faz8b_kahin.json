@@ -1,0 +1,207 @@
+{
+ "olcum_zamani": "2026-11-21T13:58:08+03:00",
+ "soru_seti_ozeti": "4eb6d47e8b43919a17b67c286162275cc5ce103ac51dd33bd41ea07ed988ff58",
+ "modeller": {
+  "kahin": {
+   "yeni": {
+    "sure_s": 4.8,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.9884,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 1.0,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 96,
+     "uretemedim": 1
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 104,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 2,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "dogru": 85,
+     "dogrulanamadi": 1
+    }
+   }
+  },
+  "yanlis_arac": {
+   "yeni": {
+    "sure_s": 1.0,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.593,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "uretemedim": 35,
+     "tamam": 62
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 53,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 70
+    },
+    "hata_turleri": {
+     "yanlis_arac": 86
+    }
+   }
+  },
+  "bir_hane": {
+   "yeni": {
+    "sure_s": 4.3,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "uretemedim": 86,
+     "tamam": 11
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 0,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 172
+    },
+    "hata_turleri": {
+     "dogrulanamadi": 86
+    }
+   }
+  },
+  "hep_ret": {
+   "yeni": {
+    "sure_s": 0.5,
+    "arac_secimi": 0.0,
+    "parametre": 0.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 97
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 86,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "gereksiz_ret": 86
+    }
+   }
+  },
+  "baska_musteri": {
+   "yeni": {
+    "sure_s": 4.4,
+    "arac_secimi": 1.0,
+    "parametre": 0.593,
+    "rakam_dogrulugu": 0.5814,
+    "dogrulanmis_yanlis_sayi": 0.0,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "uretemedim": 34,
+     "tamam": 63
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 69,
+     "gecti_eksik": 2,
+     "reddedildi_dogru": 2,
+     "reddedildi_eksik": 66
+    },
+    "hata_turleri": {
+     "dogru": 50,
+     "yanlis_parametre": 35,
+     "dogrulanamadi": 1
+    }
+   }
+  },
+  "yaziyla": {
+   "yeni": {
+    "sure_s": 4.4,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.0,
+    "dogrulanmis_yanlis_sayi": 0.8256,
+    "musteri_sorularinda_rakam_dogrulugu": 0.0,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 97
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 0,
+     "gecti_eksik": 89,
+     "reddedildi_dogru": 0,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "deger_eksik": 71,
+     "gereksiz_ret": 15
+    }
+   }
+  },
+  "yanlis_birim": {
+   "yeni": {
+    "sure_s": 4.4,
+    "arac_secimi": 1.0,
+    "parametre": 1.0,
+    "rakam_dogrulugu": 0.3953,
+    "dogrulanmis_yanlis_sayi": 0.593,
+    "musteri_sorularinda_rakam_dogrulugu": 0.3429,
+    "belge_isabet": null,
+    "belge_cevap": null,
+    "belge_alinti": null,
+    "yetkisiz_sizinti": 0,
+    "kapsam_disi": 0,
+    "durumlar": {
+     "tamam": 96,
+     "uretemedim": 1
+    },
+    "dogrulayici_tablosu": {
+     "gecti_dogru": 43,
+     "gecti_eksik": 61,
+     "reddedildi_dogru": 2,
+     "reddedildi_eksik": 0
+    },
+    "hata_turleri": {
+     "deger_eksik": 51,
+     "dogru": 34,
+     "dogrulanamadi": 1
+    }
+   }
+  }
+ },
+ "belge_tavani": {}
+}

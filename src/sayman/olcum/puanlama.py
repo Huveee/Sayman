@@ -32,7 +32,9 @@ from sayman.olcum.yazilis import (SAYI_KELIMELERI, ad_geciyor_mu, ad_normal, ade
 
 SINIR_DURUMLARI = ("adim_siniri", "sure_siniri", "baglam_siniri")
 RET_KELIMELERI = ("yetki", "göremiyorum", "göremem", "erişim", "bulunamadı", "bulamadım", "veremem", "paylaşamam",
-                  "kapsam", "görüntüleyemiyorum", "sunamam", "izin")
+                  "kapsam", "görüntüleyemiyorum", "sunamam", "izin",
+                  # Faz 8b: Faz 8'de ince ayarlı model "Görebildiğim araçlarla bu bilgiyi alamam." dedi
+                  "alamam", "alamıyorum", "veremiyorum")
 _PARCA_KIMLIGI = re.compile(r"\[[^\[\]]{1,80}\]")
 _ATIF = re.compile(r'["“”«»]([^"“”«»]{1,2000})["“”«»]\s*\[([^\[\]\s]{1,80})\]')
 _TARIH = re.compile(r"(\d{1,2})\s+(Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\s+"
@@ -106,9 +108,37 @@ def anahtar_geciyor_mu(metin: str, a: dict, bu_yil: int) -> bool:
         return tarih_geciyor_mu(metin, deger, bu_yil)
     if tur == "ad":
         return ad_geciyor_mu(metin, a.get("adlar") or [deger])
-    if tur == "kimlik":
-        return kimlik_geciyor_mu(metin, deger)
+    if tur == "kimlik":  # esdeger: aynı kaydın başka kimlikleri (Faz 8b: faturanın kaynak sistemdeki numarası)
+        return any(kimlik_geciyor_mu(metin, d) for d in [deger, *a.get("esdeger", [])])
     raise ValueError(f"bilinmeyen anahtar türü: {tur}")
+
+
+def kaynak_fatura_nolari(cagrilar: list[dict]) -> dict[str, str]:
+    """Turun başarılı araç sonuçlarındaki faturaların kaynak sistem numaraları: {fatura_id: kaynak_fatura_no}."""
+    nolar: dict[str, str] = {}
+
+    def gez(v):
+        if isinstance(v, dict):
+            if isinstance(v.get("fatura_id"), str) and isinstance(v.get("kaynak_fatura_no"), str):
+                nolar[v["fatura_id"]] = v["kaynak_fatura_no"]
+            for w in v.values():
+                gez(w)
+        elif isinstance(v, list):
+            for w in v:
+                gez(w)
+
+    for c in cagrilar:
+        if not c.get("hata"):
+            gez((c.get("yanit") or {}).get("sonuc"))
+    return nolar
+
+
+def esdeger_kimlikler(alternatifler: list[dict], nolar: dict[str, str]) -> list[dict]:
+    """Fatura kimliği anahtarlarına aynı faturanın kaynak sistem numarasını eşdeğer olarak ekler. Numara puanlanan
+    turun kendi araç sonucundan gelir; soru setine dokunulmaz (Faz 8b; Faz 7'de "puanlayıcı katı" denen durum)."""
+    return [{**alt, "anahtarlar": [
+        {**a, "esdeger": [nolar[a["deger"]]]} if a["tur"] == "kimlik" and a["deger"] in nolar
+        and nolar[a["deger"]] != a["deger"] else a for a in alt["anahtarlar"]]} for alt in alternatifler]
 
 
 def alternatif_geciyor_mu(metin: str, alternatifler: list[dict], bu_yil: int) -> bool:
@@ -245,7 +275,8 @@ def _arac_puani(soru: dict, satir: dict, bu_yil: int) -> dict:
             for a in alt["anahtarlar"])
         for alt in alternatifler for c in basarili if c["arac"] == alt["arac"])
     tamam = satir["durum"] == "tamam"
-    cevap_dogru = tamam and alternatif_geciyor_mu(_gosterilen(satir), alternatifler, bu_yil)
+    kabul = esdeger_kimlikler(alternatifler, kaynak_fatura_nolari(basarili))
+    cevap_dogru = tamam and alternatif_geciyor_mu(_gosterilen(satir), kabul, bu_yil)
     rakam_var = tamam and sayi_var_mi(_gosterilen(satir))
     if cevap_dogru:
         hata = "dogru"
@@ -267,7 +298,7 @@ def _arac_puani(soru: dict, satir: dict, bu_yil: int) -> dict:
         hata = "deger_eksik"
     return {"arac_dogru": arac_dogru, "parametre_dogru": parametre_dogru, "cevap_dogru": cevap_dogru,
             "yanlis_sayi_suphesi": tamam and not cevap_dogru and rakam_var, "hata_turu": hata,
-            "taslak_tablosu": dict(_taslak_tablosu(satir, lambda m: alternatif_geciyor_mu(m, alternatifler, bu_yil)))}
+            "taslak_tablosu": dict(_taslak_tablosu(satir, lambda m: alternatif_geciyor_mu(m, kabul, bu_yil)))}
 
 
 def _getirilen(satir: dict) -> dict[str, str]:

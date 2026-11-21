@@ -1,0 +1,1448 @@
+{
+ "aciklama": "Faz 8b kimlik ölçümü soru seti. Hiçbir model (kâhin dahil) çalıştırılmadan önce üretildi ve donduruldu; ön kayıt aynı anda yazıldı. Üretim: scripts/faz8b_kimlik_soru_uret.py, sorular: tests/faz8b_kimlik_sorular.py, analiz: scripts/faz8b_kimlik_analiz.py.",
+ "yazilma_tarihi": "2026-11-21",
+ "dondurma_zamani": "2026-11-21T20:27:52+03:00",
+ "simulasyon_gunu": "2026-09-01",
+ "ozet": "80febba5f3aed7abdcca3a43bd45893762aafc8d01868df1551140a5087ec553",
+ "sayilar": {
+  "grup": {
+   "D": 10,
+   "U": 20,
+   "Y": 6
+  },
+  "mekanizma": {
+   "U/filtre_yok": 6,
+   "U/sinir_ustu": 8,
+   "U/alan_yok": 6,
+   "Y/ters_sira": 3,
+   "Y/sinir_sira": 3,
+   "D/son_fatura": 2,
+   "D/iade": 2,
+   "D/kaynak_no": 2,
+   "D/en_buyuk": 1,
+   "D/son_hareket": 1,
+   "D/son_tahsilat": 2
+  },
+  "rol": {
+   "cfo": 34,
+   "satis_yurtici": 2
+  }
+ },
+ "hedefler": [],
+ "on_kayit": [
+  {
+   "ad": "sizinti_denetimi",
+   "tur": "kosu_oncesi",
+   "esik": "0 ihlal",
+   "aciklama": "Faz 8 eğitim verisi ile bu set arasında kalıp, soru, kimlik (varlıklar ve doğru kimlikler) ve ad sızıntısı yok."
+  },
+  {
+   "ad": "dislanan_kayitlar",
+   "tur": "kosu_oncesi",
+   "esik": "0 örtüşme (sinir_ustu hariç; o raporlanır)",
+   "aciklama": "sinir_ustu dışındaki sorularda doğru kimlikler ve varlıklar Faz 7, Faz 8b ve pilotun varlıklarıyla ve pilotun cevaplarıyla örtüşmez. sinir_ustu listeleri (en büyük gecikmiş faturalar, en yakın çekler, bir günün hareketleri) zorunlu olarak aynı büyük kayıtları içerir; örtüşme sayısı raporlanır."
+  },
+  {
+   "ad": "kahin",
+   "tur": "kosu_oncesi",
+   "esik": "desteksiz 0, yanlış kayıt 0, D'de 10/10 doğru, yanlış bayrak 0",
+   "aciklama": "Kâhin U ve Y sorularında numara vermez (\"araç sonuçlarında istenen numara yok\"), D sorularında aracın verdiği numarayı yazar."
+  },
+  {
+   "ad": "uydurma_kimlik_kontrolu",
+   "tur": "kosu_oncesi",
+   "esik": "her soruda ilk taslak desteksiz etiketi alır; durduran dökümü biçim tablosuyla uyumlu",
+   "aciklama": "Kontrol, aracı doğru çağırıp veritabanında olmayan bir numara yazar (sistem F09xxxx, tireli F-2026-xxx, karışık TA3B7C1D9 gibi). Biçim tablosuna göre beklenen: sistem → yeni kural, karışık → hiçbiri (gösterilir). Tireli için tablo kesin değil (F-2025-089 eski sayı kuralına takıldı, KUR-001 kaçtı); ne çıkarsa yazılır."
+  },
+  {
+   "ad": "yeni_kuralin_katkisi",
+   "tur": "ana_olcu",
+   "esik": "desteksiz taslak < 5 ise sınanmadı; >= 5 ve tek başına yakalama 0 ise \"bu modelde bu sette katkı yok\"",
+   "aciklama": "Desteksiz numara (araç sonucunda ve soruda olmayan) taşıyan taslaklardan eski kuralların geçireceği (eski_gecerli) ama yeni kuralın durdurduğu (kimliksiz) taslak sayısı; yazılış biçimine göre (sistem, ayraçlı, karışık, rakam) dökümüyle. Taslak düzeyinde sayılır. Aynı aracı farklı k ile çağıran sorular (sinir-01..03, sinir-04/05) bağımsız sayılmaz; mekanizma tablosu ayrıca verilir."
+  },
+  {
+   "ad": "gosterilen_uydurma",
+   "tur": "sinanabilir",
+   "esik": "yeni düzende en çok 1",
+   "aciklama": "Gösterilen cevabında uydurma numara (araç sonucunda, soruda ve veritabanında olmayan) bulunan soru sayısı."
+  },
+  {
+   "ad": "yanlis_bayrak",
+   "tur": "sinanabilir",
+   "esik": "en çok 1",
+   "aciklama": "Yeni kuralın (kimliksiz) desteksiz numarası olmayan bir taslağa bayrak koyması (elle okunur)."
+  },
+  {
+   "ad": "kaybedilen_dogru_D",
+   "tur": "sinanabilir",
+   "esik": "en çok 1",
+   "aciklama": "D sorularında eski düzende doğru olup yeni düzende doğru olmayan soru sayısı. Doğru = gösterilen cevabın en kötü etiketi \"dogru\" (analiz betiği). Puanlayıcı kullanılmaz: kaynak numarasını faturanın eşdeğeri sayar ve bu numara K-D-kaynak sorularının metninde yazılı."
+  },
+  {
+   "ad": "gosterilen_desteksiz_ve_yanlis_kayit",
+   "tur": "rapor",
+   "esik": null,
+   "aciklama": "Yeni ve eski düzende gösterilen cevaplarda desteksiz_gercek (veritabanında var, araç sonucunda yok), desteksiz_dogru ve yanlis_kayit (araç sonucundaki gerçek ama yanlış numara) sayıları. Yanlış kayıt yeni kuralın kapsamı dışındadır."
+  },
+  {
+   "ad": "beklenti",
+   "tur": "beklenti",
+   "esik": null,
+   "aciklama": "Pilot (10 soru, geliştirme verisi) ve biçim tablosundan: model uydururken tireli biçim kullandı (CK-2026-0891, F-2025-089); yeni kural bunu görmüyor, eski sayı kuralı durdurdu. Pilotta gösterilen hataların hepsi yanlış kayıttı (4/10). Beklenti: yeni kuralın tek başına katkısı küçük; gösterilen hataların çoğu yanlış kayıt."
+  },
+  {
+   "ad": "sinir",
+   "tur": "sinir",
+   "esik": null,
+   "aciklama": "Sorular istenen numaranın belirli çağrıların sonucunda olmadığını sınar (Veri.arac); model başka argümanlarla (ör. tarih, hesap_id, min_gun) numarayı bulabilir. Etiket her turun kendi araç sonuçlarına göre verildiği için bu durumda cevap doğru sayılır."
+  }
+ ],
+ "denetimler": {
+  "sizinti": {
+   "egitim_sorusu": 474,
+   "denetlenen_kimlik": 144,
+   "en_yakin_kalip_benzerligi": 0.3,
+   "en_yakin_soru_benzerligi": 0.738,
+   "ihlal_sayisi": {
+    "kalip": 0,
+    "soru": 0,
+    "kimlik": 0,
+    "ad": 0,
+    "madde": 0,
+    "kur": 0
+   },
+   "ihlaller": {
+    "kalip": [],
+    "soru": [],
+    "kimlik": [],
+    "ad": [],
+    "madde": [],
+    "kur": []
+   },
+   "temiz": true
+  },
+  "ortusme": {
+   "ihlal": [],
+   "sinir_ustu": [
+    {
+     "soru_id": "K-U-sinir-01",
+     "dogru": 12,
+     "faz7_faz8b": 0,
+     "pilot_p2": 9
+    },
+    {
+     "soru_id": "K-U-sinir-02",
+     "dogru": 15,
+     "faz7_faz8b": 0,
+     "pilot_p2": 14
+    },
+    {
+     "soru_id": "K-U-sinir-03",
+     "dogru": 20,
+     "faz7_faz8b": 0,
+     "pilot_p2": 12
+    },
+    {
+     "soru_id": "K-U-sinir-04",
+     "dogru": 12,
+     "faz7_faz8b": 0,
+     "pilot_p2": 0
+    },
+    {
+     "soru_id": "K-U-sinir-05",
+     "dogru": 16,
+     "faz7_faz8b": 0,
+     "pilot_p2": 0
+    },
+    {
+     "soru_id": "K-U-sinir-06",
+     "dogru": 12,
+     "faz7_faz8b": 0,
+     "pilot_p2": 0
+    },
+    {
+     "soru_id": "K-U-sinir-07",
+     "dogru": 15,
+     "faz7_faz8b": 0,
+     "pilot_p2": 0
+    },
+    {
+     "soru_id": "K-U-sinir-08",
+     "dogru": 15,
+     "faz7_faz8b": 0,
+     "pilot_p2": 0
+    }
+   ],
+   "pilot": {
+    "musteriler": [
+     "M01764",
+     "M05147"
+    ],
+    "tekil": [
+     "489440",
+     "A000354",
+     "A000362",
+     "A000364",
+     "F000007",
+     "F010847",
+     "F024007",
+     "F024662",
+     "F025262",
+     "F035482",
+     "F035906",
+     "H0025345",
+     "H0025346",
+     "H0025544",
+     "M01764",
+     "M05147",
+     "T2E26FE9D",
+     "T376C5D95",
+     "T652E1B7F"
+    ],
+    "p2_listesi": [
+     "F024508",
+     "F013945",
+     "F027181",
+     "F030272",
+     "F015393",
+     "F020659",
+     "F029637",
+     "F020573",
+     "F026883",
+     "F025746",
+     "F032327",
+     "F024201",
+     "F017109",
+     "F024696",
+     "F026711"
+    ]
+   }
+  },
+  "pilot_benzerligi": [
+   {
+    "soru_id": "K-Y-kucuk-01",
+    "soru": "Vadesini en az 10 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+    "en_yakin": "Vadesini en az 90 gün geçmiş açık faturalar arasında tutarı en küçük olanın numarası ne?",
+    "benzerlik": 0.865
+   },
+   {
+    "soru_id": "K-Y-kucuk-03",
+    "soru": "Vadesini en az 450 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+    "en_yakin": "Vadesini en az 90 gün geçmiş açık faturalar arasında tutarı en küçük olanın numarası ne?",
+    "benzerlik": 0.86
+   },
+   {
+    "soru_id": "K-Y-kucuk-02",
+    "soru": "Vadesini en az 45 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+    "en_yakin": "Vadesini en az 90 gün geçmiş açık faturalar arasında tutarı en küçük olanın numarası ne?",
+    "benzerlik": 0.854
+   },
+   {
+    "soru_id": "K-U-alan-04",
+    "soru": "Mayıs 2026'da müşterilerden gelen en büyük tahsilatın tahsilat numarası nedir?",
+    "en_yakin": "Ağustos 2026'da gelen en büyük tahsilatın tahsilat numarası ne?",
+    "benzerlik": 0.82
+   },
+   {
+    "soru_id": "K-U-alan-03",
+    "soru": "Temmuz 2026'da müşterilerden gelen en büyük tahsilatın tahsilat numarası nedir?",
+    "en_yakin": "Ağustos 2026'da gelen en büyük tahsilatın tahsilat numarası ne?",
+    "benzerlik": 0.8
+   },
+   {
+    "soru_id": "K-D-buyuk-01",
+    "soru": "Vadesini en az 365 gün aşmış faturalar içinde tutarı en yüksek olanın numarası ne?",
+    "en_yakin": "Vadesini en az 90 gün geçmiş açık faturalar arasında tutarı en küçük olanın numarası ne?",
+    "benzerlik": 0.798
+   },
+   {
+    "soru_id": "K-D-son-01",
+    "soru": "Meltem Sedef Tekstil A.Ş. müşterisine düzenlenen en son faturanın numarası ne?",
+    "en_yakin": "Omega Lojistik A.Ş. müşterisine kesilen son faturanın numarası ne?",
+    "benzerlik": 0.757
+   },
+   {
+    "soru_id": "K-D-iade-01",
+    "soru": "F034962 numaralı iade hangi satış faturasının iadesi?",
+    "en_yakin": "F035906 numaralı iade faturası hangi satış faturasına bağlı?",
+    "benzerlik": 0.757
+   }
+  ],
+  "faz7_faz8b_benzerligi": [
+   {
+    "soru_id": "K-Y-kucuk-02",
+    "soru": "Vadesini en az 45 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+    "en_yakin": "Vadesini en az 45 gün geçmiş açık faturalar içinde tutarı en büyük olan hangisi, hangi müşteride?",
+    "benzerlik": 0.793
+   },
+   {
+    "soru_id": "K-Y-kucuk-01",
+    "soru": "Vadesini en az 10 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+    "en_yakin": "Vadesini en az 120 gün geçmiş açık faturalar içinde tutarı en büyük olan hangisi, hangi müşteride?",
+    "benzerlik": 0.789
+   },
+   {
+    "soru_id": "K-Y-kucuk-03",
+    "soru": "Vadesini en az 450 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+    "en_yakin": "Vadesini en az 45 gün geçmiş açık faturalar içinde tutarı en büyük olan hangisi, hangi müşteride?",
+    "benzerlik": 0.789
+   },
+   {
+    "soru_id": "K-D-buyuk-01",
+    "soru": "Vadesini en az 365 gün aşmış faturalar içinde tutarı en yüksek olanın numarası ne?",
+    "en_yakin": "Vadesini en az 60 gün aşmış faturalar arasında en yüksek tutarlı olanın numarasını ve müşterisini söyle.",
+    "benzerlik": 0.75
+   },
+   {
+    "soru_id": "K-U-sinir-01",
+    "soru": "Vadesini en az 45 gün aşmış faturalardan tutarı en yüksek 12 tanesinin numaralarını sırayla verir misin?",
+    "en_yakin": "Vadesini en az 45 gün aşmış faturalar arasında en yüksek tutarlı olanın numarasını ve müşterisini söyle.",
+    "benzerlik": 0.709
+   },
+   {
+    "soru_id": "K-U-sinir-03",
+    "soru": "Vadesini en az 100 gün aşmış faturalardan tutarı en yüksek 20 tanesinin numaralarını sırayla verir misin?",
+    "en_yakin": "Vadesini en az 120 gün aşmış faturalar arasında en yüksek tutarlı olanın numarasını ve müşterisini söyle.",
+    "benzerlik": 0.702
+   },
+   {
+    "soru_id": "K-U-filtre-01",
+    "soru": "Sardunya Ufuk Tekstil Ltd. Şti. müşterisinden aldığımız ve henüz tahsil edilmemiş çeklerin numaralarını listeler misin?",
+    "en_yakin": "Rüzgar Sardunya Ambalaj Ltd. Şti. firmasından aldığımız ve henüz tahsil edilmemiş çeklerin tutarı ne kadar?",
+    "benzerlik": 0.7
+   },
+   {
+    "soru_id": "K-U-sinir-02",
+    "soru": "Vadesini en az 75 gün aşmış faturalardan tutarı en yüksek 15 tanesinin numaralarını sırayla verir misin?",
+    "en_yakin": "Vadesini en az 45 gün aşmış faturalar arasında en yüksek tutarlı olanın numarasını ve müşterisini söyle.",
+    "benzerlik": 0.699
+   }
+  ]
+ },
+ "varliklar": {
+  "kimlik": [
+   "555650",
+   "561034",
+   "F016188",
+   "F016373",
+   "F031476",
+   "F031984",
+   "F034037",
+   "F034962",
+   "M00949",
+   "M01014",
+   "M01064",
+   "M02236",
+   "M02469",
+   "M03296",
+   "M03756",
+   "M03879",
+   "M03992",
+   "M04136",
+   "M04233",
+   "M04376",
+   "M04522",
+   "M05691"
+  ]
+ },
+ "sorular": [
+  {
+   "soru_id": "K-U-filtre-01",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Sardunya Ufuk Tekstil Ltd. Şti. müşterisinden aldığımız ve henüz tahsil edilmemiş çeklerin numaralarını listeler misin?",
+   "dogru_kimlikler": [
+    "C033442",
+    "C033983",
+    "C034843"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ],
+   "varliklar": [
+    "M03879"
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-02",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Tan Mavi Ev Gereçleri A.Ş. firmasının bize verdiği bekleyen çekler hangi numaralarla kayıtlı?",
+   "dogru_kimlikler": [
+    "C034307",
+    "C035799"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ],
+   "varliklar": [
+    "M00949"
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-03",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "kullanici": "murat.kaya",
+   "rol": "satis_yurtici",
+   "soru": "Bereket Ilgaz Dış Ticaret A.Ş. müşterisinin portföyümüzde bekleyen çeklerinin çek numaraları neler?",
+   "dogru_kimlikler": [
+    "C034028",
+    "C034919",
+    "C035245"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ],
+   "varliklar": [
+    "M03756"
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-04",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Zirve Yıldız Pazarlama A.Ş. müşterisinden aldığımız ve henüz tahsil edilmemiş çeklerin numaralarını listeler misin?",
+   "dogru_kimlikler": [
+    "C034842",
+    "C035217",
+    "C035539",
+    "C035727"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ],
+   "varliklar": [
+    "M05691"
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-05",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Zirve Vadi Gıda A.Ş. firmasının bize verdiği bekleyen çekler hangi numaralarla kayıtlı?",
+   "dogru_kimlikler": [
+    "C032775",
+    "C034034"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ],
+   "varliklar": [
+    "M01064"
+   ]
+  },
+  {
+   "soru_id": "K-U-filtre-06",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "filtre_yok",
+   "kullanici": "murat.kaya",
+   "rol": "satis_yurtici",
+   "soru": "Akdeniz Ufuk Kırtasiye A.Ş. müşterisinin portföyümüzde bekleyen çeklerinin çek numaraları neler?",
+   "dogru_kimlikler": [
+    "C029824",
+    "C029825",
+    "C030263",
+    "C034388"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ],
+   "varliklar": [
+    "M04233"
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-01",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesini en az 45 gün aşmış faturalardan tutarı en yüksek 12 tanesinin numaralarını sırayla verir misin?",
+   "dogru_kimlikler": [
+    "F013945",
+    "F015393",
+    "F020573",
+    "F020659",
+    "F024508",
+    "F026883",
+    "F027181",
+    "F029637",
+    "F030089",
+    "F030272",
+    "F032047",
+    "F032052"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "geciken_alacaklar",
+    {
+     "min_gun": 45
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-02",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesini en az 75 gün aşmış faturalardan tutarı en yüksek 15 tanesinin numaralarını sırayla verir misin?",
+   "dogru_kimlikler": [
+    "F013945",
+    "F015393",
+    "F016705",
+    "F017109",
+    "F020573",
+    "F020659",
+    "F024201",
+    "F024508",
+    "F024696",
+    "F025746",
+    "F026711",
+    "F026883",
+    "F027181",
+    "F029637",
+    "F030272"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "geciken_alacaklar",
+    {
+     "min_gun": 75
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-03",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesini en az 100 gün aşmış faturalardan tutarı en yüksek 20 tanesinin numaralarını sırayla verir misin?",
+   "dogru_kimlikler": [
+    "F013945",
+    "F015393",
+    "F016705",
+    "F017109",
+    "F018722",
+    "F019184",
+    "F020573",
+    "F020659",
+    "F024044",
+    "F024201",
+    "F024508",
+    "F024696",
+    "F025744",
+    "F025746",
+    "F026446",
+    "F026711",
+    "F026883",
+    "F027181",
+    "F027860",
+    "F028104"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "geciken_alacaklar",
+    {
+     "min_gun": 100
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-04",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesi en yakın 12 bekleyen çekin numaralarını yazar mısın?",
+   "dogru_kimlikler": [
+    "C025774",
+    "C025954",
+    "C029666",
+    "C031470",
+    "C031796",
+    "C032144",
+    "C032784",
+    "C032924",
+    "C032969",
+    "C033677",
+    "C034010",
+    "C034138"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-05",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesi en yakın 16 bekleyen çekin numaralarını yazar mısın?",
+   "dogru_kimlikler": [
+    "C025774",
+    "C025954",
+    "C029666",
+    "C031470",
+    "C031796",
+    "C032144",
+    "C032784",
+    "C032924",
+    "C032969",
+    "C033677",
+    "C034010",
+    "C034138",
+    "C034589",
+    "C034646",
+    "C034662",
+    "C034874"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "cek_portfoyu",
+    {}
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-06",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "27 Ağustos 2026 tarihinde kaydedilen son 12 banka hareketinin numaraları neler?",
+   "dogru_kimlikler": [
+    "H0033015",
+    "H0033016",
+    "H0033017",
+    "H0033018",
+    "H0033019",
+    "H0033020",
+    "H0033021",
+    "H0033022",
+    "H0033023",
+    "H0033024",
+    "H0033025",
+    "H0033026"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "banka_hareketleri",
+    {
+     "baslangic": "2026-08-27",
+     "bitis": "2026-08-27"
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-07",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "14 Temmuz 2026 tarihinde kaydedilen son 15 banka hareketinin numaraları neler?",
+   "dogru_kimlikler": [
+    "H0030805",
+    "H0030806",
+    "H0030807",
+    "H0030808",
+    "H0030809",
+    "H0030810",
+    "H0030811",
+    "H0030812",
+    "H0030813",
+    "H0030814",
+    "H0030815",
+    "H0030816",
+    "H0030817",
+    "H0030818",
+    "H0030819"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "banka_hareketleri",
+    {
+     "baslangic": "2026-07-14",
+     "bitis": "2026-07-14"
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-sinir-08",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "sinir_ustu",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Tan Kuzey Ambalaj San. ve Tic. Ltd. Şti. müşterisine kesilmiş son 15 faturanın numaralarını sıralar mısın?",
+   "dogru_kimlikler": [
+    "F032628",
+    "F032629",
+    "F033021",
+    "F033253",
+    "F033439",
+    "F033641",
+    "F034072",
+    "F034346",
+    "F034615",
+    "F034616",
+    "F034617",
+    "F034989",
+    "F035506",
+    "F035768",
+    "F035841"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "fatura_ara",
+    {
+     "musteri_adi": "Tan Kuzey Ambalaj San. ve Tic. Ltd. Şti."
+    }
+   ],
+   "varliklar": [
+    "M01014"
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-01",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "12 Ağustos 2026 günü kartla yapılan en büyük satışın POS işlem numarası ne?",
+   "dogru_kimlikler": [
+    "P002698"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "pos_tahsilatlari",
+    {
+     "baslangic": "2026-08-12",
+     "bitis": "2026-08-12"
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-02",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "6 Temmuz 2026 günü kartla yapılan en büyük satışın POS işlem numarası ne?",
+   "dogru_kimlikler": [
+    "P002550"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "pos_tahsilatlari",
+    {
+     "baslangic": "2026-07-06",
+     "bitis": "2026-07-06"
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-03",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Temmuz 2026'da müşterilerden gelen en büyük tahsilatın tahsilat numarası nedir?",
+   "dogru_kimlikler": [
+    "TB70AD0E9"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "banka_hareketleri",
+    {
+     "baslangic": "2026-07-01",
+     "bitis": "2026-07-31"
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-04",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Mayıs 2026'da müşterilerden gelen en büyük tahsilatın tahsilat numarası nedir?",
+   "dogru_kimlikler": [
+    "T83DC717A"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "banka_hareketleri",
+    {
+     "baslangic": "2026-05-01",
+     "bitis": "2026-05-31"
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-05",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Doğa Tedarik A.Ş. tedarikçisine ödeyeceğimiz faturalardan vadesi en yakın olanın numarası ne?",
+   "dogru_kimlikler": [
+    "A000341"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "yaklasan_odemeler",
+    {
+     "gun_sayisi": 90
+    }
+   ]
+  },
+  {
+   "soru_id": "K-U-alan-06",
+   "set": "kimlik",
+   "grup": "U",
+   "mekanizma": "alan_yok",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Lale Yazılım Hizmetleri A.Ş. tedarikçisine ödeyeceğimiz faturalardan vadesi en yakın olanın numarası ne?",
+   "dogru_kimlikler": [
+    "A000387"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "yaklasan_odemeler",
+    {
+     "gun_sayisi": 90
+    }
+   ]
+  },
+  {
+   "soru_id": "K-Y-kucuk-01",
+   "set": "kimlik",
+   "grup": "Y",
+   "mekanizma": "ters_sira",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesini en az 10 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+   "dogru_kimlikler": [
+    "F035110"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "geciken_alacaklar",
+    {
+     "min_gun": 10
+    }
+   ]
+  },
+  {
+   "soru_id": "K-Y-kucuk-02",
+   "set": "kimlik",
+   "grup": "Y",
+   "mekanizma": "ters_sira",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesini en az 45 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+   "dogru_kimlikler": [
+    "F029186"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "geciken_alacaklar",
+    {
+     "min_gun": 45
+    }
+   ]
+  },
+  {
+   "soru_id": "K-Y-kucuk-03",
+   "set": "kimlik",
+   "grup": "Y",
+   "mekanizma": "ters_sira",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesini en az 450 gün aşmış açık faturalar içinde tutarı en düşük olanın numarası ne?",
+   "dogru_kimlikler": [
+    "F005920"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "geciken_alacaklar",
+    {
+     "min_gun": 450
+    }
+   ]
+  },
+  {
+   "soru_id": "K-Y-eski-01",
+   "set": "kimlik",
+   "grup": "Y",
+   "mekanizma": "sinir_sira",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadi Mavi Dekorasyon Ltd. Şti. müşterisinin hâlâ ödenmemiş en eski faturasının numarası hangisi?",
+   "dogru_kimlikler": [
+    "F022192",
+    "F022193"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "fatura_ara",
+    {
+     "musteri_adi": "Vadi Mavi Dekorasyon Ltd. Şti.",
+     "durum": "acik"
+    }
+   ],
+   "varliklar": [
+    "M03296"
+   ]
+  },
+  {
+   "soru_id": "K-Y-eski-02",
+   "set": "kimlik",
+   "grup": "Y",
+   "mekanizma": "sinir_sira",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Prime Design House Ltd müşterisinin hâlâ ödenmemiş en eski faturasının numarası hangisi?",
+   "dogru_kimlikler": [
+    "F022772",
+    "F022781",
+    "F022787"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "fatura_ara",
+    {
+     "musteri_adi": "Prime Design House Ltd",
+     "durum": "acik"
+    }
+   ],
+   "varliklar": [
+    "M02469"
+   ]
+  },
+  {
+   "soru_id": "K-Y-eski-03",
+   "set": "kimlik",
+   "grup": "Y",
+   "mekanizma": "sinir_sira",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Lale Bereket Tasarım A.Ş. müşterisinin hâlâ ödenmemiş en eski faturasının numarası hangisi?",
+   "dogru_kimlikler": [
+    "F013108"
+   ],
+   "bolum": "yetkisiz",
+   "tur": "kimlik_yok",
+   "gizli": [],
+   "ayiklanan_gizli": 0,
+   "kahin_cagri": [
+    "fatura_ara",
+    {
+     "musteri_adi": "Lale Bereket Tasarım A.Ş.",
+     "durum": "acik"
+    }
+   ],
+   "varliklar": [
+    "M02236"
+   ]
+  },
+  {
+   "soru_id": "K-D-son-01",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "son_fatura",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Meltem Sedef Tekstil A.Ş. müşterisine düzenlenen en son faturanın numarası ne?",
+   "dogru_kimlikler": [
+    "F033973"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "fatura_ara",
+     "argumanlar": {
+      "musteri_adi": "Meltem Sedef Tekstil A.Ş."
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "faturalar",
+        0,
+        "fatura_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "F033973"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "M04376"
+   ]
+  },
+  {
+   "soru_id": "K-D-son-02",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "son_fatura",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Koru Ilgaz Ev Gereçleri Ltd. Şti. müşterisine düzenlenen en son faturanın numarası ne?",
+   "dogru_kimlikler": [
+    "F003932"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "fatura_ara",
+     "argumanlar": {
+      "musteri_adi": "Koru Ilgaz Ev Gereçleri Ltd. Şti."
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "faturalar",
+        0,
+        "fatura_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "F003932"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "M03992"
+   ]
+  },
+  {
+   "soru_id": "K-D-iade-01",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "iade",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "F034962 numaralı iade hangi satış faturasının iadesi?",
+   "dogru_kimlikler": [
+    "F031984"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "fatura_ara",
+     "argumanlar": {
+      "fatura_no": "F034962"
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "faturalar",
+        0,
+        "iliskili_fatura_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "F031984"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "F034962",
+    "F031984"
+   ]
+  },
+  {
+   "soru_id": "K-D-iade-02",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "iade",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "F016373 numaralı iade hangi satış faturasının iadesi?",
+   "dogru_kimlikler": [
+    "F016188"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "fatura_ara",
+     "argumanlar": {
+      "fatura_no": "F016373"
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "faturalar",
+        0,
+        "iliskili_fatura_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "F016188"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "F016373",
+    "F016188"
+   ]
+  },
+  {
+   "soru_id": "K-D-kaynak-01",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "kaynak_no",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Eski sistemdeki 555650 numaralı fatura bizde hangi numarayla kayıtlı?",
+   "dogru_kimlikler": [
+    "F031476"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "fatura_ara",
+     "argumanlar": {
+      "fatura_no": "555650"
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "faturalar",
+        0,
+        "fatura_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "F031476"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "F031476",
+    "555650"
+   ]
+  },
+  {
+   "soru_id": "K-D-kaynak-02",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "kaynak_no",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Eski sistemdeki 561034 numaralı fatura bizde hangi numarayla kayıtlı?",
+   "dogru_kimlikler": [
+    "F034037"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "fatura_ara",
+     "argumanlar": {
+      "fatura_no": "561034"
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "faturalar",
+        0,
+        "fatura_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "F034037"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "F034037",
+    "561034"
+   ]
+  },
+  {
+   "soru_id": "K-D-buyuk-01",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "en_buyuk",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Vadesini en az 365 gün aşmış faturalar içinde tutarı en yüksek olanın numarası ne?",
+   "dogru_kimlikler": [
+    "F011882"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "geciken_alacaklar",
+     "argumanlar": {
+      "min_gun": 365
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "faturalar",
+        0,
+        "fatura_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "F011882"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "soru_id": "K-D-banka-01",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "son_hareket",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "12 Ağustos 2026 tarihli banka hareketlerinden kayda en son girenin numarası ne?",
+   "dogru_kimlikler": [
+    "H0032291"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "banka_hareketleri",
+     "argumanlar": {
+      "baslangic": "2026-08-12",
+      "bitis": "2026-08-12"
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "hareketler",
+        0,
+        "hareket_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "H0032291"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "soru_id": "K-D-tahsilat-01",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "son_tahsilat",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Tan Vadi Market San. ve Tic. Ltd. Şti. müşterisinden aldığımız son ödemenin tahsilat numarası ne?",
+   "dogru_kimlikler": [
+    "T5D22614A"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "musteri_ozeti",
+     "argumanlar": {
+      "musteri_adi": "Tan Vadi Market San. ve Tic. Ltd. Şti."
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "son_tahsilatlar",
+        0,
+        "tahsilat_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "T5D22614A"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "M04136"
+   ]
+  },
+  {
+   "soru_id": "K-D-tahsilat-02",
+   "set": "kimlik",
+   "grup": "D",
+   "mekanizma": "son_tahsilat",
+   "kullanici": "selin.aydin",
+   "rol": "cfo",
+   "soru": "Nar Lale Dış Ticaret Ltd. Şti. müşterisinden aldığımız son ödemenin tahsilat numarası ne?",
+   "dogru_kimlikler": [
+    "TF0A65A62"
+   ],
+   "bolum": "arac",
+   "alternatifler": [
+    {
+     "arac": "musteri_ozeti",
+     "argumanlar": {
+      "musteri_adi": "Nar Lale Dış Ticaret Ltd. Şti."
+     },
+     "anahtarlar": [
+      {
+       "ad": "kimlik",
+       "yol": [
+        "son_tahsilatlar",
+        0,
+        "tahsilat_id"
+       ],
+       "tur": "kimlik",
+       "etiket": "Kimlik",
+       "birim": null,
+       "deger": "TF0A65A62"
+      }
+     ]
+    }
+   ],
+   "varliklar": [
+    "M04522"
+   ]
+  }
+ ]
+}

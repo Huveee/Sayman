@@ -20,6 +20,7 @@ from sayman.araclar.kayit import DenetimKaydi
 from sayman.araclar.kimlik import kart_uret
 from sayman.araclar.sunucu import SaymanSunucusu
 from sayman.araclar.yetki import yetki_oku
+from sayman.asistan.dogrulayici import KAPSAM_NOTLARI
 from sayman.asistan.orkestrator import (METINLER, SISTEM_ISTEMI, Asistan, Ayar, ModelCevabi, ModelZamanAsimi,
                                         arac_tanimlari)
 from sayman.belge.arama import Arayici
@@ -109,7 +110,10 @@ def calistir(sunucu, model, kullanici=CFO, soru="Bankalarda ne kadar nakit var?"
 
 
 def _degismez(tur):
-    if tur.durum == "tamam":
+    if tur.durum == "tamam" and tur.kapsam_notu:  # Faz 8b: doğrulanmış bir taslak + sabit kapsam notu
+        assert any(d.gecerli and d.kapsam_eksik and tur.cevap == t.strip() + "\n\n" + KAPSAM_NOTLARI[d.kapsam_eksik]
+                   for t, d in zip(tur.taslaklar, tur.dogrulamalar))
+    elif tur.durum == "tamam":
         assert tur.dogrulamalar[-1].gecerli and tur.cevap == tur.taslaklar[-1].strip()
     else:
         assert tur.cevap in METINLER.values()

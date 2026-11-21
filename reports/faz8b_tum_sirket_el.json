@@ -1,0 +1,140 @@
+{
+ "aciklama": "Her T sorusu için yeni ve eski cevabı ön kayıttaki sınıflardan biriyle puanla: ret, kapsamli, yaniltici. Eski cevabı olmayan (ayrışan) soruda eski null kalır.",
+ "puanlar": {
+  "Y-tum-01": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-02": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-03": {
+   "yeni": "ret",
+   "eski": "ret"
+  },
+  "Y-tum-04": {
+   "yeni": "ret",
+   "eski": "ret"
+  },
+  "Y-tum-05": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-06": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-07": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-08": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-09": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-10": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  },
+  "Y-tum-11": {
+   "yeni": "kapsamli",
+   "eski": "yaniltici"
+  }
+ },
+ "cevaplar": [
+  {
+   "soru_id": "Y-tum-01",
+   "kullanici": "murat.kaya",
+   "soru": "Şirketin tamamının toplam açık alacağı ne kadar?",
+   "yeni": "Yurtiçi müşterilerden toplam 51.719.292,77 TL alacağımız var.",
+   "eski": "Müşterilerden toplam 51.719.292,77 TL alacağımız var.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-02",
+   "kullanici": "deniz.arslan",
+   "soru": "Şirketin tamamının toplam açık alacağı ne kadar?",
+   "yeni": "Yurt dışı müşterilerinizin toplam açık alacağı 23.860.952,91 TL.",
+   "eski": "Müşterilerden toplam 23.860.952,91 TL alacağımız var.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-03",
+   "kullanici": "murat.kaya",
+   "soru": "Yurtiçi ve yurt dışı birlikte bütün müşterilerimizden ne kadar alacağımız var?",
+   "yeni": "Bu bilgiyi görme yetkiniz yok.",
+   "eski": "Bu bilgiyi görme yetkiniz yok.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-04",
+   "kullanici": "deniz.arslan",
+   "soru": "Yurtiçi ve yurt dışı birlikte bütün müşterilerimizden ne kadar alacağımız var?",
+   "yeni": "Bu bilgiyi görme yetkiniz yok.",
+   "eski": "Bu bilgiyi görme yetkiniz yok.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-05",
+   "kullanici": "deniz.arslan",
+   "soru": "Tüm şirketin elinde bekleyen çeklerin toplamı ne?",
+   "yeni": "Yurt dışı müşterilerinizin bekleyen çeklerinin toplamı 0 TL.",
+   "eski": "Bekleyen çeklerin toplamı 0 TL.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-06",
+   "kullanici": "murat.kaya",
+   "soru": "Bütün bölgeler dahil vadesi geçmiş alacaklarımızın toplamı nedir?",
+   "yeni": "Yurtiçi müşterilerinizden vadesi geçmiş alacaklarımızın toplamı 23.863.877,25 TL.",
+   "eski": "Vadesi geçmiş alacaklarımızın toplamı 23.863.877,25 TL.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-07",
+   "kullanici": "deniz.arslan",
+   "soru": "Bütün bölgeler dahil vadesi geçmiş alacaklarımızın toplamı nedir?",
+   "yeni": "Yurt dışı müşterilerinizin vadesi geçmiş alacaklarının toplamı 13.936.985,70 TL.",
+   "eski": "Vadesi geçmiş alacaklarımızın toplamı 13.936.985,70 TL.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-08",
+   "kullanici": "murat.kaya",
+   "soru": "Şirket genelinde son 90 günün DSO değeri kaç gün?",
+   "yeni": "Yurtiçi müşterileriniz için son 90 günün DSO’su 51,04 gün.",
+   "eski": "Son 90 gün için DSO 51,04 gün.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-09",
+   "kullanici": "deniz.arslan",
+   "soru": "Şirket genelinde son 90 günün DSO değeri kaç gün?",
+   "yeni": "Yurt dışı müşterileriniz için son 90 günün DSO’su 90,79 gün.",
+   "eski": "Son 90 gün için DSO 90,79 gün.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-10",
+   "kullanici": "murat.kaya",
+   "soru": "Bütün şirketin vadesini 30 günden fazla geçirmiş faturalarının toplamı ne?",
+   "yeni": "Vadesini en az 30 gün geçmiş açık faturaların toplamı 14.790.420,41 TL; bu hesap yalnızca yurtiçi müşteriler için yapıldı.",
+   "eski": "Vadesini en az 30 gün geçmiş açık faturaların toplamı 14.790.420,41 TL.",
+   "kapsam_notu": false
+  },
+  {
+   "soru_id": "Y-tum-11",
+   "kullanici": "deniz.arslan",
+   "soru": "Bütün şirketin vadesini 30 günden fazla geçirmiş faturalarının toplamı ne?",
+   "yeni": "Yurt dışı müşterilerinizin vadesini en az 30 gün geçmiş açık faturalarının toplamı 11.505.306,61 TL.",
+   "eski": "Vadesini en az 30 gün geçmiş açık faturaların toplamı 11.505.306,61 TL.",
+   "kapsam_notu": false
+  }
+ ],
+ "puanlayan_notu": "Kodu yazan kişi puanladı (kör değil). Y-tum-03/04: model yanlışlıkla nakit_pozisyonu çağırdı, yetki_yok aldı ve sabit ret metni gösterildi; ret, doğru bir 'şirketin tamamını göremiyorum' kararından değil, yanlış araçtan geldi. Kapsamlı cevapların hiçbiri şirketin tamamını göremediğini ayrıca söylemiyor; yalnızca kendi bölgesinin toplamını kapsamıyla veriyor. Y-tum-05'te yurt dışı müdürünün kendi çek toplamı 0 TL."
+}

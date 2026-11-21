@@ -1,0 +1,209 @@
+{
+ "aciklama": "Her satır, tek cümlelik yapay bir taslağı bugünkü doğrulayıcıdan geçirir. Araç sonucunda yalnızca gerçek kayıtlar vardır: fatura F035473 (kaynak numarası 489434), çek C025774, tahsilat T00039E4A, banka hareketi H0001234. - Uydurma kimlikler (sonuçta yok): yeni kural (kimliksiz) mı, eski sayı kuralı (kaynaksiz) mı yakalıyor, yoksa ikisi   de kaçırıyor mu? - Gerçek kimliğin başka yazılışları (sonuçta var): yanlışlıkla durduruluyor mu?",
+ "satirlar": [
+  {
+   "grup": "uydurma",
+   "yazilis": "F035999",
+   "aciklama": "sistem biçimi, fatura",
+   "kimliksiz": [
+    "F035999"
+   ],
+   "kaynaksiz": [],
+   "karar": "yeni kural"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "C560878",
+   "aciklama": "kaynak biçimi (Faz 8'de görülen)",
+   "kimliksiz": [
+    "C560878"
+   ],
+   "kaynaksiz": [],
+   "karar": "yeni kural"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "A000999",
+   "aciklama": "sistem biçimi, tedarikçi faturası",
+   "kimliksiz": [
+    "A000999"
+   ],
+   "kaynaksiz": [],
+   "karar": "yeni kural"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "H0009999",
+   "aciklama": "sistem biçimi, banka hareketi",
+   "kimliksiz": [
+    "H0009999"
+   ],
+   "kaynaksiz": [],
+   "karar": "yeni kural"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "f035999",
+   "aciklama": "küçük harf",
+   "kimliksiz": [
+    "f035999"
+   ],
+   "kaynaksiz": [],
+   "karar": "yeni kural"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "FTR2026001",
+   "aciklama": "uzun önek",
+   "kimliksiz": [
+    "FTR2026001"
+   ],
+   "kaynaksiz": [],
+   "karar": "yeni kural"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "F-2025-089",
+   "aciklama": "tireli (Faz 8b'de görülen)",
+   "kimliksiz": [],
+   "kaynaksiz": [
+    "089"
+   ],
+   "karar": "eski sayı kuralı"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "KUR-001",
+   "aciklama": "tireli, kısa (Faz 8'de görülen)",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "kaçtı"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "C-025999",
+   "aciklama": "tireli çek",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "kaçtı"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "F 035999",
+   "aciklama": "boşluklu",
+   "kimliksiz": [],
+   "kaynaksiz": [
+    "035999"
+   ],
+   "karar": "eski sayı kuralı"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "#F035999",
+   "aciklama": "diyez önekli",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "kaçtı"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "F035999/2026",
+   "aciklama": "eğik çizgi sonekli",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "kaçtı"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "T0003A9E4",
+   "aciklama": "tahsilat biçimi (harf-rakam karışık)",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "kaçtı"
+  },
+  {
+   "grup": "uydurma",
+   "yazilis": "489999",
+   "aciklama": "yalnızca rakam (kaynak numarası gibi)",
+   "kimliksiz": [],
+   "kaynaksiz": [
+    "489999"
+   ],
+   "karar": "eski sayı kuralı"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "F035473",
+   "aciklama": "sonuçtaki gibi",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "f035473",
+   "aciklama": "küçük harf",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "F 035473",
+   "aciklama": "boşluklu",
+   "kimliksiz": [],
+   "kaynaksiz": [
+    "035473"
+   ],
+   "karar": "yanlış durdurma"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "#F035473",
+   "aciklama": "diyez önekli",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "F-035473",
+   "aciklama": "tireli",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "C025774",
+   "aciklama": "çek, sonuçtaki gibi",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "T00039E4A",
+   "aciklama": "tahsilat, sonuçtaki gibi",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "H0001234",
+   "aciklama": "banka hareketi, sonuçtaki gibi",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  },
+  {
+   "grup": "gercek",
+   "yazilis": "489434",
+   "aciklama": "kaynak numarası, sonuçtaki gibi",
+   "kimliksiz": [],
+   "kaynaksiz": [],
+   "karar": "geçti"
+  }
+ ]
+}

@@ -27,6 +27,7 @@ Süre, adım ve bağlam sınırları modelin sonucudur ve yazılır.
 - Faz 8, ince ayarlı model: --ollama-model <ad> --etiket <önek> ile reports/<önek>_<set>.jsonl ve
   reports/<önek>_olcum_<set>.json (Faz 7 dosyalarına dokunulmaz)
 - kâhin ve kontroller: data/olcum/<set>_<model>.jsonl; --kahin-hepsi ile reports/faz7_kahin.json
+- Faz 8b yeni set: --soru-seti reports/faz8b_soru_seti.json --set yeni (kâhin özeti reports/faz8b_kahin.json)
 
 Kullanım (proje kökünden):
     .venv\\Scripts\\python -I -u scripts\\faz7_olc.py --kahin-hepsi
@@ -130,8 +131,12 @@ def _kayit(soru: dict, tur, sistem: dict, model_izi: dict, seti: dict) -> dict:
         "cagrilar": [{"arac": c["arac"], "argumanlar": c["argumanlar"], "hata": c["yanit"].get("hata"),
                       "yanit": c["yanit"]} for c in tur.cagrilar],
         "taslaklar": [{"metin": t, "gecerli": d.gecerli, "kaynaksiz": [x.metin for x in d.kaynaksiz],
-                       "gecersiz_alinti": [x.neden for x in d.gecersiz_alintilar], "alinti_eksik": d.alinti_eksik}
-                      for t, d in zip(tur.taslaklar, tur.dogrulamalar)],
+                       "gecersiz_alinti": [x.neden for x in d.gecersiz_alintilar], "alinti_eksik": d.alinti_eksik,
+                       # Faz 8b: eski kuralların kararı ve yeni kurallar
+                       "eski_gecerli": d.eski_gecerli, "kimliksiz": d.kimliksiz, "sahipsiz": d.sahipsiz,
+                       "kapsam_eksik": d.kapsam_eksik, **adim}
+                      for t, d, adim in zip(tur.taslaklar, tur.dogrulamalar, tur.taslak_adimlari)],
+        "kapsam_notu": tur.kapsam_notu,
         "tokenlar": tur.tokenlar, "zaman": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
     }
 
@@ -272,7 +277,7 @@ def kahin_hepsi(veri: dict, kumeler: dict, parca_rolleri: dict) -> dict:
              "soru_seti_ozeti": veri["ozet"], "modeller": {}}
     for model_adi in ("kahin", *KONTROLLER):
         sonuc["modeller"][model_adi] = {}
-        for set_adi in ("gelistirme", "saklanan"):
+        for set_adi in sorted({s["set"] for s in veri["sorular"]}):
             sorular = [s for s in veri["sorular"] if s["set"] == set_adi]
             bas = time.perf_counter()
             calistir(sorular, model_adi, jsonl_yolu(set_adi, model_adi), yeniden=True, sessiz=True)
@@ -305,8 +310,10 @@ def belge_tavani(veri: dict) -> dict:
     from sayman.belge.arama import arayici_kur
     arayici = arayici_kur(BELGE, "anlam")
     sonuc = {}
-    for set_adi in ("gelistirme", "saklanan"):
+    for set_adi in sorted({s["set"] for s in veri["sorular"]}):
         sorular = [s for s in veri["sorular"] if s["set"] == set_adi and s["bolum"] == "belge"]
+        if not sorular:  # Faz 8b yeni setinde belge sorusu yok
+            continue
         kacan = [s["soru_id"] for s in sorular
                  if s["dogru_parca"] not in [p.parca_id for p, _ in arayici.ara(s["soru"], s["rol"], 3, "anlam")]]
         sonuc[set_adi] = {"soru": len(sorular), "isabet@3": round(1 - len(kacan) / len(sorular), 4), "kacan": kacan}
@@ -331,9 +338,12 @@ def uyanik_tut() -> None:
 
 
 def main() -> None:
+    global OLLAMA_MODELI, ETIKET, SORU_SETI
     uyanik_tut()
     ap = argparse.ArgumentParser(description="Faz 7 ölçümü")
-    ap.add_argument("--set", choices=("gelistirme", "saklanan"))
+    ap.add_argument("--set", choices=("gelistirme", "saklanan", "yeni", "kimlik"))
+    ap.add_argument("--soru-seti", default=str(SORU_SETI.relative_to(KOK)),
+                    help="Faz 8b: başka bir dondurulmuş soru seti (ör. reports/faz8b_soru_seti.json, set 'yeni')")
     ap.add_argument("--model", choices=MODELLER, default="gercek")
     ap.add_argument("--bolum", default="arac,yetkisiz,belge")
     ap.add_argument("--sinir", type=int, default=0, help="yalnızca ilk N soru (deneme için)")
@@ -345,10 +355,12 @@ def main() -> None:
     ap.add_argument("--ollama-model", default=None, help="Faz 8: gerçek model yerine Ollama'daki bu model")
     ap.add_argument("--etiket", default="faz7", help="Faz 8: rapor dosyalarının öneki (ör. faz8_ayarli)")
     a = ap.parse_args()
-    global OLLAMA_MODELI, ETIKET
     if (a.ollama_model is None) != (a.etiket == "faz7"):
         ap.error("--ollama-model ile --etiket birlikte verilmeli (Faz 7 dosyalarının üstüne yazılmasın)")
     OLLAMA_MODELI, ETIKET = a.ollama_model, a.etiket
+    SORU_SETI = (KOK / a.soru_seti).resolve()
+    if a.set == "yeni" and SORU_SETI.name == "faz7_soru_seti.json":
+        ap.error("--set yeni için --soru-seti reports/faz8b_soru_seti.json verilmeli")
     sys.stdout.reconfigure(encoding="utf-8")
     veri = json.loads(SORU_SETI.read_text(encoding="utf-8"))
     kumeler = kapsam_kumeleri()
@@ -360,7 +372,8 @@ def main() -> None:
         except Exception as e:  # Ollama kapalıysa
             sonuc["belge_tavani"] = {"hata": f"{type(e).__name__}: {str(e)[:200]}"}
         print("belge tavanı", json.dumps(sonuc["belge_tavani"], ensure_ascii=False), flush=True)
-        (KOK / "reports" / "faz7_kahin.json").write_text(json.dumps(sonuc, ensure_ascii=False, indent=1) + "\n",
+        # faz7_soru_seti.json → faz7_kahin.json; faz8b_soru_seti.json → faz8b_kahin.json
+        (KOK / "reports" / SORU_SETI.name.replace("soru_seti", "kahin")).write_text(json.dumps(sonuc, ensure_ascii=False, indent=1) + "\n",
                                                          encoding="utf-8")
         return
     if not a.set:
