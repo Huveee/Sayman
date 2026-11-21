@@ -1,0 +1,27 @@
+{
+ "temel": {
+  "etiket": "temel",
+  "soru": 200,
+  "dogru": 168,
+  "dogruluk": 84.0,
+  "okunamayan": 0
+ },
+ "ayarli": {
+  "etiket": "temel_temiz",
+  "soru": 200,
+  "dogru": 168,
+  "dogruluk": 84.0,
+  "okunamayan": 0
+ },
+ "karsilastirma": {
+  "soru": 200,
+  "temel_dogruluk": 84.0,
+  "ayarli_dogruluk": 84.0,
+  "fark": 0.0,
+  "yalniz_temel_dogru": 0,
+  "yalniz_ayarli_dogru": 0,
+  "p": null,
+  "esik": -5.0,
+  "gecti": true
+ }
+}

@@ -24,6 +24,8 @@ Süre, adım ve bağlam sınırları modelin sonucudur ve yazılır.
 
 Çıktı:
 - gercek: reports/faz7_<set>.jsonl (her soru) ve reports/faz7_olcum_<set>.json (rapor)
+- Faz 8, ince ayarlı model: --ollama-model <ad> --etiket <önek> ile reports/<önek>_<set>.jsonl ve
+  reports/<önek>_olcum_<set>.json (Faz 7 dosyalarına dokunulmaz)
 - kâhin ve kontroller: data/olcum/<set>_<model>.jsonl; --kahin-hepsi ile reports/faz7_kahin.json
 
 Kullanım (proje kökünden):
@@ -64,11 +66,15 @@ AMBAR = KOK / "data" / "ambar" / "sayman.duckdb"
 BELGE = KOK / "data" / "belge"
 CALISMA = KOK / "data" / "olcum"
 MODELLER = ("gercek", "kahin", *KONTROLLER)
+# Faz 8: ince ayarlı model aynı düzenekle, başka bir Ollama model adıyla ölçülür. ETIKET dosya adlarının önekidir
+# (Faz 7 dosyaları "faz7"; ince ayarlı modelin dosyaları ayrı ve yeni, Faz 7 dosyalarının üstüne yazılmaz).
+OLLAMA_MODELI: str | None = None
+ETIKET = "faz7"
 
 
 def jsonl_yolu(set_adi: str, model: str, tekrar: bool = False) -> Path:
     if model == "gercek":
-        return KOK / "reports" / f"faz7_{set_adi}{'_tekrar' if tekrar else ''}.jsonl"
+        return KOK / "reports" / f"{ETIKET}_{set_adi}{'_tekrar' if tekrar else ''}.jsonl"
     return CALISMA / f"{set_adi}_{model}{'_tekrar' if tekrar else ''}.jsonl"
 
 
@@ -132,7 +138,7 @@ def _kayit(soru: dict, tur, sistem: dict, model_izi: dict, seti: dict) -> dict:
 
 def calistir(sorular: list[dict], model_adi: str, yol: Path, yeniden: bool = False, sessiz: bool = False) -> None:
     sistem = parmak_izi.sistem()
-    model_izi = parmak_izi.model(ollama_ozeti=model_adi == "gercek")
+    model_izi = parmak_izi.model(ollama_ozeti=model_adi == "gercek", model_adi=OLLAMA_MODELI)
     if model_adi != "gercek":
         model_izi = {"model": model_adi, "ozet": model_adi}
     if yeniden and yol.exists():
@@ -156,7 +162,8 @@ def calistir(sorular: list[dict], model_adi: str, yol: Path, yeniden: bool = Fal
         from sayman.asistan.model import OllamaModeli
         from sayman.asistan.orkestrator import arac_tanimlari
         from sayman.belge.arama import arayici_kur
-        model, arayici = OllamaModeli(), arayici_kur(BELGE, "anlam")
+        model = OllamaModeli(model=OLLAMA_MODELI) if OLLAMA_MODELI else OllamaModeli()
+        arayici = arayici_kur(BELGE, "anlam")
         bas = time.perf_counter()
         model([{"role": "user", "content": "Merhaba"}], arac_tanimlari(), 600)  # model belleğe yüklensin
         arayici.ara("ödeme vadesi", "cfo", 1, "anlam")
@@ -239,7 +246,8 @@ def rapor(set_adi: str, model_adi: str, veri: dict, kumeler: dict, parca_rolleri
     sonuc = {
         "olcum_zamani": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
         "set": set_adi, "model": model_adi, "soru_seti_ozeti": veri["ozet"],
-        "sistem": parmak_izi.sistem(), "model_izi": parmak_izi.model(ollama_ozeti=model_adi == "gercek")
+        "sistem": parmak_izi.sistem(), "model_izi": parmak_izi.model(ollama_ozeti=model_adi == "gercek",
+                                                                    model_adi=OLLAMA_MODELI)
         if model_adi == "gercek" else {"model": model_adi},
         "tamamlanan": f"{len(puanlar)}/{len(sorular)}",
         "altyapi_yeniden_sorulan": [k["soru_id"] for k in kayitlar if k.get("altyapi")],
@@ -334,7 +342,13 @@ def main() -> None:
     ap.add_argument("--tekrar", type=int, default=0, help="belirlenimcilik: setten eşit aralıklı N soruyu yeniden sor")
     ap.add_argument("--yalniz-rapor", action="store_true")
     ap.add_argument("--kahin-hepsi", action="store_true", help="kâhin ve kontroller, iki set; reports/faz7_kahin.json")
+    ap.add_argument("--ollama-model", default=None, help="Faz 8: gerçek model yerine Ollama'daki bu model")
+    ap.add_argument("--etiket", default="faz7", help="Faz 8: rapor dosyalarının öneki (ör. faz8_ayarli)")
     a = ap.parse_args()
+    global OLLAMA_MODELI, ETIKET
+    if (a.ollama_model is None) != (a.etiket == "faz7"):
+        ap.error("--ollama-model ile --etiket birlikte verilmeli (Faz 7 dosyalarının üstüne yazılmasın)")
+    OLLAMA_MODELI, ETIKET = a.ollama_model, a.etiket
     sys.stdout.reconfigure(encoding="utf-8")
     veri = json.loads(SORU_SETI.read_text(encoding="utf-8"))
     kumeler = kapsam_kumeleri()
@@ -367,7 +381,7 @@ def main() -> None:
     elif not a.yalniz_rapor:
         calistir(sorular, a.model, jsonl_yolu(a.set, a.model), yeniden=a.yeniden)
     r = rapor(a.set, a.model, veri, kumeler, parca_rolleri, bolumler)
-    hedef = KOK / "reports" / f"faz7_olcum_{a.set}.json" if a.model == "gercek" else CALISMA / f"rapor_{a.set}_{a.model}.json"
+    hedef = KOK / "reports" / f"{ETIKET}_olcum_{a.set}.json" if a.model == "gercek" else CALISMA / f"rapor_{a.set}_{a.model}.json"
     hedef.write_text(json.dumps(r, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(json.dumps({"tamamlanan": r["tamamlanan"], "hedefler": [(h["ad"], h["deger"], h["gecti"]) for h in r["hedefler"]]},
                      ensure_ascii=False, indent=1))

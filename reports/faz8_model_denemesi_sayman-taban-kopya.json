@@ -1,0 +1,129 @@
+{
+ "model": "sayman-taban-kopya",
+ "temel": "qwen3.5:9b",
+ "ciz": {
+  "istem": 6,
+  "hepsi_ayni": true,
+  "ayrinti": [
+   {
+    "soru_id": "E-nakit_toplam-01",
+    "ayni": true,
+    "karakter": 8994
+   },
+   {
+    "soru_id": "E-nakit_toplam-01",
+    "ayni": true,
+    "karakter": 9895
+   },
+   {
+    "soru_id": "E-nakit_toplam-02",
+    "ayni": true,
+    "karakter": 8994
+   },
+   {
+    "soru_id": "E-nakit_toplam-02",
+    "ayni": true,
+    "karakter": 9895
+   },
+   {
+    "soru_id": "E-nakit_toplam-03",
+    "ayni": true,
+    "karakter": 8994
+   },
+   {
+    "soru_id": "E-nakit_toplam-03",
+    "ayni": true,
+    "karakter": 9897
+   }
+  ]
+ },
+ "uretim": [
+  {
+   "soru_id": "G-kur_bugun-01",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=doviz_kuru>\n<parameter=para_birimi>\nUSD\n</parameter>\n</function>\n</tool_call>",
+   "ayarli": "TCMB'nin güncel USD alış kuru şu an için 34,18 TL'dir.",
+   "temel": "TCMB'nin güncel USD alış kuru şu şekildedir: 32,48 TL [DÖV-KUR-USD#1].",
+   "kaggle": null,
+   "ayarli_kaggle_benzerligi": null,
+   "temel_kaggle_benzerligi": null,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": false,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "G-kur_bugun-01",
+   "adim": 2,
+   "beklenen": "USD alış kuru: 48,1745 TL",
+   "ayarli": "Bugün (2026-09-01) TCMB döviz alış kuru **48,1745 TL**'dir.",
+   "temel": "Bugün (2026-09-01) TCMB döviz alış kuru **48,1745 TL**'dir.",
+   "kaggle": null,
+   "ayarli_kaggle_benzerligi": null,
+   "temel_kaggle_benzerligi": null,
+   "ayarli_temel_ayni": true,
+   "ayarli_beklenen_ayni": false,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "G-yetkisiz-baska-01",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=musteri_ozeti>\n<parameter=musteri_adi>\nNordic Decor House SARL\n</parameter>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=musteri_ozeti>\n<parameter=musteri_adi>\nNordic Decor House SARL\n</parameter>\n</function>\n</tool_call>",
+   "temel": "<tool_call>\n<function=musteri_ozeti>\n<parameter=musteri_adi>\nNordic Decor House SARL\n</parameter>\n</function>\n</tool_call>",
+   "kaggle": null,
+   "ayarli_kaggle_benzerligi": null,
+   "temel_kaggle_benzerligi": null,
+   "ayarli_temel_ayni": true,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": true
+  },
+  {
+   "soru_id": "G-yetkisiz-baska-01",
+   "adim": 2,
+   "beklenen": "Bu bilgi yetki alanımın dışında; size gösteremiyorum.",
+   "ayarli": "Nordic Decor House SARL adına kayıtlı bir müşteri bulunamadı. Müşteri adının doğru yazıldığından emin olun veya farklı bir isimle arama yapın.",
+   "temel": "Nordic Decor House SARL adına kayıtlı bir müşteri bulunamadı. Müşteri adının doğru yazıldığından emin olun veya farklı bir isimle arama yapın.",
+   "kaggle": null,
+   "ayarli_kaggle_benzerligi": null,
+   "temel_kaggle_benzerligi": null,
+   "ayarli_temel_ayni": true,
+   "ayarli_beklenen_ayni": false,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "G-belge-03",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=belge_ara>\n<parameter=sorgu>\nCoastal Retail Store beğenmediği malları ne kadar süre içinde geri gönderebilir?\n</parameter>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=belge_ara>\n<parameter=sorgu>\nCoastal Retail Store iade süresi\n</parameter>\n</function>\n</tool_call>",
+   "temel": "<tool_call>\n<function=belge_ara>\n<parameter=sorgu>\nCoastal Retail Store iade süresi\n</parameter>\n</function>\n</tool_call>",
+   "kaggle": null,
+   "ayarli_kaggle_benzerligi": null,
+   "temel_kaggle_benzerligi": null,
+   "ayarli_temel_ayni": true,
+   "ayarli_beklenen_ayni": false,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "G-belge-03",
+   "adim": 2,
+   "beklenen": "15 gün. \"teslim tarihinden itibaren 15 gün içinde, kullanılmamış\" [SOZ-M00344#m7]",
+   "ayarli": "Coastal Retail Store, beğenmediği malları teslim tarihinden itibaren 15 gün içinde, kullanılmamış ve ambalajı açılmamış olmak kaydıyla iade edebilir. [SOZ-M00344#m7]",
+   "temel": "Coastal Retail Store, beğenmediği malları teslim tarihinden itibaren 15 gün içinde, kullanılmamış ve ambalajı açılmamış olmak kaydıyla iade edebilir. [SOZ-M00344#m7]",
+   "kaggle": null,
+   "ayarli_kaggle_benzerligi": null,
+   "temel_kaggle_benzerligi": null,
+   "ayarli_temel_ayni": true,
+   "ayarli_beklenen_ayni": false,
+   "temel_beklenen_ayni": false
+  }
+ ],
+ "ozet": {
+  "ornek": 6,
+  "ayarli_temelden_farkli": 1,
+  "ayarli_beklenenle_ayni": 1,
+  "temel_beklenenle_ayni": 1,
+  "kaggle_ile_karsilastirilan": 0,
+  "ayarli_kaggle_benzerligi_ort": null,
+  "temel_kaggle_benzerligi_ort": null
+ }
+}

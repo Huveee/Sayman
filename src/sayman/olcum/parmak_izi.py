@@ -50,15 +50,17 @@ def sistem(belge_yontemi: str = "anlam") -> dict:
             "kod_ozeti": _ozet(parcalar["kaynak_kodu"]), **parcalar}
 
 
-def model(ollama_ozeti: bool = True) -> dict:
+def model(ollama_ozeti: bool = True, model_adi: str | None = None) -> dict:
+    """Model kısmının izi. Faz 8'de ince ayarlı model `model_adi` ile verilir; seçenekler aynı kalır."""
     from sayman.asistan.model import MODEL, SECENEKLER
 
-    m = {"model": MODEL, "secenekler": SECENEKLER, "think": False}
+    ad = model_adi or MODEL
+    m = {"model": ad, "secenekler": SECENEKLER, "think": False}
     if ollama_ozeti:
         try:
             import ollama
             liste = ollama.Client(timeout=10).list()
-            m["ollama_ozeti"] = next((x.digest for x in liste.models if x.model == MODEL), None)
+            m["ollama_ozeti"] = next((x.digest for x in liste.models if x.model in (ad, f"{ad}:latest")), None)
         except Exception as e:  # Ollama kapalıysa özet yazılmaz
             m["ollama_ozeti"] = f"okunamadi: {type(e).__name__}"
     m["ozet"] = _ozet({k: v for k, v in m.items() if k != "ozet"})

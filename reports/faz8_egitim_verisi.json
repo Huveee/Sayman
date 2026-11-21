@@ -1,0 +1,31 @@
+{
+ "egitim": {
+  "ornek": 775,
+  "soru": 416,
+  "bolum": {
+   "arac": 471,
+   "yetkisiz": 68,
+   "belge": 236
+  },
+  "istem_karakter_en_cok": 14169,
+  "ozet": "4e366794e31863c1b941a39d32cbd30cc921cf08963b0bae1d8df747e6472f60"
+ },
+ "dogrulama": {
+  "ornek": 110,
+  "soru": 58,
+  "bolum": {
+   "arac": 79,
+   "yetkisiz": 5,
+   "belge": 26
+  },
+  "istem_karakter_en_cok": 11874,
+  "ozet": "907d8271ca8d62b14258599b5a7718d32d7fd5e2e8888114f72d04a3960fe7b9"
+ },
+ "izler": {
+  "soru": 474,
+  "tutulan": 474,
+  "nedenler": {
+   "tamam": 474
+  }
+ }
+}

@@ -431,6 +431,362 @@ Yan ayrıntılar ise değişebiliyor: bir cevabın ikinci sürümü EUR tutarlar
 
 Bir soru 300 saniyelik süre sınırında durduruldu.
 
+## Faz 8: ince ayar (QLoRA)
+
+Faz 8'de modeli kendi işimize göre eğitiyoruz (ince ayar) ve Faz 7'deki ölçümle karşılaştırıyoruz. Eğitim Kaggle'ın
+ücretsiz T4 ekran kartında yapılır. Ortaya çıkan model bu bilgisayarda Ollama ile çalışır.
+
+### Ölçümden önce yazılanlar
+
+Bu bölüm eğitim verisi üretilmeden ve model eğitilmeden önce yazıldı.
+
+- **Ana karşılaştırma:** Faz 7'nin saklanan seti (250 soru). Sistem istemi, kod, soru seti ve hedefler Faz 7 ile
+  aynıdır; özetleri raporda karşılaştırılır. İnce ayarlı model aynı betikle, aynı sırayla ölçülür. Ölçüm sürerken
+  Ollama'da başka hiçbir iş çalışmaz. Sonuç iki tabloyla verilir: hedef tablosu ve soru soru eşleştirme
+  (yalnızca temel model doğru / yalnızca ince ayarlı model doğru).
+- **Geliştirme seti** (68 soru) ayar seçmek için kullanılabilir. Saklanan set yalnızca bir kez çalıştırılır.
+- **Eğitimde olmayan soru türleri:** 8 Faz 7 şablonu eğitimde hiç yok: `banka_cikis_hesap`, `oz_cek`, `pos_valor`,
+  `akis_supheli`, `kur_etki`, `dso_iki`, `cek_tahsilde`, `fat_son`. Bu şablonların soruları ayrıca raporlanır. Böylece
+  modelin hiç görmediği bir soru türünde de iyileşip iyileşmediğini görürüz.
+- **Unutma:** Belebele Türkçe setinden 200 soru (tohum 20261120). İnce ayarlı model temel modele göre en çok 5 puan
+  kaybedebilir.
+- **Saklanan set elle okunmuştu** (Faz 7). Oradan çıkan ve eğitimde bilerek öğretilen davranışlar şunlar:
+  - Müşteriye özel sorularda müşteri aracını çağırmak. Karşıt örnekler de var: şirketin DSO'su ↔ müşterinin gecikmesi.
+  - Döviz hesaplarında ve döviz faturalarında para birimini doğru yazmak. Karşıt örnek olarak TL hesapları da var.
+  - GBP dahil kur sorularında `doviz_kuru` aracını çağırmak.
+  - Sözleşme ve politika sorularında her zaman `belge_ara` çağırmak.
+  - Alıntıyı doğru maddeden `"..." [kimlik]` biçiminde vermek.
+  - Doğru madde gelmezse karşı tarafın adıyla bir kez daha aramak.
+
+**Tam eğitim başlamadan eklenenler** (eğitim verisi hazırdı, model henüz eğitilmemişti):
+
+- **Eğitim ayarları:** QLoRA (4 bit), r = 16, alpha = 16, öğrenme hızı 0,0002, 2 epok, 8 örnekte bir güncelleme.
+  Her epokun sonunda adapter kaydedilir ve doğrulama kaybı ölçülür.
+- **Hangi epok:** doğrulama kaybı en düşük olan epokun adapterı kullanılır; eşitse sonraki epok.
+- **Uzun örnekler:** belleğe sığmayan en çok 3 örnek eğitimden çıkarılabilir ve raporda yazılır. Daha çoksa eğitim
+  başlamaz. (Sonradan 7'ye çıkarıldı; aşağıda "Bellek".)
+- **Temel ölçümler:** saklanan sette temel model Faz 7 ölçümüdür (`reports/faz7_saklanan.jsonl`). Unutma testinde temel
+  ölçüm, Ollama'da başka iş yokken yapılan ikinci ölçümdür (`reports/faz8_unutma_temel_temiz.jsonl`). İlk ölçüm başka
+  işlerle iç içe çalıştı; iki ölçüm arasındaki fark, modelin kendi tutarsızlığını gösterir.
+- **Ollama'ya giriş:** Ollama 0.40.11 LoRA adapterını (Modelfile `ADAPTER`) artık desteklemiyor. Bu yüzden LoRA,
+  temel modelin 16 bitlik ağırlıklarına katılır, GGUF'a çevrilir ve temel model gibi Q4_K_M'ye sıkıştırılır
+  (`kaggle/faz8_birlestir.py`). Ollama'da temel modelin Modelfile'ı aynen kullanılır (`RENDERER`/`PARSER qwen3.5`,
+  aynı `PARAMETER` satırları, aynı görsel kodlayıcı); yalnızca model dosyası değişir. Bu Modelfile ile temel modelin
+  kendisi yeniden kurulunca çizim ve cevaplar birebir aynı çıktı.
+- **Adillik denetimi:** dokunulmamış temel model de aynı yoldan (dönüştürme + Q4_K_M) geçer. Ollama'daki temel modelle
+  tensör tensör aynıysa, karşılaştırmadaki fark yalnızca eğitimden gelir. Aynı değilse önce dönüştürmenin ara türü
+  değiştirilir (bf16 ↔ f16). Yine aynı değilse kendi yolumuzdan geçen temel model de geliştirme setinde ölçülür ve
+  ince ayarlı model ona göre karşılaştırılır.
+- **Birleştirme denetimi:** ince ayarlı modelde yalnızca LoRA'nın dokunduğu 128 tensör değişmiş olmalı; geri kalan
+  her tensör ve üst bilgi temel modelle bayt bayt aynı olmalı.
+- **Model gerçekten değişti mi:** ölçümden önce aynı istemler hem ince ayarlı modele hem temel modele verilir. İnce
+  ayarlı modelin cevapları Kaggle'daki üretim denemesine benzemeli, temel modelinkinden farklı olmalı.
+- **Ölçüm düzeni:** her ölçümden önce Ollama'daki bütün modeller boşaltılır. Temel modelin bazı sorulardaki kararı,
+  Ollama'nın hemen önce ne işlediğine bağlı; boş başlangıç her ölçümü aynı durumdan başlatır.
+
+**Adillik denetiminin sonucu** (uyum kontrolünden sonra; kendi yolumuzdan geçen temel model henüz ölçülmemişti):
+
+- **Kütüphane dosyası yeniden üretilemedi.** 427 tensörün 154'ü aynı: `ssm_a` dışındaki bütün F32 tensörler ve bir
+  Q4_K tensörü. Ara tür bf16, f16 ya da f32 olsun, sonuç değişmedi. Ollama'nın içinde çalışan llama.cpp sürümüyle
+  (9ff0d7e90, etiket b11845) dönüştürmek de aynı sonucu verdi (154/427), ve iki sürümün dosyası dört istemde birebir
+  aynı cevapları verdi. 24 `ssm_a` tensörü aynı sırada; değerlerin 685/768'i bit bit aynı, en büyük göreli fark
+  1×10⁻⁷ (son bit). Geri kalan 249 farklı tensör Q4_K ve Q6_K sıkıştırılmış tensörler: fark sıkıştırmanın
+  yuvarlamasında. Kütüphane dosyası başka bir sıkıştırıcıyla üretilmiş; hangisi olduğunu bilmiyoruz.
+- **Kendi dosyamız Ollama'da düzgün çalışıyor** (Kaggle'da Ollama 0.40.11, dört doğrulama istemi,
+  `kaggle/faz8_uyum_denemesi.py`). Araç çağrısı ve araç sonucundan okunan rakamlar kütüphane modeliyle aynı; farklar
+  söz seçiminde. Bir istemde üç model de aracı çağırmadan uydurma bir rakam yazdı, uydurulan rakamlar farklı. Dört
+  istem büyük bir bozulmayı dışarıda bırakır, küçük bir farkı bırakmaz; onu geliştirme seti ölçer.
+- **Dönüştürme sürümü** b12138 kalır: birleştirme denetimi bununla kuruldu, 9ff0d7e90 bir şey değiştirmiyor.
+- **Kendi temel modelimiz** (`sayman-taban-kendi`) geliştirme setinde ölçülür. Ölçülen dosya, birleştirmede
+  kullanılan temel dosyayla aynı olmalı: sha256 ve bayt sayısı iki koşuda da kaydedilir ve karşılaştırılır.
+- **Karar kuralı.** d = kendi temel modelimizin geliştirme setinde kütüphane temel modelinden (Faz 7 geliştirme
+  ölçümü) fazla doğru cevapladığı soru sayısı (araç ve belge soruları, 58 soru). Kütüphane modelini iki kez ölçünce
+  68 sorudan 1'i değişmişti.
+  - Sızıntı varsa ya da d ≤ −3 ise durulur ve dönüştürme incelenir, çünkü ince ayarlı dosya da aynı dönüştürmeden
+    geçiyor. Sorun bulunmazsa d ≥ 3'teki gibi devam edilir.
+  - −2 ≤ d ≤ 2 ise dönüştürmenin etkisi gürültü içinde sayılır. Saklanan setin temeli Faz 7 ölçümü, unutma testinin
+    temeli `temel_temiz` olarak kalır; geliştirme setindeki dönüştürme farkı sonuçların yanında yazılır.
+  - d ≥ 3 ise fark gürültüden büyüktür. Kendi temel modelimiz saklanan sette ve unutma testinde de ölçülür, ince
+    ayarlı model ona göre karşılaştırılır (yaklaşık 5,5 saat ek ölçüm).
+- **Geliştirme setinde üç karşılaştırma:** kütüphane ↔ kendi temel (dönüştürmenin etkisi), kendi temel ↔ ince ayarlı
+  (eğitimin etkisi), kütüphane ↔ ince ayarlı.
+
+**Sonuç: d = −3, dönüştürme incelendi** (kendi temel modelimiz saklanan sette ve unutma testinde ölçülmeden önce
+yazıldı; `reports/faz8_karsilastirma_donusturme_gelistirme.json`):
+
+- **Değişen sorular.** Kendi temel modelimiz 5 soruda kötüleşti, 2 soruda iyileşti:
+  - Kötüleşen: `G-dso_donem-01` ve `G-dso_donem-02` (araç çağırmadan "hesaplanamadı" dedi), `G-fat_tutar-03`
+    (yalnızca TL karşılığını yazdı), `G-yas_toplam-03` ve `G-belge-09` (doğrulayıcı cevabı reddetti).
+    `G-yas_toplam-03`, kütüphane modelinin kendi tekrar ölçümünde de değişen soruydu; kural yine de bağlandığı Faz 7
+    ölçümüne göre uygulandı.
+  - İyileşen: `G-kur_bugun-01` ve `G-kur_bugun-03` (`doviz_kuru` aracını çağırdı).
+  - d = (2 − 4) + (0 − 1) = −3.
+- **İnceleme bir sorun bulmadı:**
+  - Tensör türleri ve üst bilgi aynı. Yalnızca bizim dosyada üç belirteçleyici anahtarı var: `add_eos_token: false`
+    ve `clean_spaces: false` (anahtar yokken de böyle), `normalizer.nfc: true` (metinlerimiz zaten NFC). 68 sorunun
+    hepsinde modele giden ilk istemin token sayısı iki modelde aynı.
+  - `ssm_a` aynı sırada, fark son bitte (yukarıda). İki dosyada da önem matrisi (imatrix) kaydı yok.
+  - Değişen sorular sınırdaki kararlar (aracı çağırmak ya da çağırmamak, hangi tutarı yazmak); bozuk çıktı yok.
+- **Kural gereği d ≥ 3'teki gibi devam edildi.** Kendi temel modelimiz saklanan sette (`--etiket faz8_temel_kendi`) ve
+  unutma testinde (`--etiket temel_kendi`) de ölçülür. Eğitimin etkisini gösteren karşılaştırma kendi temel ↔ ince
+  ayarlıdır; kütüphane modeline (Faz 7) göre tablo yanında verilir. Kendi temel modelin saklanan set sonuçları ince
+  ayarlı model hakkında hiçbir seçimi etkilemez (epok seçimi doğrulama kaybıyla yapılır).
+
+### Eğitim verisi
+
+Eğitim verisi değerlendirme verisinden ayrı tutulur:
+
+- **Ayrı şirket:** aynı üretici, tohum 43 (`scripts/faz8_egitim_sirketi.py`, `data/egitim/sirket`). Müşteriler,
+  tedarikçiler, faturalar, çekler, sözleşmeler ve politika rakamları farklıdır. Denetimlerin ve kalibrasyon
+  bantlarının hepsi geçti.
+- **Ayrı günler:** eğitim soruları dört farklı "bugün"de sorulur (7 Mayıs, 23 Haziran, 12 Ağustos ve 19 Ekim 2026).
+  Değerlendirme günü olan 1 Eylül 2026 bunlardan biri değildir.
+- **Yeni kalıplar:** soruların cümleleri yeniden yazıldı (`tests/faz8_egitim_sorular.py`). Niyetler (hangi araç,
+  hangi alan) Faz 7 şablonlarının çoğuyla aynıdır, ama sözler, şirket ve gün başkadır.
+
+**Sızıntı denetimi** (`src/sayman/egitim/sizinti.py`, rapor `reports/faz8_sizinti.json`). Denetim bir ihlal
+bulursa eğitim soruları yazılmaz. Beş kontrol var:
+
+| Kontrol | Kural |
+| --- | --- |
+| Kalıp | Değişkenler maskelenince eğitim kalıbı hiçbir değerlendirme kalıbıyla aynı olmamalı; kelime benzerliği 0,6'nın altında kalmalı. |
+| Soru | Doldurulmuş eğitim sorusu, değerlendirme sorularının hiçbirine 0,8 ya da daha çok benzememeli. |
+| Varlık | Değerlendirme sorularındaki müşteri ve fatura kimlikleri kullanılmaz. Değerlendirme şirketindeki müşteri ve tedarikçi adları da kullanılmaz. |
+| Madde | Belge sorusunun hedef maddesinin metni değerlendirme kütüphanesinde aynen geçmemeli. |
+| Kur | Kur sorusunun beklenen değeri, değerlendirme setindeki hiçbir kur sorusunun beklenen değeri olmamalı. |
+
+Eşikler, eğitim kalıpları denetlenmeden önce kondu. İlk denemede denetim 12 kalıbı fazla benzer buldu (9'unu kalıp
+kontrolü, 3'ünü soru kontrolü). Bu kalıplar yeniden yazıldı; eşikler değiştirilmedi. Testler denetimin gerçekten yakalayabildiğini de gösterir: her kontrol için
+bilerek bir sızıntı eklenir ve denetimin onu bulması beklenir.
+
+Denetim kurulurken iki şey öğrendik:
+
+- **Aynı metinli maddeler.** Kalıp cümleli maddelerin çoğu iki şirkette birebir aynı çıktı (579 madde, örneğin "bu
+  sözleşmede iskonto uygulanmaz"). Bu maddeler eğitimde soru hedefi olmaz.
+- **Ortak adlar.** İki şirkette 313 müşteri adı ortak çıktı (ad havuzu aynı). Bu müşteriler eğitim sorularında
+  kullanılmaz.
+
+İki şirkette tasarım gereği ortak olanlar şunlardır: UCI satış kalemleri, TCMB kur tablosu, banka hesap kimlikleri,
+kullanıcılar ve rolleri, kanun metinleri, sistem istemi, araç tanımları, politika belgelerinin adları ve Faz 7'nin
+niyet tanımları.
+
+**Öğretmen** (`src/sayman/egitim/ogretmen.py`). Doğru cevabı bilen sahte bir modeldir; Faz 7 kâhininin eğitim için
+olanıdır. Gerçek orkestratörden, kapıdan, doğrulayıcıdan ve gerçek belge arayıcısından geçer. Cevapları etiketli
+satırlar değil, kısa ve doğal Türkçe cümlelerdir. Yalnızca şu turlar eğitime girer:
+
+- Doğrulayıcıdan ilk denemede geçen turlar. Düzeltme isteyen bir taslak eğitime hiç girmez.
+- Faz 7 puanlayıcısına göre doğru olan turlar.
+
+**İlk adım rolden bağımsızdır.** Model kullanıcının rolünü görmez; sistem istemi ve araç listesi herkes için aynıdır.
+Bu yüzden aynı soru her rolde aynı araç çağrısıyla başlar ve yetkiyi kapı denetler. Yetkisiz denemelerde de araç
+çağrılır, kapı engeller. Bir test, aynı istemin hiçbir zaman iki farklı tamamlamayla eğitime girmediğini denetler.
+
+**Örnek biçimi.** Her model çağrısı bir örnektir. İstem, Ollama'nın o çağrıda modele verdiği metnin kendisidir
+(`_debug_render_only` ile çizdirilir; Ollama'nın çizimi Hugging Face şablonundan bazı yerlerde farklıdır). Tamamlama
+modelin yazması gereken metindir: araç çağrısı Qwen3.5'in XML biçimiyle, cevap düz metin. İkisi de `<|im_end|>` ile
+biter. Eğitimde kayıp yalnızca tamamlamada hesaplanır. Soruların %10'u eğitime girmez; eğitim sırasında kaybı izlemek
+için ayrılır.
+
+**Sayılar** (`reports/faz8_egitim_verisi.json`). 474 eğitim sorusunun hepsi öğretmenle doğru ve ilk denemede geçti.
+
+| | Soru | Örnek (model çağrısı) | Araç | Belge | Yetkisiz |
+| --- | --- | --- | --- | --- | --- |
+| Eğitim | 416 | 775 | 471 | 236 | 68 |
+| Doğrulama | 58 | 110 | 79 | 26 | 5 |
+
+Tokenlayıcıyla sayıldı: eğitim örneklerinin medyanı 2.854 token, en uzunu 4.667 token. Toplam 2,40 milyon tokenın
+yalnızca 33.356'sı tamamlamadır (kaybın hesaplandığı kısım); gerisi istemdir.
+
+**Doğrulayıcıdan öğrendiğimiz.** İlk sürümde 4 cevap doğrulayıcıdan geçmedi: "Ağustos 2025 ayında TL hesaplarına giren
+toplam ..." cümlesinde doğrulayıcı 2025'i kaynaksız bir TL tutarı sandı. Cümle "TL hesaplarına Ağustos 2025 içinde giren
+toplam ..." diye yeniden yazılınca geçti. Bu, doğrulayıcının yanlış ret örneklerinden biridir: doğrulayıcı bir sayının
+türünü ardından gelen iki kelimeye bakarak belirler; yıldan sonraki iki kelimeden biri "TL" ise yıl tutar sayılır.
+
+**Bellek.** Tam eğitimin ilk iki denemesi, önceden konan kural yüzünden başlamadan durdu. 4.096 tokendan uzun 7 örnek
+(4.105–4.667 token) T4'ün belleğine sığmıyordu; izin verilen en çok 3'tü. Bellek token başına yaklaşık 1,8 MB artıyor.
+
+- İlk tahminimiz, modelin her konum için bütün sözlüğe (248 bin token) not vermesiydi (logitler). Logitleri yalnızca
+  tamamlamayı tahmin eden konumlarda hesaplattık. Kayıp aynı kaldı: hem küçük bir modelde hem Kaggle'da gerçek modelde
+  denetlendi (0,8319 = 0,8319 ve 0,51316 = 0,51316). Ama bellek değişmedi: 4.096 tokenda yine 12,67 GB. Demek ki tahmin
+  yanlıştı; bellek başka bir yerde harcanıyor ve nedenini bulmadık.
+- Karar: bu 7 örnek eğitimden çıkarıldı (775 örneğin %0,9'u). Kural "en çok 3" yerine "en çok 7" oldu. Kural
+  değiştiğinde henüz hiçbir ölçüm sonucu görülmemişti. Çıkarılan örneklerin kimlikleri eğitim raporunda yazılı.
+
+### Eğitim ve ölçüm sonuçları
+
+**Eğitim sonucu** (Kaggle T4, `data/egitim/kaggle_cikti/sayman-faz8-tam/rapor.json`). Eğitim 6 saat 1 dakika sürdü
+(192 güncelleme, saniyede 219 token); en çok bellek 12,6 GB. 7 uzun örnek çıkarıldı, başka örnek atılmadı.
+
+| | Eğitimden önce | 1. epok | 2. epok |
+| --- | --- | --- | --- |
+| Doğrulama kaybı | 0,477 | 0,029 | 0,0185 |
+| İlk tokenın doğruluğu | %78,9 | %95,4 | %96,3 |
+
+- **Seçilen:** 2. epok (doğrulama kaybı en düşük). Doğrulama 110 örneğin 109'uyla yapıldı; biri 5.120 tokendan uzundu
+  ve üç ölçümde de dışarıda kaldı.
+- **Atlanan adımlar:** 192 adımın 8'inde (ilk 7 ve 31.) fp16 sayıları taştı ve güncelleme yapılmadı; bu, fp16
+  eğitiminde ölçeğin kendini ayarlamasıdır. Gerçek güncelleme sayısı 184.
+- **Üretim denemesi:** 12 doğrulama örneğinin 12'sinde model beklenen cevabı birebir üretti (Kaggle'da, sıkıştırılmamış
+  modelle).
+- Doğrulama kaybının bu kadar düşmesi beklenen bir şey: doğrulama soruları eğitimle aynı şirketten ve aynı
+  kalıplardan. Asıl ölçü değerlendirme setleri; onlar başka şirket, başka gün ve başka cümlelerle soruluyor.
+
+**Birleştirme ve Ollama** (`data/egitim/kaggle_cikti/sayman-faz8-birlestir-son/rapor.json`,
+`reports/faz8_model_denemesi_sayman-ayarli.json`):
+
+- Birleştirme denetimi geçti: 128 tensör değişti, 299 tensör ve üst bilgi temel modelle bayt bayt aynı. Birleştirmedeki
+  temel dosyanın sha256'sı, ölçtüğümüz kendi temel modelimizinkiyle aynı (`260abf1c…`).
+- Q4'ten sonra değişim duruyor: örnek üç tensörde değişimin beklenen yöndeki izdüşümü beklenenin 1,00 katı.
+- İndirilen dosya Kaggle'dakiyle aynı (sha256 `9eb88403…`, 427/427 tensör). Ollama'da `sayman-ayarli` adıyla kuruldu.
+- "Model gerçekten değişti mi": Kaggle'daki 12 üretim örneğinde ince ayarlı model 11'inde beklenen cevabı birebir
+  üretti (kendi temel modelimiz 2'sinde). Kaggle çıktısına benzerlik 0,967 (temel 0,656). Kaçırdığı örnekte rakam
+  aynı, cümle farklı.
+
+**Geliştirme seti** (68 soru, her ölçüm boş başlangıçla). Ayrıntı: `reports/faz8_karsilastirma_egitim_gelistirme.json`
+(kendi temel ↔ ince ayarlı), `reports/faz8_karsilastirma_gelistirme.json` (kütüphane ↔ ince ayarlı).
+
+| Hedef | Eşik | Kütüphane (Faz 7) | Kendi temel | İnce ayarlı |
+| --- | --- | --- | --- | --- |
+| Yetkisiz sızıntı | 0 | 0 | 0 | 0 |
+| Araç seçimi | ≥ 0,85 | 0,917 | 0,896 | 0,938 |
+| Rakam doğruluğu | ≥ 0,75 | 0,875 | 0,833 | 0,896 |
+| Doğrulanmış yanlış sayı | ≤ 0,03 | 0,042 | 0,104 | 0,063 |
+| Belge isabeti | ≥ 0,85 | 0,70 | 0,70 | 0,90 |
+| Belge cevabı | ≥ 0,70 | 0,50 | 0,40 | 0,90 |
+| Belge alıntısı | ≥ 0,80 | 0,50 | 0,40 | 0,90 |
+| Süre medyanı (sn) | ≤ 120 | 56,0 | 56,2 | 43,2 |
+| Süre p90 (sn) | ≤ 240 | 123,0 | 112,1 | 54,7 |
+
+- **Soru soru (kendi temel → ince ayarlı):** araç sorularında doğru cevap 5 soruda iyileşti, 2'sinde kötüleşti
+  (p = 0,45); belge sorularında 5 iyileşme, 0 kötüleşme (p = 0,06). Set küçük; anlamlılık saklanan sette aranır.
+- **Yeni bir hata türü: "toplam alacak" → nakit.** Üç `yas_toplam` sorusunun üçünde de ince ayarlı model
+  `alacak_yaslandirma` yerine `nakit_pozisyonu` aracını çağırdı. Satış rolünde nakit yetkisi olmadığı için kapı
+  reddetti ("Bu bilgiyi görme yetkiniz yok"; sızıntı yok), CFO'ya banka toplamını söyledi. Olası neden: eğitimde bu
+  niyetin 4 örneği vardı ve hepsi aynı cümleydi ("Alacak yaşlandırmasına göre toplam açık alacak kaç TL?").
+  Değerlendirme soruları "yaşlandırma" kelimesini içermiyor ("Toplam açık alacağımız ne kadar?"); model niyeti değil
+  kelimeyi öğrenmiş görünüyor. Kural gereği eğitim bu bulguya göre değiştirilmedi.
+
+**Saklanan set** (250 soru, bir kez; her ölçüm boş başlangıçla). Önce ince ayarlı model, sonra kendi temel modelimiz,
+aynı gece arka arkaya ölçüldü. İki ölçümde de 250/250 soru tamamlandı, altyapı yüzünden yeniden sorulan soru yok.
+Sistem istemi, kod, soru seti ve hedeflerin özetleri Faz 7 ile aynı; yalnızca model özeti farklı. Ayrıntı:
+`reports/faz8_karsilastirma_egitim_saklanan.json` (kendi temel ↔ ince ayarlı, eğitimin etkisi),
+`reports/faz8_karsilastirma_saklanan.json` (kütüphane ↔ ince ayarlı),
+`reports/faz8_karsilastirma_donusturme_saklanan.json` (kütüphane ↔ kendi temel).
+
+| Hedef | Eşik | Kütüphane (Faz 7) | Kendi temel | İnce ayarlı |
+| --- | --- | --- | --- | --- |
+| Yetkisiz sızıntı | 0 | 0 | 0 | 0 |
+| Araç seçimi | ≥ 0,85 | 0,873 | 0,880 | **0,960** |
+| Rakam doğruluğu | ≥ 0,75 | 0,820 | 0,847 | **0,907** |
+| Doğrulanmış yanlış sayı | ≤ 0,03 | 0,113 ✗ | 0,087 ✗ | 0,067 ✗ |
+| Belge isabeti | ≥ 0,85 | 0,575 ✗ | 0,575 ✗ | **0,950** |
+| Belge cevabı | ≥ 0,70 | 0,325 ✗ | 0,300 ✗ | **0,875** |
+| Belge alıntısı | ≥ 0,80 | 0,40 ✗ | 0,45 ✗ | **0,95** |
+| Süre medyanı (sn) | ≤ 120 | 64,3 | 52,7 | **44,9** |
+| Süre p90 (sn) | ≤ 240 | 103,4 | 91,0 | **61,7** |
+| "Doğrulanabilir cevap üretemedim" | | 27 | 31 | 4 |
+
+- **Eğitimin etkisi, soru soru (kendi temel → ince ayarlı):**
+  - Araç soruları (150): araç seçimi 13 soruda iyileşti, 1'inde kötüleşti (p = 0,002); parametreler +18 / −1
+    (p = 0,0001); doğru cevap +16 / −7 (p = 0,09; kendi temel modele göre anlamlı değil).
+  - Belge soruları (40): doğru cevap +23 / −0, geçerli alıntı +20 / −0, doğru madde bulundu +15 / −0 (p = 0,0001).
+  - Yetkisiz denemeler (60): sızıntı yok; ret +7 / −2 (p = 0,18).
+  - Hız: belge sorularının medyanı 82,8 sn'den 47,2 sn'ye indi. Süre karşılaştırması yalnızca kendi temel ile ince
+    ayarlı arasında adil; Faz 7 başka bir gün ölçüldü.
+- **Dikkat: bu davranışlar saklanan set okunduktan sonra öğretildi.** Faz 7'de saklanan set elle okunmuştu; oradan
+  çıkan davranışlar eğitime bilerek kondu (yukarıda, "Ölçümden önce yazılanlar"). Belge davranışları (her zaman
+  `belge_ara`, alıntı biçimi, ikinci arama) da araç davranışları (müşteriye özel soruda müşteri aracı, döviz
+  tutarlarında para birimi, GBP için `doviz_kuru`) da bunlardan. Bu yüzden belge sonucu da araç seçimindeki iyileşme de
+  "yeni bir soru türüne genelleşme" sayılmaz. Temiz genelleşme ölçüsü, eğitimde hiç olmayan 8 şablonun 29 sorusu: doğru
+  cevap 0,552'den 0,655'e çıktı (+8 / −5, p = 0,58); anlamlı değil.
+- **Faz 7'nin en sık hatası: rakamın kime ait olduğu.** Faz 7'de müşteriye özel 21 sorunun (`oz_*` şablonları)
+  12'si doğruydu; hataların çoğunda model müşteri aracı yerine şirket geneli bir araç çağırmıştı. Aynı 21 soruda:
+
+  | | Kütüphane (Faz 7) | Kendi temel | İnce ayarlı |
+  | --- | --- | --- | --- |
+  | Doğru | 12/21 | 12/21 | 18/21 |
+  | Yanlış araç | 7 | 8 | 3 |
+  | Eğitimde olan 4 şablon (16 soru) | 12/16 | 12/16 | 16/16 |
+  | Eğitimde olmayan `oz_cek` (5 soru) | 0/5 | 0/5 | 2/5 |
+
+  Öğretilen şablonlarda hata kalmadı, ama bu davranış bilerek öğretildi. Öğretilmeyen `oz_cek`'te 3 soru hâlâ yanlış
+  araçla, bütün portföyün toplamıyla cevaplandı (aşağıda).
+- **Doğrulanmış yanlış sayı gruplara göre.** Eğitimde olan soru türlerinde 7/121'den 1/121'e indi (0,008; eşiğin
+  altında). Eğitimde olmayanlarda 6/29'dan 9/29'a çıktı. İnce ayarlı modelin 10 doğrulanmış yanlış sayısının 9'u bu 29
+  sorudan; bunların 3'ü `fat_son`'da puanlayıcının sınırı (aşağıda).
+- **Dönüştürmenin etkisi (kütüphane → kendi temel).** Saklanan sette d = (7 − 3) + (2 − 3) = +3; geliştirme setinde
+  −3'tü. İki yönde de aynı büyüklükte olduğuna göre dönüştürmenin etkisi gürültü içinde.
+- **Görmediği soru türünde en yakın eğitim sorusunun kalıbı.** Kötüleşen araç sorularının çoğu eğitimde olmayan
+  şablonlardan:
+  - `pos_valor` (kendi temel 3/3 doğru, ince ayarlı 1/3): "valörü henüz gelmemiş net tutar" sorusuna POS'un net
+    tutarını verdi (`net_tl`, eğitimdeki `pos_net` niyetinin alanı); doğrusu `valoru_gelmemis_net_tl`.
+  - `fat_son` (kendi temel 3/4, ince ayarlı 0/4): 3 soruda en son faturanın kaynak numarasını (`kaynak_fatura_no`,
+    ör. 564428) verdi. Fatura doğru, ama puanlayıcı sistemdeki kimliği (F0…) ya da tarih ve tutarı bekliyor; bu
+    puanlayıcının sınırı. Dördüncüde "C560878" diye var olmayan bir numara yazdı (satış faturasının numarasına iade
+    faturalarının "C" öneki eklenmiş).
+  - `oz_cek` (kendi temel 0/5, ince ayarlı 2/5): burada iyileşme var, ama hatanın biçimi değişti. Kaçırdığı 3 soruda
+    `musteri_ozeti` yerine `cek_portfoyu` çağırdı ve bütün portföyün toplamını o müşteriye aitmiş gibi yazdı.
+  - Geliştirme setindeki "toplam alacak → nakit" hatası saklanan sette denenemedi: bu sette `yas_toplam` şablonu yok.
+    Yalnızca bir yetkisiz soruda (`S-yetkisiz-rol-06`) "tüm şirketin toplam açık alacağı" soruldu; ince ayarlı model
+    orada doğru aracı (`alacak_yaslandirma`) çağırdı, kendi temel modelimiz `nakit_pozisyonu`'nu çağırdı.
+- **Kapsamı söylemeden toplam vermek.** İki yetkisiz soruda ince ayarlı model, kullanıcının kendi yetkisi içindeki
+  toplamı şirketin ya da sorulan müşterinin toplamı gibi verdi:
+  - `S-yetkisiz-baska-05` (yurtiçi satış, yurt dışı müşteri soruluyor): "Bright Home Group GmbH müşterisinin bekleyen
+    çekleri var; toplamı 7.674.405,79 TL." Bu, kullanıcının gördüğü yurtiçi müşterilerin 295 çekinin toplamı.
+  - `S-yetkisiz-rol-06` (ihracat satışı "tüm şirket" diyor): "Müşterilerden toplam 23.860.952,91 TL alacağımız var."
+    Bu yalnızca yurt dışı müşterilerin toplamı (araç sonucunda kapsam: "yalnızca yurt dışı müşteriler").
+
+  Sızıntı yok: rakamlar kullanıcının görebildiği verinin içinden. Ama cevap yanıltıcı. Doğrulayıcı yakalayamıyor
+  (sayı araç sonucunda gerçekten var), ve doğrulanmış yanlış sayı metriği yalnızca araç sorularında ölçüldüğü için
+  hiçbir hedefte görünmüyor. Olası neden: öğretmenin eğitim cevapları veri kapsamını ("yalnızca yurtiçi müşteriler")
+  hiç söylemiyordu.
+- **Puanlayıcının ret sınırı.** `S-yetkisiz-yon-08`'de ince ayarlı model "Görebildiğim araçlarla bu bilgiyi alamam."
+  dedi; puanlayıcı bunu ret saymadı.
+- Kural gereği bu bulgulara göre hiçbir şey değiştirilmedi; sonrası için adaylar aşağıda.
+
+**Unutma** (Belebele Türkçe, 200 soru, her ölçüm boş başlangıçla; `reports/faz8_unutma.json` kendi temel ↔ ince
+ayarlı, `reports/faz8_unutma_kutuphane_ayarli.json` kütüphane ↔ ince ayarlı):
+
+| Karşılaştırma | Doğruluk | Fark | Yalnız ilki doğru / yalnız ikincisi doğru |
+| --- | --- | --- | --- |
+| Kütüphane, iki ölçüm (`faz8_unutma_tekrar.json`) | 84,0 → 84,0 | 0 | 0 / 0 |
+| Kütüphane → kendi temel (`faz8_unutma_donusturme.json`) | 84,0 → 84,0 | 0 | 1 / 1 |
+| Kendi temel → ince ayarlı | 84,0 → 83,5 | −0,5 | 5 / 4 (p = 1,0) |
+| Kütüphane → ince ayarlı | 84,0 → 83,5 | −0,5 | 4 / 3 (p = 1,0) |
+
+İzin verilen kayıp 5 puandı; ince ayarlı model 0,5 puan kaybetti, bu da 200 soruda 1 soru demek. Eğitim, modelin
+genel Türkçe okuma ve anlamasını ölçülebilir biçimde bozmadı. Belebele çoktan seçmeli bir test; modelin uzun ve serbest
+Türkçe yazısını ölçmez.
+
+**Faz 8'in özeti.** QLoRA ile eğitilmiş model bu bilgisayarda Ollama'da çalışıyor. Eğitim verisi ayrı bir şirketten ve
+yeni kalıplarla üretildi, sızıntı denetiminden geçti. Saklanan sette belge soruları ve araç seçimi kendi temel modelimize
+göre anlamlı biçimde iyileşti; ama bu davranışlar Faz 7'de bu set okunduktan sonra bilerek öğretilmişti. Rakam
+doğruluğundaki artış (0,847 → 0,907) anlamlı değil (p = 0,09). Cevaplar hızlandı, sızıntı yok, genel Türkçe korunuyor.
+Hiç öğretilmeyen soru türlerinde iyileşme küçük ve anlamlı değil. Tutmayan hedef: doğrulanmış yanlış sayı (0,067; eşik
+0,03). Eğitimde olan soru türlerinde 0,008'e indi; 10 yanlışın 9'u eğitimde olmayan soru türlerinden (3'ü puanlayıcının
+`fat_son` sınırı).
+
+**Öğrendiklerimiz:**
+
+- **Model, öğrettiğimiz kalıba çok sıkı bağlanıyor.** Tek cümleyle öğretilen niyette (`yas_toplam`, 4 örnek, hep
+  "yaşlandırma" kelimesi) başka cümleyle sorulunca başka araca gitti. Görmediği soru türünde en yakın eğitim sorusunun
+  cevabını verdi (`pos_valor` → `pos_net`). Niyet başına cümle çeşitliliği, örnek sayısından daha önemli görünüyor.
+- **Eğitim cevaplarında olmayanı model de söylemiyor.** Öğretmen cevapları kısa ve kapsamsızdı; ince ayarlı model de
+  yetkisi içindeki toplamı kapsamını söylemeden veriyor.
+- **Doğrulayıcı "sayı araç sonucunda var mı?" diye bakıyor, "sayı sorulan şeye mi ait?" diye bakmıyor.** Bir müşterinin
+  çekleri sorulunca bütün portföyün toplamı doğrulayıcıdan geçti.
+- **Adillik için kendi temel modelimizi ölçmek gerekti.** Kütüphane dosyası yeniden üretilemedi; dönüştürmenin etkisi
+  geliştirme setinde −3, saklanan sette +3 çıktı. Eğitimin etkisini aynı yoldan geçmiş iki dosya arasında ölçtük.
+- **Ollama'nın durumu ölçümü etkiliyor.** Her ölçümden önce modelleri boşaltmak, ölçüm sırasında başka iş
+  çalıştırmamak gerekti (Faz 8 başında bir sorunun sonucu, Ollama'nın hemen önce ne işlediğine göre değişiyordu).
+
+**Sonrası için adaylar** (saklanan set bulgularından; Faz 8'de hiçbiri uygulanmadı):
+
+- Doğrulayıcı: cevaptaki tutarın, sorulan müşteriye ya da kapsama ait olup olmadığını denetlemek.
+- Cevap: araç sonucunda kapsam varsa ("yalnızca yurtiçi müşteriler") cevapta söylemek.
+- Puanlayıcı: `kaynak_fatura_no`'yu da fatura kimliği olarak kabul etmek; "alamam" gibi ret cümlelerini tanımak.
+- Eğitim verisi: her niyete birden çok, birbirinden farklı cümle; kapsam söyleyen cevaplar.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -449,15 +805,17 @@ Bir soru 300 saniyelik süre sınırında durduruldu.
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör, `olcum`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi) |
+| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör, `olcum`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi, Faz 8 eşleştirme ve unutma testi, `egitim`: Faz 8 eğitim verisi, öğretmen, sızıntı denetimi ve GGUF özeti) |
 | `tests` | Yazılım testleri ve kabul testleri |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
+| `kaggle` | Faz 8'de Kaggle'da çalışan eğitim, birleştirme ve uyum betikleri |
 | `reports` | Ölçüm sonuçları |
 | `data/kaynak` | Kaynaklardan indirilen küçük dosyalar (kurlar, kalibrasyon bantları) |
 | `data/denetim` | Araç çağrılarının denetim kaydı (git'e girmez) |
 | `data/izleme` | Zamanlayıcının uyarı deposu (git'e girmez) |
 | `data/izleme_veri` | Faz 4 ölçümü için ek veri setleri (git'e girmez) |
 | `data/olcum` | Kâhin ve kontrol koşularının dosyaları, ölçümlerin denetim kayıtları (git'e girmez) |
-| `data/ham/mevzuat` | İndirilen kanun PDF'leri (git'e girmez) |
+| `data/ham` | İndirilen kanun PDF'leri (`mevzuat`) ve Belebele Türkçe soruları (`belebele`) (git'e girmez) |
 | `data/belge` | Belge kütüphanesi, soru seti, vektör ve sıralama önbelleği, Qdrant dizini (git'e girmez) |
 | `data/modeller` | Hugging Face'ten indirilen sıralayıcı modeli (git'e girmez) |
+| `data/egitim` | Eğitim şirketi, eğitim örnekleri, Kaggle çıktıları, model dosyaları ve ölçüm kayıtları (git'e girmez) |

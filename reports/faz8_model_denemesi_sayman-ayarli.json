@@ -1,0 +1,207 @@
+{
+ "model": "sayman-ayarli",
+ "temel": "sayman-taban-kendi",
+ "ciz": {
+  "istem": 6,
+  "hepsi_ayni": true,
+  "ayrinti": [
+   {
+    "soru_id": "E-nakit_toplam-01",
+    "ayni": true,
+    "karakter": 8994
+   },
+   {
+    "soru_id": "E-nakit_toplam-01",
+    "ayni": true,
+    "karakter": 9895
+   },
+   {
+    "soru_id": "E-nakit_toplam-02",
+    "ayni": true,
+    "karakter": 8994
+   },
+   {
+    "soru_id": "E-nakit_toplam-02",
+    "ayni": true,
+    "karakter": 9895
+   },
+   {
+    "soru_id": "E-nakit_toplam-03",
+    "ayni": true,
+    "karakter": 8994
+   },
+   {
+    "soru_id": "E-nakit_toplam-03",
+    "ayni": true,
+    "karakter": 9897
+   }
+  ]
+ },
+ "uretim": [
+  {
+   "soru_id": "E-nakit_toplam-03",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=nakit_pozisyonu>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=nakit_pozisyonu>\n</function>\n</tool_call>",
+   "temel": "Şu anki nakit pozisyonumuzun toplamı 3.490.672,81 TL'dir.",
+   "kaggle": "<tool_call>\n<function=nakit_pozisyonu>\n</function>\n</tool_call><|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.383,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-nakit_toplam-03",
+   "adim": 2,
+   "beklenen": "Bugün itibarıyla bankalardaki toplam nakdimiz 85.684.799,14 TL.",
+   "ayarli": "Banka hesaplarımızın toplamı 85.684.799,14 TL.",
+   "temel": "Nakit pozisyonunuzun toplamı 85.684.799,14 TL'dir.",
+   "kaggle": "Bugün itibarıyla bankalardaki toplam nakdimiz 85.684.799,14 TL.<|im_end|>",
+   "ayarli_kaggle_benzerligi": 0.606,
+   "temel_kaggle_benzerligi": 0.496,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": false,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-nakit_toplam_tarihli-01",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2026-03-21\n</parameter>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2026-03-21\n</parameter>\n</function>\n</tool_call>",
+   "temel": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2026-03-21\n</parameter>\n</function>\n</tool_call>",
+   "kaggle": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2026-03-21\n</parameter>\n</function>\n</tool_call><|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 1.0,
+   "ayarli_temel_ayni": true,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": true
+  },
+  {
+   "soru_id": "E-nakit_toplam_tarihli-01",
+   "adim": 2,
+   "beklenen": "21 Mart 2026 itibarıyla bankalardaki toplam nakit 77.008.445,93 TL.",
+   "ayarli": "21 Mart 2026 itibarıyla bankalardaki toplam nakit 77.008.445,93 TL.",
+   "temel": "21 Mart 2026 tarihinde nakit pozisyonunuzun toplamı **77.008.445,93 TL** idi.",
+   "kaggle": "21 Mart 2026 itibarıyla bankalardaki toplam nakit 77.008.445,93 TL.<|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.569,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-nakit_hesap_bakiye-03",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=nakit_pozisyonu>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=nakit_pozisyonu>\n</function>\n</tool_call>",
+   "temel": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2026-05-07\n</parameter>\n</function>\n</tool_call>",
+   "kaggle": "<tool_call>\n<function=nakit_pozisyonu>\n</function>\n</tool_call><|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.75,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-nakit_hesap_bakiye-03",
+   "adim": 2,
+   "beklenen": "Banka C'deki USD hesapta 12.394,24 USD var.",
+   "ayarli": "Banka C'deki USD hesapta 12.394,24 USD var.",
+   "temel": "Banka C'deki USD hesabının güncel bakiyesi 12.394,24 USD'dir (TL karşılığı 559.520,61 TL).",
+   "kaggle": "Banka C'deki USD hesapta 12.394,24 USD var.<|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.602,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-nakit_hesap_tl-02",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2025-06-22\n</parameter>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2025-06-22\n</parameter>\n</function>\n</tool_call>",
+   "temel": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2025-06-22\n</parameter>\n</function>\n</tool_call>",
+   "kaggle": "<tool_call>\n<function=nakit_pozisyonu>\n<parameter=tarih>\n2025-06-22\n</parameter>\n</function>\n</tool_call><|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 1.0,
+   "ayarli_temel_ayni": true,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": true
+  },
+  {
+   "soru_id": "E-nakit_hesap_tl-02",
+   "adim": 2,
+   "beklenen": "22.06.2025 itibarıyla Banka C USD hesabının TL karşılığı 962.726,58 TL.",
+   "ayarli": "22.06.2025 itibarıyla Banka C USD hesabının TL karşılığı 962.726,58 TL.",
+   "temel": "22.06.2025 tarihinde Banka C'deki USD hesabının TL cinsinden değeri 962.726,58 TL idi.",
+   "kaggle": "22.06.2025 itibarıyla Banka C USD hesabının TL karşılığı 962.726,58 TL.<|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.713,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-banka_adet-05",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-07-01\n</parameter>\n<parameter=bitis>\n2025-07-29\n</parameter>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-07-01\n</parameter>\n<parameter=bitis>\n2025-07-29\n</parameter>\n</function>\n</tool_call>",
+   "temel": "01.07.2025 ile 29.07.2025 tarihleri arasında banka hareketlerini listeleyerek toplam sayıyı buluyorum.\n\n<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-07-01\n</parameter>\n<parameter=bitis>\n2025-07-29\n</parameter>\n<parameter=en_fazla>\n1000\n</parameter>\n</function>\n</tool_call>",
+   "kaggle": "<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-07-01\n</parameter>\n<parameter=bitis>\n2025-07-29\n</parameter>\n</function>\n</tool_call><|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.682,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-banka_adet-05",
+   "adim": 2,
+   "beklenen": "01.07.2025 ile 29 Temmuz 2025 arasında 1645 banka hareketi var.",
+   "ayarli": "01.07.2025 ile 29 Temmuz 2025 arasında 1645 banka hareketi var.",
+   "temel": "01.07.2025 ile 29 Temmuz 2025 tarihleri arasında banka kayıtlarında toplam **1.645** hareket bulunmaktadır. Bu dönemde TRY, EUR ve USD cinsinden giriş-çıkış işlemleri gerçekleşmiştir.",
+   "kaggle": "01.07.2025 ile 29 Temmuz 2025 arasında 1645 banka hareketi var.<|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.455,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-banka_giris_ay-02",
+   "adim": 1,
+   "beklenen": "<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-08-01\n</parameter>\n<parameter=bitis>\n2025-08-31\n</parameter>\n</function>\n</tool_call>",
+   "ayarli": "<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-08-01\n</parameter>\n<parameter=bitis>\n2025-08-31\n</parameter>\n</function>\n</tool_call>",
+   "temel": "Ağustos 2025 dönemindeki TL girişlerini bulmak için banka hareketleri aracını kullanıyorum.\n\n<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-08-01\n</parameter>\n<parameter=bitis>\n2025-08-31\n</parameter>\n<parameter=yon>\ngiris\n</parameter>\n<parameter=en_fazla>\n5\n</parameter>\n</function>\n</tool_call>",
+   "kaggle": "<tool_call>\n<function=banka_hareketleri>\n<parameter=baslangic>\n2025-08-01\n</parameter>\n<parameter=bitis>\n2025-08-31\n</parameter>\n</function>\n</tool_call><|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.651,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  },
+  {
+   "soru_id": "E-banka_giris_ay-02",
+   "adim": 2,
+   "beklenen": "TL hesaplarına Ağustos 2025 içinde giren toplam 40.806.133,67 TL.",
+   "ayarli": "TL hesaplarına Ağustos 2025 içinde giren toplam 40.806.133,67 TL.",
+   "temel": "Ağustos 2025 döneminde TL (TRY) cinsinden hesaplarınıza toplam **40.806.133,67 TL** giriş oldu.",
+   "kaggle": "TL hesaplarına Ağustos 2025 içinde giren toplam 40.806.133,67 TL.<|im_end|>",
+   "ayarli_kaggle_benzerligi": 1.0,
+   "temel_kaggle_benzerligi": 0.575,
+   "ayarli_temel_ayni": false,
+   "ayarli_beklenen_ayni": true,
+   "temel_beklenen_ayni": false
+  }
+ ],
+ "ozet": {
+  "ornek": 12,
+  "ayarli_temelden_farkli": 10,
+  "ayarli_beklenenle_ayni": 11,
+  "temel_beklenenle_ayni": 2,
+  "kaggle_ile_karsilastirilan": 12,
+  "ayarli_kaggle_benzerligi_ort": 0.967,
+  "temel_kaggle_benzerligi_ort": 0.656
+ }
+}
