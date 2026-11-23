@@ -40,7 +40,7 @@ from sayman.tools.audit_log import AuditLog
 from sayman.tools.identity import generate_card
 from sayman.tools.server import SCOPE_LABELS, SaymanServer
 from sayman.tools.permissions import PermissionTable
-from sayman.assistant.orchestrator import SYSTEM_PROMPT, Assistant, Settings, tool_definitions
+from sayman.assistant.orchestrator import Assistant, Settings
 from sayman.monitoring.scheduler import AlertStore, run_scheduler
 from sayman.data.clock import Clock, read_clock, write_clock
 from sayman.documents.pdf_export import ARTICLE_KEY, DOCUMENT_ID, read_index
@@ -121,23 +121,14 @@ REPORT_SECTIONS = [
 ]
 
 
-def ollama_warmer(model) -> Callable[[dt.date], None]:
-    """Fills the model's cache with that day's system prompt and tool list. Since the system prompt starts with
-    today's date, the cache is wasted every time the clock advances; if it is not warmed up, the next first question
-    takes ~100 s."""
-    def warmer(today: dt.date) -> None:
-        model([{"role": "system", "content": SYSTEM_PROMPT.format(bugun=today.isoformat())},
-               {"role": "user", "content": "Merhaba"}], tool_definitions(), 600)
-    return warmer
-
-
 class Demo:
     def __init__(self, *, warehouse: Path, state_dir: Path, initial_clock: Clock, key: bytes, permissions: PermissionTable,
                  tables: dict[str, list[dict]], model, model_name: str = "sahte", belge=None,
                  search_method: str = "bm25", step_days: int = 7, time_fn: Callable[[], float] = time.time,
                  warmer: Callable[[dt.date], None] | None = None, document_pdfs: Path | None = None):
         """tables: the tables the monitoring rules read (data/uretilen). warmer: if given, the model is warmed up in the
-        background at start and every time the clock advances; if not given (fake model) it counts as ready.
+        background at start and every time the clock advances (sayman.demo.warmup.OllamaWarmer); if not given (fake
+        model) it counts as ready.
         document_pdfs: the folder written by scripts/phase10_document_pdfs.py; citations in answers link there."""
         self.directory = Path(state_dir)
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -172,6 +163,9 @@ class Demo:
         self.lock = threading.Lock()  # a model turn and advancing the clock do not run at the same time
         self.sessions: dict[str, str] = {}
         self.model_ready = warmer is None
+        self._warm_condition = threading.Condition()
+        self._warm_date: dt.date | None = None   # the newest date still waiting to be warmed up
+        self._warm_thread: threading.Thread | None = None
         # Document PDFs: the roles come from the same chunks the document tool searches.
         self.document_roles = {c.belge_id: c.roller for c in belge.chunk_by_id.values()} if belge is not None else {}
         self.document_pdfs = Path(document_pdfs) if document_pdfs is not None else None
@@ -276,20 +270,36 @@ class Demo:
         return {"onceki": previous.simdi.isoformat(), "bugun": new_clock.simdi.isoformat(), "yeni": result["yeni"]}
 
     def _warm_up(self) -> None:
+        """Warms the model up for today in the background. Only the newest date is warmed up: one thread runs the
+        warm-ups one after another, a date still waiting is replaced by the newer one, and a warm-up already running
+        for an older date is stopped if the warmer can stop it (cancel_older). Several clock advances in a row thus
+        cost one warm-up instead of one each, and a question does not wait behind warm-ups of past dates."""
         if self.warmer is None:
             return
-        self.model_ready = False
-        today = self.clock.simdi
+        with self._warm_condition:
+            self.model_ready = False
+            self._warm_date = self.clock.simdi
+            cancel_older = getattr(self.warmer, "cancel_older", None)
+            if cancel_older is not None:
+                cancel_older(self._warm_date)
+            self._warm_condition.notify()
+            if self._warm_thread is None:
+                self._warm_thread = threading.Thread(target=self._warm_loop, name="isinma", daemon=True)
+                self._warm_thread.start()
 
-        def work():
+    def _warm_loop(self) -> None:
+        while True:
+            with self._warm_condition:
+                while self._warm_date is None:
+                    self._warm_condition.wait()
+                today, self._warm_date = self._warm_date, None
             try:
                 self.warmer(today)
             except Exception:  # if warming up fails only the first question is slow
                 pass
-            finally:
-                if self.clock.simdi == today:
+            with self._warm_condition:
+                if self._warm_date is None and self.clock.simdi == today:
                     self.model_ready = True
-        threading.Thread(target=work, daemon=True).start()
 
     def close(self) -> None:
         if not getattr(self, "_kapandi", False):

@@ -1772,6 +1772,39 @@ olarak, alıntılanan maddenin sayfasında açılır. PDF'ler bir kez üretilir:
   güncellenen `app.js` yerine önbellekteki eski kopyayı kullandığı görüldü; sayfa ve statik dosyalar artık
   `Cache-Control: no-cache` ile her açılışta sunucuya sorulur.
 
+### Isınma: arka arkaya ileri sarma (24 Kasım 2026)
+
+**Gözlem.** Demoda saat yaklaşık 15 saniye arayla iki kez ileri sarıldı, hemen ardından soru soruldu. Cevap doğruydu
+ama 171 saniye sürdü; normalde 25–50 saniye sürüyor.
+
+**Neden.**
+- Sistem isteminde bugünün tarihi var. qwen3.5'in karma belleği (yinelemeli katmanlar), önbelleği tarihin geçtiği
+  yerden sonra kullanamıyor. Her tarih değişiminde yaklaşık 2.800 tokenlık istemin hepsi yeniden okunuyor. Ollama
+  günlüğünde bu "forcing full prompt re-processing" diye görünüyor ve bu bilgisayarda 85–100 saniye sürüyor.
+- Ollama istekleri tek tek işliyor. İki tarihin ısınması art arda koştu, soru ikisinin arkasında bekledi. Sorunun
+  kendi işi yaklaşık 11 + 26 saniyeydi.
+- Üst üste 3–4 sarıştan hemen sonra sorulan bir soru 300 saniyelik süre sınırını aşabilirdi.
+
+**Düzeltme** (`src/sayman/demo/warmup.py`, `Demo._warm_up`):
+- Isınmalar tek bir iş parçacığında sırayla koşar. Bekleyen eski bir tarihin yerini yenisi alır; yalnızca en yeni
+  tarih ısıtılır.
+- Eski bir tarihin süren ısınması durdurulur:
+  - İstek, `ollama.Client.chat`'in göndereceği gövdenin aynısıdır. Gövde sahte bir taşıyıcıyla yakalanır, böylece
+    Ollama aynı istemi kurar.
+  - İstek kapatılabilen düz bir HTTP bağlantısıyla gider. Bağlantı kapanınca Ollama işi iptal eder.
+  - Canlı denemede, kesmeden 2 saniye sonra Ollama günlüğünde `cancel task` göründü ve okuma 256. tokende durdu. Yeni
+    tarihin ısınması beklemeden başladı ve 106 saniye sürdü; eskisi kesilmeseydi yaklaşık 170 saniye sürecekti.
+- Model ısınırken soru gönderilirse bekleme balonunda "Model yeni tarihe hazırlanıyor; cevap 1–2 dakika gecikebilir."
+  yazar. İleri sarma bildirimi de bunu söyler.
+
+**Değişmeyenler.**
+- Tek bir tarih değişiminin maliyeti (85–100 saniye) aynı. Bu düzeltme yalnızca bu bedelin birden çok kez ödenmesini
+  önler.
+- Model, istem ve `/api` aynı. Isınma isteği, gerçek bir turun isteğiyle bayt bayt aynıdır (testle gösterildi).
+
+**Testler.** `tests/test_phase10_warmup.py`, 7 test. Ollama gerektirmez; sahte bir ısıtıcı ve sahte bir HTTP sunucusu
+kullanır.
+
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 
 Kod tabanı uluslararası standartlara göre düzenlendi:

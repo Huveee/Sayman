@@ -20,14 +20,18 @@ class OllamaModel:
         self.model, self.host, self.keep_alive = model, host, keep_alive
         self.options = {**OPTIONS, **(options or {})}
 
+    def chat_arguments(self, messages: list[dict], tools: list[dict]) -> dict:
+        """The arguments of ollama.Client.chat for one call (the demo's warm-up sends the same request)."""
+        return {"model": self.model, "messages": messages, "tools": tools, "think": False, "options": self.options,
+                "keep_alive": self.keep_alive}
+
     def __call__(self, messages: list[dict], tools: list[dict], timeout: float) -> ModelResponse:
         import httpx
         import ollama
 
         client = ollama.Client(host=self.host, timeout=max(timeout, 0.1))
         try:
-            r = client.chat(model=self.model, messages=messages, tools=tools, think=False,
-                             options=self.options, keep_alive=self.keep_alive)
+            r = client.chat(**self.chat_arguments(messages, tools))
         except httpx.TimeoutException as e:
             raise ModelTimeout(str(e)) from e
         m = r.message

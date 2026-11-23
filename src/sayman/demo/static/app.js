@@ -185,7 +185,7 @@ async function ileriSar() {
   try {
     const v = await api("/api/ileri_sar", {});
     const yeni = v.yeni_uyarilar || [];
-    toast(`Bugün artık ${uzunTarih(v.bugun)} · ${yeni.length} yeni uyarı`);
+    toast(`Bugün artık ${uzunTarih(v.bugun)} · ${yeni.length} yeni uyarı · model yeni tarihe hazırlanıyor (~1,5 dk)`);
     if (v.rapor) raporCiz(v.rapor); else await raporYukle();
     await Promise.all([durumYenile(), uyarilariYukle(new Set(yeni.map((u) => u.uyari_id)))]);
   } catch (e) {
@@ -283,11 +283,18 @@ async function gonder(metin) {
   girdiKilidi(true);
   $("soru").value = "";
   balonEkle("kullanici", metin);
-  const bekle = balonEkle("sayman", "Sayman düşünüyor… 0 sn");
+  const bekle = balonEkle("sayman", "");
+  const sure = el("span", "", "Sayman düşünüyor… 0 sn");
+  bekle.append(sure);
   const bas = Date.now();
   const sayac = setInterval(() => {
-    bekle.textContent = `Sayman düşünüyor… ${Math.floor((Date.now() - bas) / 1000)} sn`;
+    sure.textContent = `Sayman düşünüyor… ${Math.floor((Date.now() - bas) / 1000)} sn`;
   }, 1000);
+  // After the clock advances the model reads the whole prompt again (~1.5 min); say so instead of looking stuck
+  await durumYenile();
+  if (durum && !durum.model_hazir) {
+    bekle.append(el("div", "isinma-notu", "Model yeni tarihe hazırlanıyor; cevap 1–2 dakika gecikebilir."));
+  }
   try {
     const v = await api("/api/sor", { soru: metin });
     clearInterval(sayac);
