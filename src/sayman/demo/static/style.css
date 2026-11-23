@@ -97,6 +97,10 @@ h1, h2, h3 { margin: 0; }
 .balon a.kaynak { color: var(--ana); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
 .balon a.kaynak:hover { color: var(--ana-koyu); }
 .balon .isinma-notu { margin-top: 4px; font-size: 11.5px; color: var(--soluk); }
+.balon.bilgili { position: relative; padding-right: 32px; }
+.balon .bilgi { position: absolute; top: 6px; right: 7px; width: 18px; height: 18px; padding: 0; border: 1px solid #aeb7c2; border-radius: 50%; background: #fff; color: var(--soluk); font: italic 700 11px/16px Georgia, "Times New Roman", serif; text-align: center; cursor: help; }
+.balon .bilgi:hover, .balon .bilgi:focus-visible { border-color: var(--ana); color: var(--ana); outline: none; box-shadow: 0 0 0 2px rgba(47,93,138,.2); }
+.ipucu { position: fixed; z-index: 40; max-width: 260px; padding: 6px 10px; border-radius: 6px; background: #1f2933; color: #fff; font: 12px/1.45 "Segoe UI", sans-serif; white-space: pre-line; box-shadow: 0 4px 14px rgba(0,0,0,.25); pointer-events: none; }
 .balon .meta { margin-top: 6px; font-size: 11.5px; color: var(--soluk); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .sor-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--cizgi); }
 .sor-form textarea { flex: 1; resize: none; border: 1px solid var(--cizgi); border-radius: 6px; padding: 7px 9px; font: inherit; }

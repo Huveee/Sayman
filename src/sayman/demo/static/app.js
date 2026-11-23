@@ -224,6 +224,7 @@ async function ileriSar() {
 
 // ---- Chat ----
 function sohbetiSifirla() {
+  ipucuGizle();
   $("mesajlar").replaceChildren();
   $("soru").value = "";
   meşgul = false;
@@ -297,6 +298,47 @@ function metinCiz(hedef, metin) {
   });
 }
 
+// The tools and the time of an answer: an "i" in the bubble's corner, shown in a tooltip on hover or focus. The
+// tooltip is one fixed element on the page, so the scrolling message list cannot clip it.
+const ipucu = el("div", "ipucu gizli");
+ipucu.id = "ipucu";
+ipucu.setAttribute("role", "tooltip");
+document.body.append(ipucu);
+
+function bilgiEkle(balon, metin) {
+  const b = el("button", "bilgi", "i");
+  b.type = "button";
+  b.dataset.ipucu = metin;
+  b.setAttribute("aria-label", metin.replace("\n", " · "));
+  balon.classList.add("bilgili");
+  balon.append(b);
+}
+
+function ipucuGoster(hedef) {
+  ipucu.textContent = hedef.dataset.ipucu;
+  ipucu.classList.remove("gizli");
+  const r = hedef.getBoundingClientRect();
+  const w = ipucu.offsetWidth, h = ipucu.offsetHeight;
+  const x = Math.max(8, Math.min(r.right - w, innerWidth - w - 8));
+  const y = r.bottom + 6 + h > innerHeight - 8 ? r.top - h - 6 : r.bottom + 6;
+  ipucu.style.left = `${x}px`;
+  ipucu.style.top = `${y}px`;
+}
+
+function ipucuGizle() {
+  ipucu.classList.add("gizli");
+}
+
+for (const [olay, goster] of [["mouseover", true], ["focusin", true], ["mouseout", false], ["focusout", false]]) {
+  $("mesajlar").addEventListener(olay, (e) => {
+    const hedef = e.target.closest(".bilgi");
+    if (!hedef) return;
+    if (goster) ipucuGoster(hedef); else ipucuGizle();
+  });
+}
+$("mesajlar").addEventListener("scroll", ipucuGizle);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") ipucuGizle(); });
+
 function balonEkle(tur, metin) {
   const b = el("div", "balon " + tur);
   if (tur === "sayman") metinCiz(b, metin); else b.textContent = metin;
@@ -332,11 +374,13 @@ async function gonder(metin) {
     clearInterval(sayac);
     bekle.remove();
     const b = balonEkle("sayman", v.cevap || "");
-    const meta = el("div", "meta");
     const araclar = (v.araclar || []).map((a) => a.arac);
-    meta.append(el("span", "", `Kullanılan araçlar: ${araclar.length ? araclar.join(", ") : "yok"} · ${Math.round(v.sure_s)} sn`));
-    if (v.durum && v.durum !== "tamam") meta.append(el("span", "chip durum", DURUM_ETIKET[v.durum] || v.durum));
-    b.append(meta);
+    bilgiEkle(b, `Kullanılan araçlar: ${araclar.length ? araclar.join(", ") : "yok"}\nSüre: ${Math.round(v.sure_s)} sn`);
+    if (v.durum && v.durum !== "tamam") { // a refused or stopped answer says so under the text
+      const meta = el("div", "meta");
+      meta.append(el("span", "chip durum", DURUM_ETIKET[v.durum] || v.durum));
+      b.append(meta);
+    }
   } catch (e) {
     clearInterval(sayac);
     bekle.remove();

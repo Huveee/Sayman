@@ -1885,6 +1885,17 @@ başka bir işi bitiriyor" cevabını aldı.
   - `tests/test_phase10_session_end.py` (3 yeni test): giriş ve çıkış soruyu durduruyor, başka bir tarayıcı
     durdurmuyor.
 
+### Araç bilgisi köşedeki ikonda (24 Kasım 2026)
+
+Cevabın altındaki "Kullanılan araçlar: … · N sn" satırı kaldırıldı. Aynı bilgi artık cevap balonunun sağ üst
+köşesindeki "i" ikonunda duruyor:
+- Fareyle üstüne gelince ya da klavyeyle odaklanınca bir ipucu kutusunda iki satır olarak görünür: kullanılan araçlar
+  ve süre. Esc kutuyu kapatır.
+- İpucu sayfada tek bir sabit kutu olduğu için kayan mesaj listesi onu kesmez.
+- Cevap reddedildiyse ya da doğrulanamadıysa ("Yetki yok", "Doğrulanamadı" gibi) bu etiket önemli olduğu için
+  cevabın altında kalır.
+- Yalnızca `static/app.js` ve `static/style.css` değişti; `/api` cevapları aynı.
+
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 
 Kod tabanı uluslararası standartlara göre düzenlendi:
