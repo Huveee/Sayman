@@ -1694,8 +1694,13 @@ numarayı düzeltmenin hedeflediği biçimde ("564713'tür (fatura …)", "… n
 | Liman Rüzgar Tasarım'dan tahsil edilmemiş çekler | C031975 ve C033510 (çek kimlikleri) | 40 sn |
 | Aynı müşterinin bekleyen çeklerinin numaraları ve tutarları | C031975: 2.015,72 TL, C033510: 2.483,56 TL | 38 sn |
 
-Bu yazılışları eski doğrulayıcı da geçiriyordu. Yani kayıt numarası düzeltmesinin dayanağı hâlâ kayıtlı taslaklar
+Çek kimlikleri, tutarları ve vadeleri ambarla karşılaştırıldı, aynı. Bu yazılışları eski doğrulayıcı da geçirirdi
+(yazılıştan çıkarım; eski kodla çalıştırılmadı). Yani kayıt numarası düzeltmesinin dayanağı hâlâ kayıtlı taslaklar
 (15 doğru taslak); canlı demoda tetiklendiği görülmedi.
+
+Demonun öteki beş CFO örnek sorusu da yeni doğrulayıcıyla aynı gün yeniden soruldu. Beşi de geçti, rakamlar Faz 10
+provasındakiyle aynı: 75.826.754,65 TL, 7.238.020,42 TL ve 37.800.862,95 TL. Çek politikası soruları alıntılarıyla
+geldi ([POL-CEK#m2], [POL-CEK#m5]). Süreler 31–65 sn.
 
 ## Veri kaynakları
 
