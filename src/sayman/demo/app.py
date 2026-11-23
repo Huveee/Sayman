@@ -16,6 +16,9 @@ Security:
   the document's readable name from /belge/adlar. The PDF and the names are served only for documents whose roles
   pass the document tool's rule (belge_ara permission and the document's roles);
   an unknown and a forbidden document get the same 404, so a link cannot reveal that a contract exists.
+- An answer goes only to the session that asked. If that session ends while the model is still working (log out, or
+  another user logs in on the same browser), the server withholds the answer (401) and the page drops the request,
+  so the next user never sees it.
 - Demo state (clock copy, alert store, audit logs, scope copies) is kept in its own folder; the warehouse and
   data/saat.json do not change. The clock cannot be turned back; to start over the folder is deleted.
 """
@@ -328,6 +331,13 @@ def build_app(demo: Demo) -> FastAPI:
             raise HTTPException(401, "Önce giriş yapın.")
         return user
 
+    def still_signed_in(request: Request, user: str) -> None:
+        """A long request (a model turn, a clock advance) can outlive its session: the user logs out or another user
+        logs in on the same browser meanwhile. Its answer is then withheld, so it cannot reach the next user's
+        screen. The work itself is done (and written to the audit log) under the user who asked."""
+        if demo.sessions.get(request.cookies.get(COOKIE_NAME, "")) != user:
+            raise HTTPException(401, "Oturum kapandı; cevap gösterilmedi.")
+
     def acquire_lock():
         if not demo.lock.acquire(blocking=False):
             raise HTTPException(409, "Sayman başka bir işi bitiriyor; birazdan yeniden deneyin.")
@@ -385,6 +395,7 @@ def build_app(demo: Demo) -> FastAPI:
             turn = demo.assistant.ask(question.strip(), demo.card(user))
         finally:
             demo.lock.release()
+        still_signed_in(request, user)
         return {"durum": turn.status, "cevap": turn.answer, "sure_s": turn.sure_s,
                 "araclar": [{"arac": c.get("arac"), "hata": c["yanit"].get("hata") if c.get("hata_mi") else None} for c in turn.calls],
                 "bugun": demo.clock.simdi.isoformat()}
@@ -402,6 +413,7 @@ def build_app(demo: Demo) -> FastAPI:
             raise HTTPException(409, str(e)) from None
         finally:
             demo.lock.release()
+        still_signed_in(request, user)  # the alerts and the report below are this user's
         return {"onceki": result["onceki"], "bugun": result["bugun"],
                 "yeni_uyarilar": demo.filter_alerts(user, result["yeni"]), "rapor": demo.report(user)}
 

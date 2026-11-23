@@ -1805,6 +1805,45 @@ ama 171 saniye sürdü; normalde 25–50 saniye sürüyor.
 **Testler.** `tests/test_phase10_warmup.py`, 7 test. Ollama gerektirmez; sahte bir ısıtıcı ve sahte bir HTTP sunucusu
 kullanır.
 
+### Kullanıcı değişince bekleyen cevap (24 Kasım 2026)
+
+**Hata.** Demoda CFO bankalardaki toplam nakdi sordu. Cevap gelmeden çıkış yaptı ve aynı tarayıcıda ihracat satış
+müdürü olarak girdi. İhracat müdürünün sorusu önce "Sayman başka bir işi bitiriyor" cevabını aldı. Hemen ardından
+CFO'nun cevabı ihracat müdürünün sohbetinde göründü. Bu rol o bilgiyi görmemeliydi.
+
+**Neden.**
+- Sunucu doğru çalıştı: soru CFO'nun kimlik kartıyla, CFO'nun yetkisiyle cevaplandı ve denetim kaydına CFO adına
+  yazıldı.
+- Sızıntı tarayıcıdaydı. Bekleyen istek çıkışta iptal edilmiyordu. Cevap gelince o anda açık olan sohbete, yani yeni
+  kullanıcınınkine ekleniyordu.
+- Sunucu da cevabı, oturumu kapanmış isteğe yine veriyordu.
+
+**Düzeltme.**
+- **Tarayıcı** (`static/app.js`):
+  - Her istek, onu gönderen oturuma bağlı.
+  - Çıkışta ya da başka bir kullanıcı girdiğinde bekleyen bütün istekler iptal edilir (soru, rapor, uyarılar, ileri
+    sarma). Cevapları hiçbir ekrana yazılmaz.
+  - Eski oturumun isteği, yeni oturumun soru kutusunu da açıp kapatmaz.
+- **Sunucu** (`app.py`, `still_signed_in`):
+  - Soru ve ileri sarma bittiğinde, isteği gönderen oturum hâlâ açık mı diye bakılır.
+  - Oturum kapanmışsa cevap verilmez: 401, "Oturum kapandı; cevap gösterilmedi.". İleri sarmada raporun ve
+    uyarıların gösterilmemesi de buna dahil.
+  - İş yine de yapılmış olur ve denetim kaydında soran kullanıcının adıyla durur. Saat bütün demo için ortak olduğu
+    için ileri sarma geri alınmaz.
+- Model aynı anda tek soru cevaplıyor. Önceki soru bitene kadar yeni kullanıcı "Sayman başka bir işi bitiriyor"
+  cevabını alır; bu davranış değişmedi.
+
+**Doğrulama.**
+- Canlı denemede senaryo aynen tekrarlandı:
+  - Tarayıcı CFO'nun isteğini çıkışta kesti (`ERR_ABORTED`).
+  - İhracat müdürü önce "başka bir işi bitiriyor" cevabını aldı.
+  - CFO'nun sorusu sunucuda 42 saniyede bitti. İhracat müdürünün ekranına bir şey düşmedi.
+- Testler (`tests/test_phase10_session_end.py`, 4 test):
+  - Başka kullanıcı girince cevap verilmiyor.
+  - Çıkıştan sonra cevap verilmiyor.
+  - Başka bir tarayıcıda açılan oturum, CFO'nun cevabını engellemiyor.
+  - İleri sarmadan sonra rapor verilmiyor.
+
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 
 Kod tabanı uluslararası standartlara göre düzenlendi:

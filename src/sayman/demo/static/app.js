@@ -27,18 +27,37 @@ function uzunTarih(iso) {
 }
 
 class Yetkisiz extends Error {}
+class OturumBitti extends Yetkisiz {}  // the request belonged to a session that has ended: show nothing
+
+// Every request belongs to the session that sent it. When the user logs out or another user logs in, the requests
+// still waiting are cancelled and their answers dropped: an answer to the CFO must never appear on the next user's
+// screen (the server also refuses to hand it to a closed session).
+let oturumKesici = new AbortController();
+
+function oturumuBitir() {
+  oturumKesici.abort();
+  oturumKesici = new AbortController();
+}
 
 // All requests go through here; 401 -> login screen
 async function api(yol, govde) {
-  const secenek = { credentials: "same-origin" };
+  const sinyal = oturumKesici.signal;
+  const secenek = { credentials: "same-origin", signal: sinyal };
   if (govde !== undefined) {
     secenek.method = "POST";
     secenek.headers = { "Content-Type": "application/json" };
     secenek.body = JSON.stringify(govde);
   }
-  const r = await fetch(yol, secenek);
+  let r;
+  try {
+    r = await fetch(yol, secenek);
+  } catch (e) {
+    if (sinyal.aborted) throw new OturumBitti();
+    throw e;
+  }
   let veri = null;
   try { veri = await r.json(); } catch (_) { /* no body */ }
+  if (sinyal.aborted) throw new OturumBitti();
   if (r.status === 401 && yol !== "/api/giris") {
     if (kullanici) girisGoster();
     throw new Yetkisiz();
@@ -78,6 +97,7 @@ async function kullanicilariYukle() {
 }
 
 function girisGoster() {
+  oturumuBitir();
   kullanici = null;
   clearInterval(yoklamaZamani);
   yoklamaZamani = null;
@@ -98,11 +118,14 @@ async function girisYap(ad) {
 }
 
 async function cikis() {
+  oturumuBitir(); // an answer still on its way must not arrive while logging out
   try { await api("/api/cikis", {}); } catch (_) { /* log out anyway */ }
   girisGoster();
 }
 
 async function kabukGoster(ben) {
+  oturumuBitir(); // requests of the previous user are cancelled
+  const sinyal = oturumKesici.signal;
   sohbetiSifirla(); // clear the history when the user changes
   kullanici = ben;
   $("giris").classList.add("gizli");
@@ -112,6 +135,7 @@ async function kabukGoster(ben) {
   $("sohbet-ac").classList.remove("gizli");
   belgeAdlari = {};
   await Promise.all([durumYenile(), raporYukle(), uyarilariYukle(), ornekleriYukle(), belgeAdlariniYukle()]);
+  if (sinyal.aborted) return; // logged out while loading
   clearInterval(yoklamaZamani);
   yoklamaZamani = setInterval(durumYenile, 10000);
 }
@@ -231,7 +255,11 @@ const KAYNAK = /\[([A-Za-z0-9_\-]+)#(m\d+)\]/g;
 let belgeAdlari = {};
 
 async function belgeAdlariniYukle() {
-  try { belgeAdlari = (await api("/belge/adlar")).adlar || {}; } catch (_) { belgeAdlari = {}; }
+  try {
+    belgeAdlari = (await api("/belge/adlar")).adlar || {};
+  } catch (e) {
+    if (!(e instanceof OturumBitti)) belgeAdlari = {};
+  }
 }
 
 // Text with citations: each citation becomes a link that opens the document's PDF at the article in a new tab.
@@ -279,6 +307,7 @@ function balonEkle(tur, metin) {
 async function gonder(metin) {
   metin = (metin || "").trim();
   if (!metin || meşgul) return;
+  const sinyal = oturumKesici.signal; // the session that asks: the answer is shown only while it lasts
   meşgul = true;
   girdiKilidi(true);
   $("soru").value = "";
@@ -290,12 +319,13 @@ async function gonder(metin) {
   const sayac = setInterval(() => {
     sure.textContent = `Sayman düşünüyor… ${Math.floor((Date.now() - bas) / 1000)} sn`;
   }, 1000);
-  // After the clock advances the model reads the whole prompt again (~1.5 min); say so instead of looking stuck
-  await durumYenile();
-  if (durum && !durum.model_hazir) {
-    bekle.append(el("div", "isinma-notu", "Model yeni tarihe hazırlanıyor; cevap 1–2 dakika gecikebilir."));
-  }
   try {
+    // After the clock advances the model reads the whole prompt again (~1.5 min); say so instead of looking stuck
+    await durumYenile();
+    if (sinyal.aborted) throw new OturumBitti(); // logged out before the question left
+    if (durum && !durum.model_hazir) {
+      bekle.append(el("div", "isinma-notu", "Model yeni tarihe hazırlanıyor; cevap 1–2 dakika gecikebilir."));
+    }
     const v = await api("/api/sor", { soru: metin });
     clearInterval(sayac);
     bekle.remove();
@@ -313,7 +343,7 @@ async function gonder(metin) {
       balonEkle("sayman", e.status ? e.message : "Sunucuya ulaşılamadı. Lütfen tekrar deneyin.");
     }
   } finally {
-    if (kullanici) {
+    if (!sinyal.aborted) { // after a user change the new session's chat state is its own
       meşgul = false;
       girdiKilidi(false);
       $("soru").focus();
