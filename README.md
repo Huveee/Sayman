@@ -1542,8 +1542,8 @@ Tarayıcıda `http://127.0.0.1:8010` açılır. Prova bittikten sonra saati ve u
 - **Model:** varsayılan Faz 8'in ince ayarlı modeli (`sayman-ayarli`); `--model qwen3.5:9b` ile temel model.
   Model açılışta ve her saat ilerleyişinde arka planda ısıtılır (sistem istemi bugünün tarihiyle başladığı için
   saat değişince ön bellek boşa düşer). Aynı anda tek soru cevaplanır; ikinci istek "meşgul" cevabı alır.
-- Demo, Faz 9 üçüncü koldaki iki düzeltmeyle çalışıyor. Kullanıcının kararı beklenirken düzeltmeler varsayılan
-  olarak kodda bırakıldı.
+- Demo, Faz 9 üçüncü koldaki iki düzeltmeyle çalışıyor. Bu düzeltmelerin kalıcı olup olmayacağına henüz karar
+  verilmedi.
 
 **Kabul testleri** (`tests/test_faz10_demo.py`, betikli modelle, 18 test):
 
@@ -1573,10 +1573,16 @@ Tarayıcıda `http://127.0.0.1:8010` açılır. Prova bittikten sonra saati ve u
 Rakamlar aynı günün raporundaki rakamlarla aynı. Tarayıcıda akış bir kez elle de denendi: CFO girişi, soru,
 "zamanı ileri sar", yeni uyarı ve yeni rapor.
 
+İleri sarıştan sonraki adım ayrıca denendi (CFO, saat 1 → 8 Eylül 2026): sarış 1 sn sürdü ve 1 yeni uyarı getirdi.
+Model yeni tarihle 98 sn ısındı. Ardından karşılıksız çek politikası sorusu alıntısıyla 76 sn'de, "Bankalarda
+toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 TL) 33 sn'de cevaplandı.
+
 **Sınırlar:**
 
 - Cevaplar bu bilgisayarda 30–80 saniye, model ısınırken ilk soru 2–3 dakika sürüyor. Sunumdan önce demoyu birkaç
   dakika erken başlatın; sohbet başlığındaki nokta yeşile ("Hazır") dönünce sorun.
+- "Zamanı ileri sar"dan sonra nokta yaklaşık 100 saniye yeniden sarıya döner (model yeni tarihle ısınır). Bu sürede
+  yeni uyarıyı ve yeni raporu gösterin, nokta yeşile dönünce soruya geçin.
 - Son satırdaki soru durduruldu: politika "son on iki ayın" diye yazıyor, model "12" yazınca doğrulayıcı sayıyı
   kaynakta bulamadı. Yanlış bir rakam gösterilmedi ama cevap da verilmedi. Bu yüzden bu soru örnek sorulardan
   çıkarıldı.
@@ -1623,7 +1629,7 @@ Rakamlar aynı günün raporundaki rakamlarla aynı. Tarayıcıda akış bir kez
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör, `olcum`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi, Faz 8 eşleştirme ve unutma testi, `egitim`: Faz 8 eğitim verisi, öğretmen, sızıntı denetimi ve GGUF özeti, `deney`: Faz 9 sahte API, otomatik araçlar, kapıları ve kâhini) |
+| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör, `olcum`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi, Faz 8 eşleştirme ve unutma testi, `egitim`: Faz 8 eğitim verisi, öğretmen, sızıntı denetimi ve GGUF özeti, `deney`: Faz 9 sahte API, otomatik araçlar, kapıları ve kâhini, `demo`: Faz 10 demo arka ucu ve ERP sayfası) |
 | `tests` | Yazılım testleri ve kabul testleri |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
 | `kaggle` | Faz 8'de Kaggle'da çalışan eğitim, birleştirme ve uyum betikleri |
@@ -1631,6 +1637,7 @@ Rakamlar aynı günün raporundaki rakamlarla aynı. Tarayıcıda akış bir kez
 | `data/kaynak` | Kaynaklardan indirilen küçük dosyalar (kurlar, kalibrasyon bantları) |
 | `data/denetim` | Araç çağrılarının denetim kaydı (git'e girmez) |
 | `data/izleme` | Zamanlayıcının uyarı deposu (git'e girmez) |
+| `data/demo` | Faz 10 demosunun saati, uyarı deposu ve denetim kayıtları; `faz10_demo.py sifirla` siler (git'e girmez) |
 | `data/izleme_veri` | Faz 4 ölçümü için ek veri setleri (git'e girmez) |
 | `data/olcum` | Kâhin ve kontrol koşularının dosyaları, ölçümlerin denetim kayıtları (git'e girmez) |
 | `data/ham` | İndirilen kanun PDF'leri (`mevzuat`) ve Belebele Türkçe soruları (`belebele`) (git'e girmez) |
