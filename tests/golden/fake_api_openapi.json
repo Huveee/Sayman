@@ -1,0 +1,1558 @@
+{
+ "components": {
+  "schemas": {
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "title": "Detail",
+      "type": "array"
+     }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+   },
+   "ValidationError": {
+    "properties": {
+     "ctx": {
+      "title": "Context",
+      "type": "object"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "title": "Location",
+      "type": "array"
+     },
+     "msg": {
+      "title": "Message",
+      "type": "string"
+     },
+     "type": {
+      "title": "Error Type",
+      "type": "string"
+     }
+    },
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError",
+    "type": "object"
+   }
+  },
+  "securitySchemes": {
+   "APIKeyHeader": {
+    "description": "API kapısının doğrulanmış kimlikten koyduğu rol",
+    "in": "header",
+    "name": "X-Rol",
+    "type": "apiKey"
+   }
+  }
+ },
+ "info": {
+  "description": "Müşteri, fatura, tahsilat, çek, tedarikçi, POS ve banka kayıtları (salt okunur).",
+  "title": "Sahte ERP ve Banka API'si",
+  "version": "1.0.0"
+ },
+ "openapi": "3.1.0",
+ "paths": {
+  "/api/v1/alis-faturalari": {
+   "get": {
+    "operationId": "alis_faturalari_api_v1_alis_faturalari_get",
+    "parameters": [
+     {
+      "description": "Tedarikçi kimliği",
+      "in": "query",
+      "name": "tedarikci_id",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Tedarikçi kimliği",
+       "title": "Tedarikci Id"
+      }
+     },
+     {
+      "description": "Ödenme durumu",
+      "in": "query",
+      "name": "durum",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "acik",
+          "kapali"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Ödenme durumu",
+       "title": "Durum"
+      }
+     },
+     {
+      "description": "Vade tarihi en erken",
+      "in": "query",
+      "name": "vade_baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Vade tarihi en erken",
+       "title": "Vade Baslangic"
+      }
+     },
+     {
+      "description": "Vade tarihi en geç",
+      "in": "query",
+      "name": "vade_bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Vade tarihi en geç",
+       "title": "Vade Bitis"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Tedarikçi (alış) faturalarını listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/banka/hesaplar": {
+   "get": {
+    "operationId": "hesaplar_api_v1_banka_hesaplar_get",
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Banka hesaplarını listeler",
+    "tags": [
+     "Banka"
+    ]
+   }
+  },
+  "/api/v1/banka/hesaplar/{hesap_id}/bakiye": {
+   "get": {
+    "operationId": "bakiye_api_v1_banka_hesaplar__hesap_id__bakiye_get",
+    "parameters": [
+     {
+      "description": "Hesap kimliği (ör. A_TRY)",
+      "in": "path",
+      "name": "hesap_id",
+      "required": true,
+      "schema": {
+       "description": "Hesap kimliği (ör. A_TRY)",
+       "title": "Hesap Id",
+       "type": "string"
+      }
+     },
+     {
+      "description": "Gün sonu (verilmezse bugün)",
+      "in": "query",
+      "name": "tarih",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Gün sonu (verilmezse bugün)",
+       "title": "Tarih"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Hesap bakiyesi",
+    "tags": [
+     "Banka"
+    ]
+   }
+  },
+  "/api/v1/banka/hesaplar/{hesap_id}/hareketler": {
+   "get": {
+    "operationId": "hareketler_api_v1_banka_hesaplar__hesap_id__hareketler_get",
+    "parameters": [
+     {
+      "description": "Hesap kimliği",
+      "in": "path",
+      "name": "hesap_id",
+      "required": true,
+      "schema": {
+       "description": "Hesap kimliği",
+       "title": "Hesap Id",
+       "type": "string"
+      }
+     },
+     {
+      "description": "İşlem tarihi en erken",
+      "in": "query",
+      "name": "baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "İşlem tarihi en erken",
+       "title": "Baslangic"
+      }
+     },
+     {
+      "description": "İşlem tarihi en geç",
+      "in": "query",
+      "name": "bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "İşlem tarihi en geç",
+       "title": "Bitis"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Hesap hareketlerini listeler",
+    "tags": [
+     "Banka"
+    ]
+   }
+  },
+  "/api/v1/cekler": {
+   "get": {
+    "operationId": "cekler_api_v1_cekler_get",
+    "parameters": [
+     {
+      "description": "Müşteri kimliği",
+      "in": "query",
+      "name": "musteri_id",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Müşteri kimliği",
+       "title": "Musteri Id"
+      }
+     },
+     {
+      "description": "Müşteri adında geçen metin",
+      "in": "query",
+      "name": "musteri_adi",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Müşteri adında geçen metin",
+       "title": "Musteri Adi"
+      }
+     },
+     {
+      "description": "Çekin bugünkü durumu",
+      "in": "query",
+      "name": "durum",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "portfoyde",
+          "tahsilde",
+          "tahsil_edildi",
+          "karsiliksiz"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Çekin bugünkü durumu",
+       "title": "Durum"
+      }
+     },
+     {
+      "description": "Vade tarihi en erken",
+      "in": "query",
+      "name": "vade_baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Vade tarihi en erken",
+       "title": "Vade Baslangic"
+      }
+     },
+     {
+      "description": "Vade tarihi en geç",
+      "in": "query",
+      "name": "vade_bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Vade tarihi en geç",
+       "title": "Vade Bitis"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Müşterilerden alınan çekleri listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/faturalar": {
+   "get": {
+    "operationId": "faturalar_api_v1_faturalar_get",
+    "parameters": [
+     {
+      "description": "Müşteri kimliği",
+      "in": "query",
+      "name": "musteri_id",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Müşteri kimliği",
+       "title": "Musteri Id"
+      }
+     },
+     {
+      "description": "Müşteri adında geçen metin",
+      "in": "query",
+      "name": "musteri_adi",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Müşteri adında geçen metin",
+       "title": "Musteri Adi"
+      }
+     },
+     {
+      "description": "Fatura numarası ya da kaynak sistemdeki numarası",
+      "in": "query",
+      "name": "fatura_no",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Fatura numarası ya da kaynak sistemdeki numarası",
+       "title": "Fatura No"
+      }
+     },
+     {
+      "description": "Fatura türü",
+      "in": "query",
+      "name": "tur",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "satis",
+          "iade"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Fatura türü",
+       "title": "Tur"
+      }
+     },
+     {
+      "description": "Satış faturasının durumu",
+      "in": "query",
+      "name": "durum",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "acik",
+          "kapali"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Satış faturasının durumu",
+       "title": "Durum"
+      }
+     },
+     {
+      "description": "Fatura tarihi en erken (YYYY-MM-DD)",
+      "in": "query",
+      "name": "baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Fatura tarihi en erken (YYYY-MM-DD)",
+       "title": "Baslangic"
+      }
+     },
+     {
+      "description": "Fatura tarihi en geç (YYYY-MM-DD)",
+      "in": "query",
+      "name": "bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Fatura tarihi en geç (YYYY-MM-DD)",
+       "title": "Bitis"
+      }
+     },
+     {
+      "description": "Vade tarihi en erken",
+      "in": "query",
+      "name": "vade_baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Vade tarihi en erken",
+       "title": "Vade Baslangic"
+      }
+     },
+     {
+      "description": "Vade tarihi en geç",
+      "in": "query",
+      "name": "vade_bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Vade tarihi en geç",
+       "title": "Vade Bitis"
+      }
+     },
+     {
+      "description": "Sıralama",
+      "in": "query",
+      "name": "siralama",
+      "required": false,
+      "schema": {
+       "default": "tarih_azalan",
+       "description": "Sıralama",
+       "enum": [
+        "tarih_azalan",
+        "tarih_artan",
+        "vade_artan"
+       ],
+       "title": "Siralama",
+       "type": "string"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Satış ve iade faturalarını listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/faturalar/{fatura_id}": {
+   "get": {
+    "operationId": "fatura_api_v1_faturalar__fatura_id__get",
+    "parameters": [
+     {
+      "description": "Fatura numarası (ör. F000001)",
+      "in": "path",
+      "name": "fatura_id",
+      "required": true,
+      "schema": {
+       "description": "Fatura numarası (ör. F000001)",
+       "title": "Fatura Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Tek bir faturayı getirir",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/kurlar": {
+   "get": {
+    "operationId": "kurlar_api_v1_kurlar_get",
+    "parameters": [
+     {
+      "description": "Para birimi",
+      "in": "query",
+      "name": "para_birimi",
+      "required": true,
+      "schema": {
+       "description": "Para birimi",
+       "enum": [
+        "USD",
+        "EUR",
+        "GBP"
+       ],
+       "title": "Para Birimi",
+       "type": "string"
+      }
+     },
+     {
+      "description": "Gün (verilmezse bugün); o gün yoksa önceki iş günü",
+      "in": "query",
+      "name": "tarih",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Gün (verilmezse bugün); o gün yoksa önceki iş günü",
+       "title": "Tarih"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "TCMB döviz alış kuru",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/musteriler": {
+   "get": {
+    "operationId": "musteriler_api_v1_musteriler_get",
+    "parameters": [
+     {
+      "description": "Müşteri adında geçen metin",
+      "in": "query",
+      "name": "ad",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Müşteri adında geçen metin",
+       "title": "Ad"
+      }
+     },
+     {
+      "description": "Ülke adı (ör. Türkiye, Almanya)",
+      "in": "query",
+      "name": "ulke",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Ülke adı (ör. Türkiye, Almanya)",
+       "title": "Ulke"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Müşterileri listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/musteriler/{musteri_id}": {
+   "get": {
+    "operationId": "musteri_api_v1_musteriler__musteri_id__get",
+    "parameters": [
+     {
+      "description": "Müşteri kimliği (ör. M00001)",
+      "in": "path",
+      "name": "musteri_id",
+      "required": true,
+      "schema": {
+       "description": "Müşteri kimliği (ör. M00001)",
+       "title": "Musteri Id",
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Müşteri kartı ve cari bakiyesi",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/odemeler": {
+   "get": {
+    "operationId": "odemeler_api_v1_odemeler_get",
+    "parameters": [
+     {
+      "description": "Tedarikçi kimliği",
+      "in": "query",
+      "name": "tedarikci_id",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Tedarikçi kimliği",
+       "title": "Tedarikci Id"
+      }
+     },
+     {
+      "description": "Ödeme tarihi en erken",
+      "in": "query",
+      "name": "baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Ödeme tarihi en erken",
+       "title": "Baslangic"
+      }
+     },
+     {
+      "description": "Ödeme tarihi en geç",
+      "in": "query",
+      "name": "bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Ödeme tarihi en geç",
+       "title": "Bitis"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Yapılan ödemeleri listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/pos-islemleri": {
+   "get": {
+    "operationId": "pos_islemleri_api_v1_pos_islemleri_get",
+    "parameters": [
+     {
+      "description": "İşlem tarihi en erken",
+      "in": "query",
+      "name": "baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "İşlem tarihi en erken",
+       "title": "Baslangic"
+      }
+     },
+     {
+      "description": "İşlem tarihi en geç",
+      "in": "query",
+      "name": "bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "İşlem tarihi en geç",
+       "title": "Bitis"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "POS (kartlı satış) işlemlerini listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/tahsilatlar": {
+   "get": {
+    "operationId": "tahsilatlar_api_v1_tahsilatlar_get",
+    "parameters": [
+     {
+      "description": "Müşteri kimliği",
+      "in": "query",
+      "name": "musteri_id",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Müşteri kimliği",
+       "title": "Musteri Id"
+      }
+     },
+     {
+      "description": "Müşteri adında geçen metin",
+      "in": "query",
+      "name": "musteri_adi",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Müşteri adında geçen metin",
+       "title": "Musteri Adi"
+      }
+     },
+     {
+      "description": "Tahsilat tarihi en erken",
+      "in": "query",
+      "name": "baslangic",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Tahsilat tarihi en erken",
+       "title": "Baslangic"
+      }
+     },
+     {
+      "description": "Tahsilat tarihi en geç",
+      "in": "query",
+      "name": "bitis",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "format": "date",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Tahsilat tarihi en geç",
+       "title": "Bitis"
+      }
+     },
+     {
+      "description": "Ödeme yöntemi",
+      "in": "query",
+      "name": "yontem",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "enum": [
+          "havale",
+          "swift",
+          "cek"
+         ],
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Ödeme yöntemi",
+       "title": "Yontem"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Müşterilerden yapılan tahsilatları listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  },
+  "/api/v1/tedarikciler": {
+   "get": {
+    "operationId": "tedarikciler_api_v1_tedarikciler_get",
+    "parameters": [
+     {
+      "description": "Tedarikçi adında geçen metin",
+      "in": "query",
+      "name": "ad",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Tedarikçi adında geçen metin",
+       "title": "Ad"
+      }
+     },
+     {
+      "description": "Sayfa numarası (1'den başlar)",
+      "in": "query",
+      "name": "sayfa",
+      "required": false,
+      "schema": {
+       "default": 1,
+       "description": "Sayfa numarası (1'den başlar)",
+       "minimum": 1,
+       "title": "Sayfa",
+       "type": "integer"
+      }
+     },
+     {
+      "description": "Sayfadaki kayıt sayısı",
+      "in": "query",
+      "name": "sayfa_boyutu",
+      "required": false,
+      "schema": {
+       "default": 25,
+       "description": "Sayfadaki kayıt sayısı",
+       "maximum": 100,
+       "minimum": 1,
+       "title": "Sayfa Boyutu",
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      },
+      "description": "Successful Response"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      },
+      "description": "Validation Error"
+     }
+    },
+    "security": [
+     {
+      "APIKeyHeader": []
+     }
+    ],
+    "summary": "Tedarikçileri listeler",
+    "tags": [
+     "ERP"
+    ]
+   }
+  }
+ }
+}

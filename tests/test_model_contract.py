@@ -107,3 +107,18 @@ def test_model_facing_contract_is_frozen(tmp_path):
         GOLDEN.write_text(json.dumps(current, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     expected = json.loads(GOLDEN.read_text(encoding="utf-8"))
     assert current == expected, "Model-facing contract changed; see tests/test_model_contract.py docstring"
+
+
+FAKE_API_GOLDEN = GOLDEN.with_name("fake_api_openapi.json")
+
+
+def test_generated_tools_source_api_is_frozen():
+    """Phase 9 tools are generated from the fake API's OpenAPI document: their names come from the route handler
+    names (operationId), their descriptions and arguments from the routes. Renaming a handler renames a tool."""
+    from sayman.experiment.fake_api import Ortam, uygulama
+
+    current = json.loads(json.dumps(uygulama(Ortam({}, {}, lambda: D)).openapi(), ensure_ascii=False))
+    if os.environ.get("SAYMAN_UPDATE_GOLDEN") == "1":
+        FAKE_API_GOLDEN.write_text(json.dumps(current, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+                                   encoding="utf-8")
+    assert current == json.loads(FAKE_API_GOLDEN.read_text(encoding="utf-8")), "Phase 9 tool contract changed"
