@@ -13,7 +13,9 @@ aynı girdi, birebir aynı çıktıyı verir. Tarihler yalnızca ölçüm dosyal
 Yol söz dizimi: "a.b.c" sözlük anahtarlarını izler; "liste[0]" dizinle, "liste[ad=x]" alan eşleşmesiyle, "sozluk[a.b]"
 noktalı anahtarla, sondaki "#" uzunlukla okur.
 
-Çıktı: reports/faz11_rapor.md ve reports/faz11_rapor.json
+Çıktı: reports/faz11_rapor_guncel.md ve reports/faz11_rapor_guncel.json. Faz 11'in kendi çıktısı
+(reports/faz11_rapor.md ve .json, commit 51c634c) korunur, üzerine yazılmaz; güncel dosya ondan sonra eklenen ölçümleri
+de (doğrulayıcı kör nokta ölçümü) içerir.
 
     .venv\\Scripts\\python -I scripts\\faz11_rapor.py
     .venv\\Scripts\\python -I scripts\\faz11_rapor.py --rapor-klasoru BASKA_KLASOR --cikti BASKA\\rapor.md
@@ -506,7 +508,7 @@ def markdown(bolumler: list[dict], sonuclar: list[dict]) -> str:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Faz 11: ölçüm raporunu yeniden üretir.")
     ap.add_argument("--rapor-klasoru", type=Path, default=KOK / "reports", help="ölçüm dosyalarının klasörü")
-    ap.add_argument("--cikti", type=Path, default=KOK / "reports" / "faz11_rapor.md", help="Markdown çıktısı (JSON yanına .json olarak yazılır)")
+    ap.add_argument("--cikti", type=Path, default=KOK / "reports" / "faz11_rapor_guncel.md", help="Markdown çıktısı (JSON yanına .json olarak yazılır)")
     a = ap.parse_args(argv)
     sys.stderr.reconfigure(encoding="utf-8")
     sys.stdout.reconfigure(encoding="utf-8")

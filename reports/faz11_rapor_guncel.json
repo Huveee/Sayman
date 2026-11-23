@@ -1,0 +1,2790 @@
+{
+  "bolumler": [
+    {
+      "baslik": "Faz 0 · Model hız ölçümü",
+      "tablolar": [
+        {
+          "id": "faz0_hiz",
+          "baslik": "İki aday modelin hızı (bu bilgisayar, ekran kartsız)",
+          "not": "Kural: ön bellek ısındıktan sonra her araç çağırma turu eşik süreyi aşmayacak, geçerli çağrı sayısı yeterli olacak.",
+          "kolonlar": [
+            "Ölçüt",
+            "Aday 1",
+            "Aday 2"
+          ],
+          "kaynaklar": [
+            "faz0_hiz.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Model",
+              "degerler": [
+                "qwen3.5:4b",
+                "qwen3.5:9b"
+              ],
+              "gosterim": [
+                "qwen3.5:4b",
+                "qwen3.5:9b"
+              ]
+            },
+            {
+              "ad": "Boyut (GB)",
+              "degerler": [
+                3.32,
+                6.55
+              ],
+              "gosterim": [
+                "3,32",
+                "6,55"
+              ]
+            },
+            {
+              "ad": "Bellekteki boyut (GB)",
+              "degerler": [
+                2.99,
+                5.79
+              ],
+              "gosterim": [
+                "2,99",
+                "5,79"
+              ]
+            },
+            {
+              "ad": "Soğuk tur (sn)",
+              "degerler": [
+                39.453,
+                86.283
+              ],
+              "gosterim": [
+                "39,5",
+                "86,3"
+              ]
+            },
+            {
+              "ad": "İstem işleme (token/sn)",
+              "degerler": [
+                61.01,
+                27.24
+              ],
+              "gosterim": [
+                "61,01",
+                "27,24"
+              ]
+            },
+            {
+              "ad": "Üretim (token/sn)",
+              "degerler": [
+                8.48,
+                5.11
+              ],
+              "gosterim": [
+                "8,48",
+                "5,11"
+              ]
+            },
+            {
+              "ad": "Ortanca tur (sn)",
+              "degerler": [
+                6.125,
+                10.236
+              ],
+              "gosterim": [
+                "6,1",
+                "10,2"
+              ]
+            },
+            {
+              "ad": "Geçerli araç çağrısı",
+              "degerler": [
+                5,
+                5
+              ],
+              "gosterim": [
+                "5",
+                "5"
+              ]
+            },
+            {
+              "ad": "Kural sağlandı",
+              "degerler": [
+                true,
+                true
+              ],
+              "gosterim": [
+                "evet",
+                "evet"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz0_secim",
+          "baslik": "Seçim",
+          "not": "",
+          "kolonlar": [
+            "Ölçüt",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz0_hiz.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Seçilen model",
+              "degerler": [
+                "qwen3.5:9b"
+              ],
+              "gosterim": [
+                "qwen3.5:9b"
+              ]
+            },
+            {
+              "ad": "Tur süresi eşiği (sn)",
+              "degerler": [
+                30.0
+              ],
+              "gosterim": [
+                "30"
+              ]
+            },
+            {
+              "ad": "Gereken geçerli çağrı",
+              "degerler": [
+                5
+              ],
+              "gosterim": [
+                "5"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 2 · Veri ambarı ve metrikler",
+      "tablolar": [
+        {
+          "id": "faz2_metrikler",
+          "baslik": "Ambarın hesapladığı metrikler",
+          "not": "Bu değerler ambarın çıktısıdır; her metriğin bağımsız pandas hesaplamasıyla karşılaştırması testlerdedir.",
+          "kolonlar": [
+            "Metrik",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz2_metrikler.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Gün",
+              "degerler": [
+                "2026-09-01"
+              ],
+              "gosterim": [
+                "2026-09-01"
+              ]
+            },
+            {
+              "ad": "Nakit pozisyonu (TL)",
+              "degerler": [
+                7582675465
+              ],
+              "gosterim": [
+                "75.826.754,65"
+              ]
+            },
+            {
+              "ad": "Alacak yaşlandırma toplamı (TL)",
+              "degerler": [
+                7558024568
+              ],
+              "gosterim": [
+                "75.580.245,68"
+              ]
+            },
+            {
+              "ad": "Yaşlandırmadaki müşteri sayısı",
+              "degerler": [
+                1290
+              ],
+              "gosterim": [
+                "1.290"
+              ]
+            },
+            {
+              "ad": "DSO (gün)",
+              "degerler": [
+                "50.20"
+              ],
+              "gosterim": [
+                "50,20"
+              ]
+            },
+            {
+              "ad": "DSO, 2025 yıl sonu (gün)",
+              "degerler": [
+                "52.44"
+              ],
+              "gosterim": [
+                "52,44"
+              ]
+            },
+            {
+              "ad": "Geciken fatura sayısı",
+              "degerler": [
+                1194
+              ],
+              "gosterim": [
+                "1.194"
+              ]
+            },
+            {
+              "ad": "Geciken alacak (TL)",
+              "degerler": [
+                3780086295
+              ],
+              "gosterim": [
+                "37.800.862,95"
+              ]
+            },
+            {
+              "ad": "Yaklaşan ödemelerin faturası",
+              "degerler": [
+                22
+              ],
+              "gosterim": [
+                "22"
+              ]
+            },
+            {
+              "ad": "Yaklaşan ödemeler (TL)",
+              "degerler": [
+                4351010056
+              ],
+              "gosterim": [
+                "43.510.100,56"
+              ]
+            },
+            {
+              "ad": "Kur riski (TL)",
+              "degerler": [
+                2656419074
+              ],
+              "gosterim": [
+                "26.564.190,74"
+              ]
+            },
+            {
+              "ad": "Nakit akış tahmini, hafta sayısı",
+              "degerler": [
+                13
+              ],
+              "gosterim": [
+                "13"
+              ]
+            },
+            {
+              "ad": "Nakit akış tahmini, açılış (TL)",
+              "degerler": [
+                7582675465
+              ],
+              "gosterim": [
+                "75.826.754,65"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 3 · Araçlar ve yetki",
+      "tablolar": [
+        {
+          "id": "faz3_yetki",
+          "baslik": "Yetkisiz denemeler ve denetim kaydı",
+          "not": "",
+          "kolonlar": [
+            "Ölçüt",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz3_araclar.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Araç sayısı",
+              "degerler": [
+                13
+              ],
+              "gosterim": [
+                "13"
+              ]
+            },
+            {
+              "ad": "Yetkisiz deneme",
+              "degerler": [
+                60
+              ],
+              "gosterim": [
+                "60"
+              ]
+            },
+            {
+              "ad": "Beklenen sonucu veren deneme",
+              "degerler": [
+                60
+              ],
+              "gosterim": [
+                "60"
+              ]
+            },
+            {
+              "ad": "Sızıntı",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Denetim kaydı satırı",
+              "degerler": [
+                114
+              ],
+              "gosterim": [
+                "114"
+              ]
+            },
+            {
+              "ad": "Zincir hatası",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Araç listesi (token)",
+              "degerler": [
+                2187
+              ],
+              "gosterim": [
+                "2.187"
+              ]
+            },
+            {
+              "ad": "En büyük cevap (token)",
+              "degerler": [
+                1783
+              ],
+              "gosterim": [
+                "1.783"
+              ]
+            },
+            {
+              "ad": "Kapıda en yavaş çağrı (ms)",
+              "degerler": [
+                154.1
+              ],
+              "gosterim": [
+                "154,1"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 4 · İzleme ve uyarılar",
+      "tablolar": [
+        {
+          "id": "faz4_izleme",
+          "baslik": "Gömülü olayları yakalama ve olaysız veride yanlış alarm",
+          "not": "Olayları ve kuralları aynı kişi yazdı; yüksek yakalama oranı gerçek dünyadaki başarıyı göstermez.",
+          "kolonlar": [
+            "Tohum",
+            "Ayrılmış mı",
+            "Olay",
+            "Yakalanan",
+            "Geri çağırma",
+            "Aylık yanlış alarm"
+          ],
+          "kaynaklar": [
+            "faz4_izleme.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Tohum 42",
+              "degerler": [
+                false,
+                12,
+                12,
+                1.0,
+                1.458
+              ],
+              "gosterim": [
+                "hayır",
+                "12",
+                "12",
+                "1,000",
+                "1,458"
+              ]
+            },
+            {
+              "ad": "Tohum 43",
+              "degerler": [
+                true,
+                12,
+                12,
+                1.0,
+                1.843
+              ],
+              "gosterim": [
+                "evet",
+                "12",
+                "12",
+                "1,000",
+                "1,843"
+              ]
+            },
+            {
+              "ad": "Tohum 44",
+              "degerler": [
+                true,
+                12,
+                12,
+                1.0,
+                1.286
+              ],
+              "gosterim": [
+                "evet",
+                "12",
+                "12",
+                "1,000",
+                "1,286"
+              ]
+            },
+            {
+              "ad": "Kabul eşiği",
+              "degerler": [
+                null,
+                null,
+                null,
+                0.9,
+                2.0
+              ],
+              "gosterim": [
+                "",
+                "",
+                "",
+                "0,9",
+                "2"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 5 · Belge arama",
+      "tablolar": [
+        {
+          "id": "faz5_arama",
+          "baslik": "Arama yöntemleri (ilk 5 sonuçta doğru madde)",
+          "not": "",
+          "kolonlar": [
+            "Yöntem",
+            "Ayar seti, ilk 5",
+            "Ayrılmış set, ilk 5",
+            "Ayrılmış, ilk sırada",
+            "Ayrılmış soru",
+            "Ayrılmış, kaçan"
+          ],
+          "kaynaklar": [
+            "faz5_arama.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Kelime araması (BM25)",
+              "degerler": [
+                0.6852,
+                0.7688,
+                0.5,
+                160,
+                37
+              ],
+              "gosterim": [
+                "0,685",
+                "0,769",
+                "0,500",
+                "160",
+                "37"
+              ]
+            },
+            {
+              "ad": "Anlam araması (bge-m3)",
+              "degerler": [
+                0.9568,
+                1.0,
+                0.9187,
+                160,
+                0
+              ],
+              "gosterim": [
+                "0,957",
+                "1,000",
+                "0,919",
+                "160",
+                "0"
+              ]
+            },
+            {
+              "ad": "Kelime + anlam",
+              "degerler": [
+                0.9321,
+                0.9563,
+                0.7,
+                160,
+                7
+              ],
+              "gosterim": [
+                "0,932",
+                "0,956",
+                "0,700",
+                "160",
+                "7"
+              ]
+            },
+            {
+              "ad": "Kelime + anlam + sıralayıcı (kabul yöntemi)",
+              "degerler": [
+                0.963,
+                0.9812,
+                0.95,
+                160,
+                3
+              ],
+              "gosterim": [
+                "0,963",
+                "0,981",
+                "0,950",
+                "160",
+                "3"
+              ]
+            },
+            {
+              "ad": "Kabul ölçütü sağlandı",
+              "degerler": [
+                null,
+                true,
+                null,
+                null,
+                null
+              ],
+              "gosterim": [
+                "",
+                "evet",
+                "",
+                "",
+                ""
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz5_kaynak",
+          "baslik": "Bellek ve süre (sohbet modeli, anlam modeli ve sıralayıcı birlikte)",
+          "not": "",
+          "kolonlar": [
+            "Ölçüt",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz5_kaynak.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Toplam bellek (GB)",
+              "degerler": [
+                15.7
+              ],
+              "gosterim": [
+                "15,7"
+              ]
+            },
+            {
+              "ad": "Üçü yüklüyken boş bellek (GB)",
+              "degerler": [
+                0.86
+              ],
+              "gosterim": [
+                "0,86"
+              ]
+            },
+            {
+              "ad": "Sıralayıcı süreci, arama sonrası (GB)",
+              "degerler": [
+                2.92
+              ],
+              "gosterim": [
+                "2,92"
+              ]
+            },
+            {
+              "ad": "Sıralayıcılı arama, soru başına medyan (sn)",
+              "degerler": [
+                9.55
+              ],
+              "gosterim": [
+                "9,6"
+              ]
+            },
+            {
+              "ad": "Sıralayıcılı arama, en çok (sn)",
+              "degerler": [
+                23.06
+              ],
+              "gosterim": [
+                "23,1"
+              ]
+            },
+            {
+              "ad": "Sohbet modeli bellekten atıldı mı",
+              "degerler": [
+                false
+              ],
+              "gosterim": [
+                "hayır"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 6 · Doğrulayıcı ve orkestratör (duman testi)",
+      "tablolar": [
+        {
+          "id": "faz6_durumlar",
+          "baslik": "Duman testinin bitiş durumları",
+          "not": "Bu bir kalite ölçümü değildir; sorular azdır ve düzeltmeler aynı sorularla yapıldı.",
+          "kolonlar": [
+            "Çalıştırma",
+            "tamam",
+            "ret",
+            "uretemedim",
+            "sure_siniri",
+            "baglam_siniri"
+          ],
+          "kaynaklar": [
+            "faz6_duman_ilk.json",
+            "faz6_duman.json",
+            "faz6_duman_secili.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "İlk çalıştırma",
+              "degerler": [
+                6,
+                1,
+                1,
+                5,
+                0
+              ],
+              "gosterim": [
+                "6",
+                "1",
+                "1",
+                "5",
+                "0"
+              ]
+            },
+            {
+              "ad": "İkinci çalıştırma (doğrulayıcı düzeltmelerinden sonra)",
+              "degerler": [
+                9,
+                1,
+                1,
+                1,
+                1
+              ],
+              "gosterim": [
+                "9",
+                "1",
+                "1",
+                "1",
+                "1"
+              ]
+            },
+            {
+              "ad": "Seçili sorular, yeniden",
+              "degerler": [
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              "gosterim": [
+                "2",
+                "0",
+                "0",
+                "0",
+                "0"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz6_olcum",
+          "baslik": "İkinci çalıştırmanın ölçümleri",
+          "not": "",
+          "kolonlar": [
+            "Ölçüt",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz6_duman.json",
+            "faz6_duman_secili.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Soru",
+              "degerler": [
+                13
+              ],
+              "gosterim": [
+                "13"
+              ]
+            },
+            {
+              "ad": "İlk taslağı reddedilen soru",
+              "degerler": [
+                3
+              ],
+              "gosterim": [
+                "3"
+              ]
+            },
+            {
+              "ad": "İlk taslaklarda denetlenen sayı",
+              "degerler": [
+                115
+              ],
+              "gosterim": [
+                "115"
+              ]
+            },
+            {
+              "ad": "İlk taslaklarda kaynaksız sayı",
+              "degerler": [
+                4
+              ],
+              "gosterim": [
+                "4"
+              ]
+            },
+            {
+              "ad": "Süre medyanı (sn)",
+              "degerler": [
+                97.1
+              ],
+              "gosterim": [
+                "97,1"
+              ]
+            },
+            {
+              "ad": "Araç listesi (token)",
+              "degerler": [
+                2338
+              ],
+              "gosterim": [
+                "2.338"
+              ]
+            },
+            {
+              "ad": "En uzun belge sonucu, seçili çalıştırma (token)",
+              "degerler": [
+                2580
+              ],
+              "gosterim": [
+                "2.580"
+              ]
+            },
+            {
+              "ad": "En büyük istem, seçili çalıştırma (token)",
+              "degerler": [
+                4954
+              ],
+              "gosterim": [
+                "4.954"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 7 · Değerlendirme düzeneği ve ilk ölçüm",
+      "tablolar": [
+        {
+          "id": "faz7_hedefler",
+          "baslik": "Ön yazılı hedefler",
+          "not": "Hedefler ölçümden önce yazıldı; eşik, değer ve sonuç raporların kendi 'hedefler' listesindendir.",
+          "kolonlar": [
+            "Hedef",
+            "Eşik",
+            "Geliştirme",
+            "Saklanan",
+            "Saklanan sonuç"
+          ],
+          "kaynaklar": [
+            "faz7_olcum_saklanan.json",
+            "faz7_olcum_gelistirme.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Yetkisiz sızıntı (zorunlu)",
+              "degerler": [
+                0,
+                0,
+                0,
+                true
+              ],
+              "gosterim": [
+                "0",
+                "0",
+                "0",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Kapsam dışı kayıt (zorunlu)",
+              "degerler": [
+                0,
+                0,
+                0,
+                true
+              ],
+              "gosterim": [
+                "0",
+                "0",
+                "0",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Araç seçimi",
+              "degerler": [
+                0.85,
+                0.9167,
+                0.8733,
+                true
+              ],
+              "gosterim": [
+                "0,85",
+                "0,917",
+                "0,873",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Rakam doğruluğu",
+              "degerler": [
+                0.75,
+                0.875,
+                0.82,
+                true
+              ],
+              "gosterim": [
+                "0,75",
+                "0,875",
+                "0,820",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Doğrulanmış yanlış sayı",
+              "degerler": [
+                0.03,
+                0.0417,
+                0.1133,
+                false
+              ],
+              "gosterim": [
+                "0,03",
+                "0,042",
+                "0,113",
+                "Kaldı"
+              ]
+            },
+            {
+              "ad": "Belge isabeti",
+              "degerler": [
+                0.85,
+                0.7,
+                0.575,
+                false
+              ],
+              "gosterim": [
+                "0,85",
+                "0,700",
+                "0,575",
+                "Kaldı"
+              ]
+            },
+            {
+              "ad": "Belge cevabı",
+              "degerler": [
+                0.7,
+                0.5,
+                0.325,
+                false
+              ],
+              "gosterim": [
+                "0,7",
+                "0,500",
+                "0,325",
+                "Kaldı"
+              ]
+            },
+            {
+              "ad": "Belge alıntısı",
+              "degerler": [
+                0.8,
+                0.5,
+                0.4,
+                false
+              ],
+              "gosterim": [
+                "0,8",
+                "0,500",
+                "0,400",
+                "Kaldı"
+              ]
+            },
+            {
+              "ad": "Süre medyanı (sn)",
+              "degerler": [
+                120,
+                56.0,
+                64.3,
+                true
+              ],
+              "gosterim": [
+                "120",
+                "56,0",
+                "64,3",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Süre p90 (sn)",
+              "degerler": [
+                240,
+                123.0,
+                103.4,
+                true
+              ],
+              "gosterim": [
+                "240",
+                "123,0",
+                "103,4",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Soru sayısı",
+              "degerler": [
+                null,
+                68,
+                250,
+                null
+              ],
+              "gosterim": [
+                "",
+                "68",
+                "250",
+                ""
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz7_saklanan",
+          "baslik": "Saklanan set ayrıntısı",
+          "not": "",
+          "kolonlar": [
+            "Ölçü",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz7_olcum_saklanan.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Soru",
+              "degerler": [
+                250
+              ],
+              "gosterim": [
+                "250"
+              ]
+            },
+            {
+              "ad": "Araç sorusu, cevap gösterilen",
+              "degerler": [
+                143
+              ],
+              "gosterim": [
+                "143"
+              ]
+            },
+            {
+              "ad": "Araç sorusu, doğru",
+              "degerler": [
+                123
+              ],
+              "gosterim": [
+                "123"
+              ]
+            },
+            {
+              "ad": "Yetkisiz deneme, kapıya ulaşan",
+              "degerler": [
+                [
+                  49,
+                  60
+                ]
+              ],
+              "gosterim": [
+                "49/60"
+              ]
+            },
+            {
+              "ad": "Belge sorusu, belge_ara çağrılan",
+              "degerler": [
+                0.7
+              ],
+              "gosterim": [
+                "0,700"
+              ]
+            },
+            {
+              "ad": "Doğrulanabilir cevap üretilemedi",
+              "degerler": [
+                27
+              ],
+              "gosterim": [
+                "27"
+              ]
+            },
+            {
+              "ad": "Tekrar ölçümü: aynı durum",
+              "degerler": [
+                [
+                  10,
+                  10
+                ]
+              ],
+              "gosterim": [
+                "10/10"
+              ]
+            },
+            {
+              "ad": "Tekrar ölçümü: birebir aynı cevap",
+              "degerler": [
+                [
+                  4,
+                  10
+                ]
+              ],
+              "gosterim": [
+                "4/10"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 8 · İnce ayar (QLoRA)",
+      "tablolar": [
+        {
+          "id": "faz8_saklanan",
+          "baslik": "Saklanan set: kütüphane modeli, kendi temel modelimiz, ince ayarlı model",
+          "not": "Belge ve araç davranışları Faz 7'de saklanan set okunduktan sonra bilerek öğretildi; bu yüzden iyileşme tam genelleşme sayılmaz.",
+          "kolonlar": [
+            "Hedef",
+            "Eşik",
+            "Kütüphane (Faz 7)",
+            "Kendi temel",
+            "İnce ayarlı"
+          ],
+          "kaynaklar": [
+            "faz7_olcum_saklanan.json",
+            "faz8_temel_kendi_olcum_saklanan.json",
+            "faz8_ayarli_olcum_saklanan.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Yetkisiz sızıntı (zorunlu)",
+              "degerler": [
+                0,
+                0,
+                0,
+                0
+              ],
+              "gosterim": [
+                "0",
+                "0",
+                "0",
+                "0"
+              ]
+            },
+            {
+              "ad": "Araç seçimi",
+              "degerler": [
+                0.85,
+                0.8733,
+                0.88,
+                0.96
+              ],
+              "gosterim": [
+                "0,85",
+                "0,873",
+                "0,880",
+                "0,960"
+              ]
+            },
+            {
+              "ad": "Rakam doğruluğu",
+              "degerler": [
+                0.75,
+                0.82,
+                0.8467,
+                0.9067
+              ],
+              "gosterim": [
+                "0,75",
+                "0,820",
+                "0,847",
+                "0,907"
+              ]
+            },
+            {
+              "ad": "Doğrulanmış yanlış sayı",
+              "degerler": [
+                0.03,
+                0.1133,
+                0.0867,
+                0.0667
+              ],
+              "gosterim": [
+                "0,03",
+                "0,113",
+                "0,087",
+                "0,067"
+              ]
+            },
+            {
+              "ad": "Belge isabeti",
+              "degerler": [
+                0.85,
+                0.575,
+                0.575,
+                0.95
+              ],
+              "gosterim": [
+                "0,85",
+                "0,575",
+                "0,575",
+                "0,950"
+              ]
+            },
+            {
+              "ad": "Belge cevabı",
+              "degerler": [
+                0.7,
+                0.325,
+                0.3,
+                0.875
+              ],
+              "gosterim": [
+                "0,7",
+                "0,325",
+                "0,300",
+                "0,875"
+              ]
+            },
+            {
+              "ad": "Belge alıntısı",
+              "degerler": [
+                0.8,
+                0.4,
+                0.45,
+                0.95
+              ],
+              "gosterim": [
+                "0,8",
+                "0,400",
+                "0,450",
+                "0,950"
+              ]
+            },
+            {
+              "ad": "Süre medyanı (sn)",
+              "degerler": [
+                120,
+                64.3,
+                52.7,
+                44.9
+              ],
+              "gosterim": [
+                "120",
+                "64,3",
+                "52,7",
+                "44,9"
+              ]
+            },
+            {
+              "ad": "Süre p90 (sn)",
+              "degerler": [
+                240,
+                103.4,
+                91.0,
+                61.7
+              ],
+              "gosterim": [
+                "240",
+                "103,4",
+                "91,0",
+                "61,7"
+              ]
+            },
+            {
+              "ad": "\"Doğrulanabilir cevap üretemedim\"",
+              "degerler": [
+                null,
+                27,
+                31,
+                4
+              ],
+              "gosterim": [
+                "",
+                "27",
+                "31",
+                "4"
+              ]
+            },
+            {
+              "ad": "Soru sayısı",
+              "degerler": [
+                null,
+                250,
+                250,
+                250
+              ],
+              "gosterim": [
+                "",
+                "250",
+                "250",
+                "250"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz8_etki",
+          "baslik": "Eğitimin etkisi, eşli karşılaştırma (kendi temel → ince ayarlı)",
+          "not": "",
+          "kolonlar": [
+            "Metrik",
+            "İyileşen soru",
+            "Kötüleşen soru",
+            "p"
+          ],
+          "kaynaklar": [
+            "faz8_karsilastirma_egitim_saklanan.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Araç seçimi (araç soruları)",
+              "degerler": [
+                13,
+                1,
+                0.0018
+              ],
+              "gosterim": [
+                "13",
+                "1",
+                "0,0018"
+              ]
+            },
+            {
+              "ad": "Parametreler (araç)",
+              "degerler": [
+                18,
+                1,
+                0.0001
+              ],
+              "gosterim": [
+                "18",
+                "1",
+                "0,0001"
+              ]
+            },
+            {
+              "ad": "Rakam doğruluğu (araç)",
+              "degerler": [
+                16,
+                7,
+                0.0931
+              ],
+              "gosterim": [
+                "16",
+                "7",
+                "0,0931"
+              ]
+            },
+            {
+              "ad": "Doğrulanmış yanlış sayı (araç)",
+              "degerler": [
+                11,
+                8,
+                0.6476
+              ],
+              "gosterim": [
+                "11",
+                "8",
+                "0,6476"
+              ]
+            },
+            {
+              "ad": "Doğru madde bulundu (belge)",
+              "degerler": [
+                15,
+                0,
+                0.0001
+              ],
+              "gosterim": [
+                "15",
+                "0",
+                "0,0001"
+              ]
+            },
+            {
+              "ad": "Belge cevabı",
+              "degerler": [
+                23,
+                0,
+                0.0
+              ],
+              "gosterim": [
+                "23",
+                "0",
+                "0,0000"
+              ]
+            },
+            {
+              "ad": "Geçerli alıntı (belge)",
+              "degerler": [
+                20,
+                0,
+                0.0
+              ],
+              "gosterim": [
+                "20",
+                "0",
+                "0,0000"
+              ]
+            },
+            {
+              "ad": "Yetkisiz denemede ret",
+              "degerler": [
+                7,
+                2,
+                0.1797
+              ],
+              "gosterim": [
+                "7",
+                "2",
+                "0,1797"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz8_unutma",
+          "baslik": "Unutma ölçümü (Belebele Türkçe)",
+          "not": "",
+          "kolonlar": [
+            "Karşılaştırma",
+            "Soru",
+            "Önceki doğruluk (%)",
+            "Sonraki doğruluk (%)",
+            "Fark",
+            "Yalnız ilki doğru",
+            "Yalnız ikincisi doğru",
+            "p"
+          ],
+          "kaynaklar": [
+            "faz8_unutma_tekrar.json",
+            "faz8_unutma_donusturme.json",
+            "faz8_unutma.json",
+            "faz8_unutma_kutuphane_ayarli.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Kütüphane, iki ölçüm",
+              "degerler": [
+                200,
+                84.0,
+                84.0,
+                0.0,
+                0,
+                0,
+                null
+              ],
+              "gosterim": [
+                "200",
+                "84",
+                "84",
+                "0",
+                "0",
+                "0",
+                "–"
+              ]
+            },
+            {
+              "ad": "Kütüphane → kendi temel",
+              "degerler": [
+                200,
+                84.0,
+                84.0,
+                0.0,
+                1,
+                1,
+                1.0
+              ],
+              "gosterim": [
+                "200",
+                "84",
+                "84",
+                "0",
+                "1",
+                "1",
+                "1,0000"
+              ]
+            },
+            {
+              "ad": "Kendi temel → ince ayarlı",
+              "degerler": [
+                200,
+                84.0,
+                83.5,
+                -0.5,
+                5,
+                4,
+                1.0
+              ],
+              "gosterim": [
+                "200",
+                "84",
+                "83,5",
+                "-0,5",
+                "5",
+                "4",
+                "1,0000"
+              ]
+            },
+            {
+              "ad": "Kütüphane → ince ayarlı",
+              "degerler": [
+                200,
+                84.0,
+                83.5,
+                -0.5,
+                4,
+                3,
+                1.0
+              ],
+              "gosterim": [
+                "200",
+                "84",
+                "83,5",
+                "-0,5",
+                "4",
+                "3",
+                "1,0000"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz8_sizinti",
+          "baslik": "Eğitim sorularının Faz 7 setleriyle sızıntı denetimi",
+          "not": "",
+          "kolonlar": [
+            "Ölçü",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz8_sizinti.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Eğitim ve doğrulama sorusu",
+              "degerler": [
+                474
+              ],
+              "gosterim": [
+                "474"
+              ]
+            },
+            {
+              "ad": "En yakın kalıp benzerliği",
+              "degerler": [
+                0.556
+              ],
+              "gosterim": [
+                "0,556"
+              ]
+            },
+            {
+              "ad": "En yakın soru benzerliği",
+              "degerler": [
+                0.791
+              ],
+              "gosterim": [
+                "0,791"
+              ]
+            },
+            {
+              "ad": "İhlal: kalip",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "İhlal: soru",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "İhlal: kimlik",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "İhlal: ad",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "İhlal: madde",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "İhlal: kur",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 8b · Doğrulayıcıya üç kural ve yeni test seti",
+      "tablolar": [
+        {
+          "id": "faz8b_onkayit",
+          "baslik": "Ön kayıtlı ölçüler (canlı koşu)",
+          "not": "",
+          "kolonlar": [
+            "Ölçü",
+            "Sonuç",
+            "Tuttu mu"
+          ],
+          "kaynaklar": [
+            "faz8b_analiz.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Kaybedilen doğru",
+              "degerler": [
+                0,
+                true
+              ],
+              "gosterim": [
+                "0",
+                "evet"
+              ]
+            },
+            {
+              "ad": "Yanlış bayrak",
+              "degerler": [
+                0,
+                true
+              ],
+              "gosterim": [
+                "0",
+                "evet"
+              ]
+            },
+            {
+              "ad": "Müşteriye özel sorularda gösterilen doğrulanmış yanlış (eski → yeni)",
+              "degerler": [
+                [
+                  9,
+                  2
+                ],
+                true
+              ],
+              "gosterim": [
+                "9 → 2",
+                "evet"
+              ]
+            },
+            {
+              "ad": "Süre medyanı, araç soruları (sn, eski → yeni)",
+              "degerler": [
+                [
+                  44.3,
+                  50.2
+                ],
+                false
+              ],
+              "gosterim": [
+                "44,3 → 50,2",
+                "hayır"
+              ]
+            },
+            {
+              "ad": "Süre medyanı oranı (yeni / eski)",
+              "degerler": [
+                1.133,
+                null
+              ],
+              "gosterim": [
+                "1,133",
+                ""
+              ]
+            },
+            {
+              "ad": "Süre p90 (sn)",
+              "degerler": [
+                74.2,
+                true
+              ],
+              "gosterim": [
+                "74,2",
+                "evet"
+              ]
+            },
+            {
+              "ad": "Tüm şirket sızıntısı",
+              "degerler": [
+                0,
+                true
+              ],
+              "gosterim": [
+                "0",
+                "evet"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz8b_duzen",
+          "baslik": "Eski düzen ↔ yeni düzen (araç soruları)",
+          "not": "Eski düzen ayrı bir koşu değil, aynı koşunun kayıtlarından çıkarıldı; tek koşu.",
+          "kolonlar": [
+            "Ölçü",
+            "Eski düzen",
+            "Yeni düzen"
+          ],
+          "kaynaklar": [
+            "faz8b_analiz.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Soru sayısı",
+              "degerler": [
+                86,
+                86
+              ],
+              "gosterim": [
+                "86",
+                "86"
+              ]
+            },
+            {
+              "ad": "Rakam doğruluğu",
+              "degerler": [
+                0.8488,
+                0.9302
+              ],
+              "gosterim": [
+                "0,849",
+                "0,930"
+              ]
+            },
+            {
+              "ad": "Doğrulanmış yanlış",
+              "degerler": [
+                9,
+                2
+              ],
+              "gosterim": [
+                "9",
+                "2"
+              ]
+            },
+            {
+              "ad": "S grubu (müşteriye özel) doğruluğu",
+              "degerler": [
+                0.7333,
+                0.9667
+              ],
+              "gosterim": [
+                "0,733",
+                "0,967"
+              ]
+            },
+            {
+              "ad": "Eğitimde olan niyetler",
+              "degerler": [
+                0.9677,
+                0.9677
+              ],
+              "gosterim": [
+                "0,968",
+                "0,968"
+              ]
+            },
+            {
+              "ad": "Eğitimde olmayan niyetler",
+              "degerler": [
+                0.5417,
+                0.8333
+              ],
+              "gosterim": [
+                "0,542",
+                "0,833"
+              ]
+            },
+            {
+              "ad": "Tüm şirket, elle: ret",
+              "degerler": [
+                2,
+                2
+              ],
+              "gosterim": [
+                "2",
+                "2"
+              ]
+            },
+            {
+              "ad": "Tüm şirket, elle: kapsamlı",
+              "degerler": [
+                0,
+                9
+              ],
+              "gosterim": [
+                "0",
+                "9"
+              ]
+            },
+            {
+              "ad": "Tüm şirket, elle: yanıltıcı",
+              "degerler": [
+                9,
+                0
+              ],
+              "gosterim": [
+                "9",
+                "0"
+              ]
+            },
+            {
+              "ad": "Kazanılan / kaybedilen soru (McNemar)",
+              "degerler": [
+                null,
+                [
+                  7,
+                  0
+                ]
+              ],
+              "gosterim": [
+                "",
+                "7 / 0"
+              ]
+            },
+            {
+              "ad": "McNemar p",
+              "degerler": [
+                null,
+                0.0156
+              ],
+              "gosterim": [
+                "",
+                "0,0156"
+              ]
+            },
+            {
+              "ad": "Kapsam düzeltmesi: düzelen / tur",
+              "degerler": [
+                null,
+                [
+                  26,
+                  26
+                ]
+              ],
+              "gosterim": [
+                "",
+                "26/26"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz8b_hedefler",
+          "baslik": "Faz 7 hedefleri bu sette",
+          "not": "",
+          "kolonlar": [
+            "Hedef",
+            "Eşik",
+            "Değer",
+            "Sonuç"
+          ],
+          "kaynaklar": [
+            "faz8b_ayarli_olcum_yeni.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Yetkisiz sızıntı (zorunlu)",
+              "degerler": [
+                0,
+                0,
+                true
+              ],
+              "gosterim": [
+                "0",
+                "0",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Kapsam dışı kayıt (zorunlu)",
+              "degerler": [
+                0,
+                0,
+                true
+              ],
+              "gosterim": [
+                "0",
+                "0",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Araç seçimi",
+              "degerler": [
+                0.85,
+                0.9302,
+                true
+              ],
+              "gosterim": [
+                "0,85",
+                "0,930",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Rakam doğruluğu",
+              "degerler": [
+                0.75,
+                0.9302,
+                true
+              ],
+              "gosterim": [
+                "0,75",
+                "0,930",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Doğrulanmış yanlış sayı",
+              "degerler": [
+                0.03,
+                0.0233,
+                true
+              ],
+              "gosterim": [
+                "0,03",
+                "0,023",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Süre medyanı (sn)",
+              "degerler": [
+                120,
+                50.2,
+                true
+              ],
+              "gosterim": [
+                "120",
+                "50,2",
+                "Geçti"
+              ]
+            },
+            {
+              "ad": "Süre p90 (sn)",
+              "degerler": [
+                240,
+                74.2,
+                true
+              ],
+              "gosterim": [
+                "240",
+                "74,2",
+                "Geçti"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz8b_kimlik_gosterilen",
+          "baslik": "Kimlik ölçümü: gösterilen cevaplardaki numaralar",
+          "not": "",
+          "kolonlar": [
+            "Tür",
+            "Yeni düzen",
+            "Eski düzen"
+          ],
+          "kaynaklar": [
+            "faz8b_kimlik_analiz.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Uydurma",
+              "degerler": [
+                1,
+                1
+              ],
+              "gosterim": [
+                "1",
+                "1"
+              ]
+            },
+            {
+              "ad": "Yanlış kayıt",
+              "degerler": [
+                6,
+                11
+              ],
+              "gosterim": [
+                "6",
+                "11"
+              ]
+            },
+            {
+              "ad": "Doğru numara",
+              "degerler": [
+                11,
+                11
+              ],
+              "gosterim": [
+                "11",
+                "11"
+              ]
+            },
+            {
+              "ad": "Numarasız",
+              "degerler": [
+                18,
+                13
+              ],
+              "gosterim": [
+                "18",
+                "13"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz8b_kimlik",
+          "baslik": "Kimlik ölçümü: uydurma kimlik kuralı",
+          "not": "",
+          "kolonlar": [
+            "Ölçü",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz8b_kimlik_analiz.json",
+            "faz8b_soru_seti.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Soru",
+              "degerler": [
+                36
+              ],
+              "gosterim": [
+                "36"
+              ]
+            },
+            {
+              "ad": "Taslak",
+              "degerler": [
+                45
+              ],
+              "gosterim": [
+                "45"
+              ]
+            },
+            {
+              "ad": "Desteksiz numaralı taslak",
+              "degerler": [
+                6
+              ],
+              "gosterim": [
+                "6"
+              ]
+            },
+            {
+              "ad": "Eski kuralların durdurduğu",
+              "degerler": [
+                5
+              ],
+              "gosterim": [
+                "5"
+              ]
+            },
+            {
+              "ad": "Durdurulmayan",
+              "degerler": [
+                1
+              ],
+              "gosterim": [
+                "1"
+              ]
+            },
+            {
+              "ad": "Yeni kuralın tek başına katkısı",
+              "degerler": [
+                "yok: desteksiz numaraların hiçbirini yalnızca yeni kural durdurmadı"
+              ],
+              "gosterim": [
+                "yok: desteksiz numaraların hiçbirini yalnızca yeni kural durdurmadı"
+              ]
+            },
+            {
+              "ad": "Yeni kuralın yanlış bayrağı",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Doğru numara sorularında doğru (yeni düzen)",
+              "degerler": [
+                [
+                  8,
+                  10
+                ]
+              ],
+              "gosterim": [
+                "8/10"
+              ]
+            },
+            {
+              "ad": "Doğru numara sorularında doğru (eski düzen)",
+              "degerler": [
+                [
+                  8,
+                  10
+                ]
+              ],
+              "gosterim": [
+                "8/10"
+              ]
+            },
+            {
+              "ad": "Eğitim ↔ yeni set en yakın kalıp benzerliği",
+              "degerler": [
+                0.538
+              ],
+              "gosterim": [
+                "0,538"
+              ]
+            },
+            {
+              "ad": "Eğitim ↔ yeni set en yakın soru benzerliği",
+              "degerler": [
+                0.736
+              ],
+              "gosterim": [
+                "0,736"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 9 · Araç deneyi (elle araçlar ↔ otomatik üretilen araçlar)",
+      "tablolar": [
+        {
+          "id": "faz9_kollar",
+          "baslik": "Üç kol, aynı sorular",
+          "not": "Üçüncü kol keşif amaçlıdır: düzeltmeler Faz 8b sonuçlarına bakılarak seçildi, p değeri yoktur.",
+          "kolonlar": [
+            "Ölçü",
+            "Elle araçlar",
+            "Otomatik araçlar",
+            "Elle + iki düzeltme (keşif)"
+          ],
+          "kaynaklar": [
+            "faz9_karsilastirma.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Tüm set, gösterilen doğru",
+              "degerler": [
+                [
+                  65,
+                  86
+                ],
+                [
+                  18,
+                  86
+                ],
+                [
+                  68,
+                  86
+                ]
+              ],
+              "gosterim": [
+                "65/86",
+                "18/86",
+                "68/86"
+              ]
+            },
+            {
+              "ad": "Doğrudan sınıflar (tek_cagri + zincir), gösterilen doğru",
+              "degerler": [
+                [
+                  25,
+                  37
+                ],
+                [
+                  16,
+                  37
+                ],
+                [
+                  28,
+                  37
+                ]
+              ],
+              "gosterim": [
+                "25/37",
+                "16/37",
+                "28/37"
+              ]
+            },
+            {
+              "ad": "Gösterilen yanlış (ön kayıttaki tanım)",
+              "degerler": [
+                9,
+                12,
+                11
+              ],
+              "gosterim": [
+                "9",
+                "12",
+                "11"
+              ]
+            },
+            {
+              "ad": "baglam_siniri ile biten",
+              "degerler": [
+                0,
+                30,
+                0
+              ],
+              "gosterim": [
+                "0",
+                "30",
+                "0"
+              ]
+            },
+            {
+              "ad": "sure_siniri ile biten",
+              "degerler": [
+                0,
+                4,
+                0
+              ],
+              "gosterim": [
+                "0",
+                "4",
+                "0"
+              ]
+            },
+            {
+              "ad": "Süre medyanı / p90 (sn)",
+              "degerler": [
+                [
+                  55.4,
+                  130.0
+                ],
+                [
+                  74.5,
+                  201.6
+                ],
+                [
+                  52.3,
+                  106.2
+                ]
+              ],
+              "gosterim": [
+                "55,4 / 130",
+                "74,5 / 201,6",
+                "52,3 / 106,2"
+              ]
+            },
+            {
+              "ad": "İstem tokenı medyanı / en büyük",
+              "degerler": [
+                [
+                  3288.0,
+                  4884
+                ],
+                [
+                  3027.0,
+                  6378
+                ],
+                [
+                  3256.5,
+                  4915
+                ]
+              ],
+              "gosterim": [
+                "3.288 / 4.884",
+                "3.027 / 6.378",
+                "3.256,5 / 4.915"
+              ]
+            },
+            {
+              "ad": "Sızıntı",
+              "degerler": [
+                0,
+                0,
+                0
+              ],
+              "gosterim": [
+                "0",
+                "0",
+                "0"
+              ]
+            },
+            {
+              "ad": "Kâhin tavanı",
+              "degerler": [
+                "85/86",
+                "37/86",
+                null
+              ],
+              "gosterim": [
+                "85/86",
+                "37/86",
+                ""
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz9_siniflar",
+          "baslik": "Soru sınıflarına göre gösterilen doğru",
+          "not": "",
+          "kolonlar": [
+            "Sınıf",
+            "Soru",
+            "Elle",
+            "Otomatik",
+            "Elle + düzeltme"
+          ],
+          "kaynaklar": [
+            "faz9_karsilastirma.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "tek_cagri",
+              "degerler": [
+                34,
+                22,
+                16,
+                25
+              ],
+              "gosterim": [
+                "34",
+                "22",
+                "16",
+                "25"
+              ]
+            },
+            {
+              "ad": "zincir",
+              "degerler": [
+                3,
+                3,
+                0,
+                3
+              ],
+              "gosterim": [
+                "3",
+                "3",
+                "0",
+                "3"
+              ]
+            },
+            {
+              "ad": "engelli",
+              "degerler": [
+                3,
+                3,
+                2,
+                3
+              ],
+              "gosterim": [
+                "3",
+                "3",
+                "2",
+                "3"
+              ]
+            },
+            {
+              "ad": "toplama",
+              "degerler": [
+                40,
+                33,
+                0,
+                33
+              ],
+              "gosterim": [
+                "40",
+                "33",
+                "0",
+                "33"
+              ]
+            },
+            {
+              "ad": "yok",
+              "degerler": [
+                6,
+                4,
+                0,
+                4
+              ],
+              "gosterim": [
+                "6",
+                "4",
+                "0",
+                "4"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz9_birincil",
+          "baslik": "Birincil ölçü: doğrudan sınıflarda eşli karşılaştırma",
+          "not": "",
+          "kolonlar": [
+            "Ölçü",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "faz9_karsilastirma.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Soru",
+              "degerler": [
+                37
+              ],
+              "gosterim": [
+                "37"
+              ]
+            },
+            {
+              "ad": "İkisi de doğru",
+              "degerler": [
+                12
+              ],
+              "gosterim": [
+                "12"
+              ]
+            },
+            {
+              "ad": "Yalnızca elle doğru",
+              "degerler": [
+                13
+              ],
+              "gosterim": [
+                "13"
+              ]
+            },
+            {
+              "ad": "Yalnızca otomatik doğru",
+              "degerler": [
+                4
+              ],
+              "gosterim": [
+                "4"
+              ]
+            },
+            {
+              "ad": "İkisi de yanlış",
+              "degerler": [
+                8
+              ],
+              "gosterim": [
+                "8"
+              ]
+            },
+            {
+              "ad": "Kesin McNemar p (iki yönlü)",
+              "degerler": [
+                0.049
+              ],
+              "gosterim": [
+                "0,0490"
+              ]
+            },
+            {
+              "ad": "Ön kayıtlı karar",
+              "degerler": [
+                "fark var"
+              ],
+              "gosterim": [
+                "fark var"
+              ]
+            },
+            {
+              "ad": "Bir çift ters dönseydi p",
+              "degerler": [
+                0.0768
+              ],
+              "gosterim": [
+                "0,0768"
+              ]
+            },
+            {
+              "ad": "Doğrulayıcı kör nokta soruları çıkarılırsa p",
+              "degerler": [
+                0.1185
+              ],
+              "gosterim": [
+                "0,1185"
+              ]
+            },
+            {
+              "ad": "Negatif kontrol: yakalanan",
+              "degerler": [
+                1
+              ],
+              "gosterim": [
+                "1"
+              ]
+            },
+            {
+              "ad": "Üçüncü kol: yalnızca elle doğru",
+              "degerler": [
+                4
+              ],
+              "gosterim": [
+                "4"
+              ]
+            },
+            {
+              "ad": "Üçüncü kol: yalnızca düzeltmeli doğru",
+              "degerler": [
+                7
+              ],
+              "gosterim": [
+                "7"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "faz9_boyut",
+          "baslik": "Araç listesinin bağlamdaki yeri",
+          "not": "",
+          "kolonlar": [
+            "Ölçü",
+            "Elle araçlar",
+            "Otomatik araçlar"
+          ],
+          "kaynaklar": [
+            "faz9_boyut.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Araç sayısı",
+              "degerler": [
+                14,
+                14
+              ],
+              "gosterim": [
+                "14",
+                "14"
+              ]
+            },
+            {
+              "ad": "Karakter",
+              "degerler": [
+                7986,
+                10836
+              ],
+              "gosterim": [
+                "7.986",
+                "10.836"
+              ]
+            },
+            {
+              "ad": "Token",
+              "degerler": [
+                2336,
+                2209
+              ],
+              "gosterim": [
+                "2.336",
+                "2.209"
+              ]
+            },
+            {
+              "ad": "Soru ve sonuçlara kalan token",
+              "degerler": [
+                4960,
+                5087
+              ],
+              "gosterim": [
+                "4.960",
+                "5.087"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "baslik": "Faz 11'den sonra · Doğrulayıcının iki kör noktası (kayıtlı taslaklarla)",
+      "tablolar": [
+        {
+          "id": "kor_nokta",
+          "baslik": "Eski ve yeni doğrulayıcı, aynı kayıtlı taslaklar",
+          "not": "Sonradan yapılan ölçüm: kayıtlı taslaklar yeniden oynatıldı, model çalıştırılmadı; fazların ön kayıtlı sonuçları değişmez. Beklenen değeri taşımayan cevaplar elle okundu (README).",
+          "kolonlar": [
+            "Ölçü",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "kor_nokta_olcum.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Model koşularındaki taslak",
+              "degerler": [
+                1593
+              ],
+              "gosterim": [
+                "1.593"
+              ]
+            },
+            {
+              "ad": "Ret → kabul, beklenen değeri taşıyor",
+              "degerler": [
+                15
+              ],
+              "gosterim": [
+                "15"
+              ]
+            },
+            {
+              "ad": "Ret → kabul, beklenen değeri taşımıyor",
+              "degerler": [
+                5
+              ],
+              "gosterim": [
+                "5"
+              ]
+            },
+            {
+              "ad": "Kabul → ret, beklenen değeri taşıyor",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Kabul → ret, beklenen değeri taşımıyor",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Gösterilen cevabı doğruya dönen soru",
+              "degerler": [
+                7
+              ],
+              "gosterim": [
+                "7"
+              ]
+            },
+            {
+              "ad": "Doğru cevabı kaybedilen soru",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Beklenen değeri taşımayan yeni gösterilen cevap",
+              "degerler": [
+                3
+              ],
+              "gosterim": [
+                "3"
+              ]
+            },
+            {
+              "ad": "Kâhin koşularında kabul → ret",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Uydurma kontrollerinde ret → kabul",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sonuclar": [
+    {
+      "metin": "Yetkisiz erişimde sızıntı yok: Faz 3 kapı denemelerinde 0 sızıntı (60 denemede); Faz 7 saklanan sette 0, Faz 8 ince ayarlı modelde 0, Faz 8b tüm şirket sorularında 0. Faz 7 saklanan sette denemelerin 49 tanesi kapıya ulaştı; kalanlar kapıyı değil modelin kendi reddini ölçer.",
+      "kaynaklar": [
+        "faz3_araclar.json",
+        "faz7_olcum_saklanan.json",
+        "faz8_ayarli_olcum_saklanan.json",
+        "faz8b_ayarli_olcum_yeni.json"
+      ]
+    },
+    {
+      "metin": "Belge arama: ayrılmış sette anlam araması ilk 5 sonuçta 1,000, kabul yöntemi (kelime + anlam + sıralayıcı) 0,981 isabet verdi; kelime araması tek başına 0,769. Belgeleri ve soruları aynı kişi yazdı, gerçek belgeler daha zor olabilir.",
+      "kaynaklar": [
+        "faz5_arama.json"
+      ]
+    },
+    {
+      "metin": "İzleme kuralları: üç tohumda geri çağırmanın en düşüğü 1,000, aylık yanlış alarmın en yükseği 1,843 (üst sınır 2); olayları ve kuralları aynı kişi yazdığı için bu oran gerçek dünyadaki başarıyı göstermez.",
+      "kaynaklar": [
+        "faz4_izleme.json"
+      ]
+    },
+    {
+      "metin": "Faz 7 ilk ölçümünde (saklanan set) doğrulanmış yanlış sayı 0,113 (sınır 0,03), belge cevabı 0,325 ve geçerli alıntı 0,400 hedefi tutmadı; araç seçimi 0,873, rakam doğruluğu 0,820 geçti.",
+      "kaynaklar": [
+        "faz7_olcum_saklanan.json"
+      ]
+    },
+    {
+      "metin": "İnce ayarda belge cevabı 0,300 → 0,875, araç seçimi 0,880 → 0,960 oldu; ama bu davranışlar Faz 7 saklanan seti okunduktan sonra bilerek öğretildi, yeni soru türüne genelleşme sayılmaz. Doğrulanmış yanlış sayı 0,067 ile sınırın (0,03) üstünde kaldı; rakam doğruluğundaki artışın p değeri 0,0931, anlamlı değil.",
+      "kaynaklar": [
+        "faz8_ayarli_olcum_saklanan.json",
+        "faz8_karsilastirma_egitim_saklanan.json",
+        "faz8_temel_kendi_olcum_saklanan.json"
+      ]
+    },
+    {
+      "metin": "Genel Türkçe korundu: Belebele doğruluğu kendi temel modelde 84, ince ayarlıda 83,5; fark -0,5 puan (yalnız ilki doğru 5, yalnız ikincisi doğru 4, p = 1,0000).",
+      "kaynaklar": [
+        "faz8_unutma.json"
+      ]
+    },
+    {
+      "metin": "Faz 8b sahiplik kuralı müşteriye özel sorularda gösterilen doğrulanmış yanlışı 9 → 2 indirdi; ama düzeltme turları süre medyanını 44,3 → 50,2 sn çıkardı (oran 1,133) ve süre ölçütü tutmadı. Kazanım tek şablondan ve tek hata biçiminden geliyor, tek koşu.",
+      "kaynaklar": [
+        "faz8b_analiz.json"
+      ]
+    },
+    {
+      "metin": "Uydurma kimlik kuralı 36 soruluk zorlayıcı sette 6 desteksiz taslaktan hiçbirini tek başına durdurmadı (dosyadaki ifade: \"yok: desteksiz numaraların hiçbirini yalnızca yeni kural durdurmadı\"). Asıl açık uydurma değil yanlış kayıt: gösterilen yanlış kayıt yeni düzende 6, eski düzende 11. Bağımsız olay sayısı çok küçük.",
+      "kaynaklar": [
+        "faz8b_kimlik_analiz.json"
+      ]
+    },
+    {
+      "metin": "Araç deneyi: aynı modelle elle araçlar 65/86 soruyu, otomatik üretilen araçlar 18/86 soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri 0,0490, doğrulayıcının kör noktası çıkarılınca 0,1185: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici. Bu kör nokta ve belgede yazıyla sayı sonradan kapatıldı: kayıtlı 1.593 taslakta 15 doğru taslak artık geçiyor, 7 koşu–soru çiftinde gösterilen cevap doğruya dönüyor, 3 çiftte beklenen değeri taşımayan (sayıları doğru, eksik ya da soruyu karşılamayan) bir cevap gösterilirdi; kâhinde kabul → ret 0, uydurma kontrollerinde ret → kabul 0. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor.",
+      "kaynaklar": [
+        "faz9_karsilastirma.json",
+        "kor_nokta_olcum.json"
+      ]
+    },
+    {
+      "metin": "Hız sınırı: bu bilgisayarda (ekran kartsız) seçilen modelin üretim hızı saniyede 5,11 token; bu yüzden uzun cevaplar sürenin çoğunu alıyor ve süre sınırları buna göre konuldu. Bütün ölçümler tek makinede ve çoğunlukla tek koşuyla yapıldı.",
+      "kaynaklar": [
+        "faz0_hiz.json"
+      ]
+    }
+  ]
+}

@@ -388,27 +388,6 @@ Kaynak: `faz9_karsilastirma.json`
 
 Kaynak: `faz9_boyut.json`
 
-## Faz 11'den sonra · Doğrulayıcının iki kör noktası (kayıtlı taslaklarla)
-
-### Eski ve yeni doğrulayıcı, aynı kayıtlı taslaklar
-
-Sonradan yapılan ölçüm: kayıtlı taslaklar yeniden oynatıldı, model çalıştırılmadı; fazların ön kayıtlı sonuçları değişmez. Beklenen değeri taşımayan cevaplar elle okundu (README).
-
-| Ölçü | Değer |
-| --- | --- |
-| Model koşularındaki taslak | 1.593 |
-| Ret → kabul, beklenen değeri taşıyor | 15 |
-| Ret → kabul, beklenen değeri taşımıyor | 5 |
-| Kabul → ret, beklenen değeri taşıyor | 0 |
-| Kabul → ret, beklenen değeri taşımıyor | 0 |
-| Gösterilen cevabı doğruya dönen soru | 7 |
-| Doğru cevabı kaybedilen soru | 0 |
-| Beklenen değeri taşımayan yeni gösterilen cevap | 3 |
-| Kâhin koşularında kabul → ret | 0 |
-| Uydurma kontrollerinde ret → kabul | 0 |
-
-Kaynak: `kor_nokta_olcum.json`
-
 ## Sonuçlar ve sınırlamalar
 
 - Yetkisiz erişimde sızıntı yok: Faz 3 kapı denemelerinde 0 sızıntı (60 denemede); Faz 7 saklanan sette 0, Faz 8 ince ayarlı modelde 0, Faz 8b tüm şirket sorularında 0. Faz 7 saklanan sette denemelerin 49 tanesi kapıya ulaştı; kalanlar kapıyı değil modelin kendi reddini ölçer.
@@ -419,5 +398,5 @@ Kaynak: `kor_nokta_olcum.json`
 - Genel Türkçe korundu: Belebele doğruluğu kendi temel modelde 84, ince ayarlıda 83,5; fark -0,5 puan (yalnız ilki doğru 5, yalnız ikincisi doğru 4, p = 1,0000).
 - Faz 8b sahiplik kuralı müşteriye özel sorularda gösterilen doğrulanmış yanlışı 9 → 2 indirdi; ama düzeltme turları süre medyanını 44,3 → 50,2 sn çıkardı (oran 1,133) ve süre ölçütü tutmadı. Kazanım tek şablondan ve tek hata biçiminden geliyor, tek koşu.
 - Uydurma kimlik kuralı 36 soruluk zorlayıcı sette 6 desteksiz taslaktan hiçbirini tek başına durdurmadı (dosyadaki ifade: "yok: desteksiz numaraların hiçbirini yalnızca yeni kural durdurmadı"). Asıl açık uydurma değil yanlış kayıt: gösterilen yanlış kayıt yeni düzende 6, eski düzende 11. Bağımsız olay sayısı çok küçük.
-- Araç deneyi: aynı modelle elle araçlar 65/86 soruyu, otomatik üretilen araçlar 18/86 soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri 0,0490, doğrulayıcının kör noktası çıkarılınca 0,1185: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici. Bu kör nokta ve belgede yazıyla sayı sonradan kapatıldı: kayıtlı 1.593 taslakta 15 doğru taslak artık geçiyor, 7 koşu–soru çiftinde gösterilen cevap doğruya dönüyor, 3 çiftte beklenen değeri taşımayan (sayıları doğru, eksik ya da soruyu karşılamayan) bir cevap gösterilirdi; kâhinde kabul → ret 0, uydurma kontrollerinde ret → kabul 0. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor.
+- Araç deneyi: aynı modelle elle araçlar 65/86 soruyu, otomatik üretilen araçlar 18/86 soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri 0,0490, doğrulayıcının kör noktası çıkarılınca 0,1185: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici.
 - Hız sınırı: bu bilgisayarda (ekran kartsız) seçilen modelin üretim hızı saniyede 5,11 token; bu yüzden uzun cevaplar sürenin çoğunu alıyor ve süre sınırları buna göre konuldu. Bütün ölçümler tek makinede ve çoğunlukla tek koşuyla yapıldı.
