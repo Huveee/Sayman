@@ -318,12 +318,14 @@ SONUCLAR = [
       "y": (F8BK, "gosterilen.yeni.yanlis_kayit#", "sayi"), "e": (F8BK, "gosterilen.eski.yanlis_kayit#", "sayi")}),
     ("Araç deneyi: aynı modelle elle araçlar {a} soruyu, otomatik üretilen araçlar {b} soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri {p}, doğrulayıcının "
      "kör noktası çıkarılınca {q}: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici. Bu kör nokta ve belgede yazıyla sayı "
-     "sonradan kapatıldı: kayıtlı {t} taslakta {ra} doğru taslak artık geçiyor, {k} soruda gösterilen cevap doğruya dönüyor; kâhinde "
+     "sonradan kapatıldı: kayıtlı {t} taslakta {ra} doğru taslak artık geçiyor, {k} koşu–soru çiftinde gösterilen cevap doğruya dönüyor, "
+     "{e} çiftte beklenen değeri taşımayan (sayıları doğru, eksik ya da soruyu karşılamayan) bir cevap gösterilirdi; kâhinde "
      "kabul → ret {c}, uydurma kontrollerinde ret → kabul {d}. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor.",
      {"a": (F9, ["kollar.el.tum_set.dogru", "kollar.el.tum_set.n"], "kesir"), "b": (F9, ["kollar.otomatik.tum_set.dogru", "kollar.otomatik.tum_set.n"], "kesir"),
       "p": (F9, "birincil.mcnemar_p", "p"), "q": (F9, "birincil.duyarlilik.dogrulayici_kor_noktasi_haric_p", "p"),
       "t": (FK, "model_toplami.taslak", "sayi"), "ra": (FK, "model_toplami.ret_kabul_dogru", "sayi"),
-      "k": (FK, "model_toplami.kazanilan_dogru_cevap", "sayi"), "c": (FK, "kontrol_ozeti.kahin_kabul_ret", "sayi"),
+      "k": (FK, "model_toplami.kazanilan_dogru_cevap", "sayi"), "e": (FK, "model_toplami.gosterilen_yeni_eksik", "sayi"),
+      "c": (FK, "kontrol_ozeti.kahin_kabul_ret", "sayi"),
       "d": (FK, "kontrol_ozeti.uydurma_ret_kabul", "sayi")}),
     ("Hız sınırı: bu bilgisayarda (ekran kartsız) seçilen modelin üretim hızı saniyede {a} token; bu yüzden uzun cevaplar sürenin çoğunu alıyor ve süre sınırları "
      "buna göre konuldu. Bütün ölçümler tek makinede ve çoğunlukla tek koşuyla yapıldı.",

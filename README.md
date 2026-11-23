@@ -1645,12 +1645,15 @@ toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 
   geçerdi, artık yakalanıyor.
 - Belge maddelerinde ve kullanıcının sorusunda yazıyla yazılmış sayılar da kaynak ("on iki", "onbeş",
   "ikiyüzellibin"). Türü, rakamla yazılan sayılardaki gibi ardından gelen kelime belirler: "on iki ayın" 12 ay olur,
-  cevaptaki "%12" ya da "12 gün" ile eşleşmez. Ek almış kelimeler ("ikinci", "altına", "onda") ve tek başına "bir"
-  sayılmaz. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor (üçüncü kör nokta duruyor).
+  cevaptaki "%12" ya da "12 gün" ile eşleşmez. Ek almış kelimeler ("ikinci", "altına", "onda"), tek başına "bir" ve
+  ardından tür kelimesi gelmeyen yazıyla sayılar ("her iki borç", "binde üç") sayılmaz. Türü belli olmayan kaynak her
+  türle eşleştiği için bunlar sayılsaydı, belgede "her iki" geçen bir turda uydurma bir "2 gün" geçerdi. Cevaptaki
+  yazıyla sayılar hâlâ denetlenmiyor (üçüncü kör nokta duruyor).
 
-**Testler** (`tests/test_dogrulayici_kor_nokta.py`, 11 test): düzeltmeden önce yazıldı; ilk çalıştırmada 8'i
-başarısızdı. Yanlış numara, yanlış tür ve yanlış sayı yakalanmaya devam ediyor. Faz 6 ve Faz 8b'nin doğrulayıcı
-testleri değiştirilmeden geçiyor.
+**Testler** (`tests/test_dogrulayici_kor_nokta.py`, 12 test): ilk 11'i düzeltmeden önce yazıldı; ilk çalıştırmada
+8'i başarısızdı. 12'ncisi sonradan, bağımsız bir incelemeden sonra yazıldı: ilk düzeltmenin türü belli olmayan
+yazıyla sayılarla doğrulayıcıyı gevşettiğini gösterdi, düzeltme buna göre daraltıldı. Yanlış numara, yanlış tür ve
+yanlış sayı yakalanmaya devam ediyor. Faz 6 ve Faz 8b'nin doğrulayıcı testleri değiştirilmeden geçiyor.
 
 **Kayıtlı taslaklarla ölçüm** (`scripts/kor_nokta_olcum.py`, `reports/kor_nokta_olcum.json`). Faz 7, 8, 8b ve 9'un 13
 model koşusundaki 1.593 taslak, eski (`6f1a970`) ve yeni doğrulayıcıdan geçirildi. Model çalıştırılmadı.
@@ -1661,8 +1664,8 @@ model koşusundaki 1.593 taslak, eski (`6f1a970`) ve yeni doğrulayıcıdan geç
 | Ret → kabul, beklenen değeri taşımıyor | 5 |
 | Kabul → ret | 0 |
 
-- **Gösterilecek cevap.** Orkestratör ilk geçen taslağı gösterir. Buna göre 7 soruda "cevap üretemedim" yerine
-  doğru cevap gösterilirdi: altısı son fatura numarası sorusu (Faz 7'de S-fat_son-02 ve -04, Faz 8 temel modelde
+- **Gösterilecek cevap.** Orkestratör ilk geçen taslağı gösterir. Buna göre 7 koşu–soru çiftinde "cevap
+  üretemedim" yerine doğru cevap gösterilirdi: altısı son fatura numarası sorusu (Faz 7'de S-fat_son-02 ve -04, Faz 8 temel modelde
   S-fat_son-04, Faz 9 otomatik kolda Y-fat_son-01 ve -03, Faz 9 üçüncü kolda Y-fat_son-04), biri ince ayarlı modelin
   "ana hesapta kalması gereken en az para" sorusu (S-belge-04, Faz 8). Hiçbir soruda doğru bir cevap kaybedilmedi.
 - **Beklenen değeri taşımayan 3 cevap** gösterilirdi. Üçü de elle okundu; üçünde de sayılar araç sonucuyla aynı:
@@ -1679,7 +1682,9 @@ model koşusundaki 1.593 taslak, eski (`6f1a970`) ve yeni doğrulayıcıdan geç
 
 **Canlı deneme** (23 Kasım 2026, demo, `sayman-ayarli`, CFO, 1 Eylül 2026): "Nakit politikamıza göre asgari nakit
 eşiği nedir?" sorusu 47 sn'de cevaplandı. Cevap "son 12 ayın ortalama aylık net satışının %10'u" oldu ve alıntı
-[POL-NAKIT#m2] geldi. İlk provada bu soru durdurulmuştu; şimdi örnek sorularda.
+[POL-NAKIT#m2] geldi. İlk provada bu soru durdurulmuştu; şimdi örnek sorularda. Bu tek bir deneme. Kayıt numarası
+düzeltmesi canlı denenmedi; dayanağı yalnızca kayıtlı taslaklar. Canlı sorulan son fatura sorusunda model harfle
+başlayan bir iade numarası yazdı ("C564711"; cevap anahtarı bunu kabul ediyor), bu düzeltmeye hiç uğramadı.
 
 ## Veri kaynakları
 

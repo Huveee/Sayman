@@ -15,7 +15,8 @@ Sayılar:
   uzunluğu, aracın gün ve satır sayısı argümanları, belge araması sonuçlarındaki madde metinleri, kullanıcının
   sorusu ve bugünün tarihi. Reddedilen çağrılar, açıklama ve not metinleri kaynak değildir. Madde metinlerinde ve
   soruda yazıyla yazılmış sayılar da kaynaktır ("son on iki ayın" → 12 ay, "ikiyüzellibin Türk Lirası" → 250.000 TL);
-  ek almış kelimeler ("ikinci", "altına") ve tek başına "bir" sayılmaz.
+  ek almış kelimeler ("ikinci", "altına"), tek başına "bir" ve ardında tür kelimesi olmayan yazıyla sayılar ("her
+  iki borç", "binde üç") sayılmaz.
 - Eşleşme: kaynak değer cevapta gösterilen hassasiyete yuvarlanınca ya da kesilince cevaptaki sayıyı vermelidir
   (75.826.754,65 → "75,8 milyon", "75,82 milyon", "75.826.755" geçer; "75,81 milyon" geçmez). İşaret karşılaştırılmaz
   (çıkışlar eksi işaretsiz yazılabilir).
@@ -445,7 +446,9 @@ def _metinden_kaynaklar(metin: str, alan: str, cagri_id: str) -> list[Kaynak]:
         else:
             k.append(Kaynak(s.tur, alan, cagri_id, s.deger))
     for bas, bit, deger, olcekli in _yaziyla_sayilar(metin):
-        k.append(Kaynak(_tur(metin, bas, bit, str(deger), olcekli), alan, cagri_id, deger))
+        tur = _tur(metin, bas, bit, str(deger), olcekli)
+        if tur != "bilinmeyen":  # "her iki borç", "binde üç": türsüz kaynak her türle eşleşirdi, gevşetirdi
+            k.append(Kaynak(tur, alan, cagri_id, deger))
     return k
 
 

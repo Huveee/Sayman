@@ -121,4 +121,15 @@ def test_ek_almis_ve_sira_sayisi_kelimeler_sayi_sayilmaz():
 
 
 def test_sorudaki_yaziyla_sayi_da_kaynaktir():
-    assert _kaynaksiz("Son 3 ayda 2 fatura kesildi.", [], soru="Son üç ayda kaç fatura kestik, iki mi?") == []
+    assert _kaynaksiz("Son 3 ayda 5 fatura kesildi.", [], soru="Son üç ayda kaç fatura kestik?") == ["5"]
+
+
+def test_turu_belli_olmayan_yaziyla_sayi_kaynak_degildir():
+    """Ardında tür kelimesi olmayan yazıyla sayı ("her iki borç", "binde üç") kaynak sayılmaz; sayılsaydı türü belli
+    olmayan kaynak olarak uydurma "2 gün" ya da "3 TL" ile eşleşirdi."""
+    cagri = {**BELGE, "yanit": {**BELGE["yanit"], "sonuc": {"sorgu": "x", "sonuclar": [{
+        "parca_id": "KANUN-6098#m1", "belge": "Türk Borçlar Kanunu", "madde": "Takas",
+        "metin": "Her iki borç muaccel ise ve binde üç gecikme cezası öngörülmüşse takas yapılabilir."}]}}}
+    alinti = ' "Her iki borç muaccel ise ve binde üç gecikme cezası" [KANUN-6098#m1]'
+    assert _kaynaksiz("Takas için 2 gün beklenir, ceza 3 TL'dir:" + alinti, [cagri]) == ["2", "3"]
+    assert _kaynaksiz("Son 2 fatura kesildi.", [], soru="Kaç fatura kestik, iki mi?") == ["2"]

@@ -2774,7 +2774,7 @@
       ]
     },
     {
-      "metin": "Araç deneyi: aynı modelle elle araçlar 65/86 soruyu, otomatik üretilen araçlar 18/86 soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri 0,0490, doğrulayıcının kör noktası çıkarılınca 0,1185: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici. Bu kör nokta ve belgede yazıyla sayı sonradan kapatıldı: kayıtlı 1.593 taslakta 15 doğru taslak artık geçiyor, 7 soruda gösterilen cevap doğruya dönüyor; kâhinde kabul → ret 0, uydurma kontrollerinde ret → kabul 0. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor.",
+      "metin": "Araç deneyi: aynı modelle elle araçlar 65/86 soruyu, otomatik üretilen araçlar 18/86 soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri 0,0490, doğrulayıcının kör noktası çıkarılınca 0,1185: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici. Bu kör nokta ve belgede yazıyla sayı sonradan kapatıldı: kayıtlı 1.593 taslakta 15 doğru taslak artık geçiyor, 7 koşu–soru çiftinde gösterilen cevap doğruya dönüyor, 3 çiftte beklenen değeri taşımayan (sayıları doğru, eksik ya da soruyu karşılamayan) bir cevap gösterilirdi; kâhinde kabul → ret 0, uydurma kontrollerinde ret → kabul 0. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor.",
       "kaynaklar": [
         "faz9_karsilastirma.json",
         "kor_nokta_olcum.json"
