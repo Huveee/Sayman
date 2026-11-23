@@ -1596,10 +1596,11 @@ toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 
 .venv\Scripts\python -I scripts\faz11_rapor.py
 ```
 
-- `reports/` altındaki ölçüm dosyalarından `reports/faz11_rapor.md` ve `reports/faz11_rapor.json` dosyalarını
-  üretir: Faz 0'dan Faz 9'a her fazın ölçüm tabloları, aşağıdaki doğrulayıcı kör nokta ölçümü ve sunum için
-  "Sonuçlar ve sınırlamalar" maddeleri. Hiçbir
-  ölçüm yeniden çalıştırılmaz, model çağrılmaz.
+- `reports/` altındaki ölçüm dosyalarından `reports/faz11_rapor_guncel.md` ve `reports/faz11_rapor_guncel.json`
+  dosyalarını üretir: Faz 0'dan Faz 9'a her fazın ölçüm tabloları, aşağıdaki doğrulayıcı kör nokta ölçümü ve sunum
+  için "Sonuçlar ve sınırlamalar" maddeleri. Hiçbir ölçüm yeniden çalıştırılmaz, model çağrılmaz.
+- Faz 11'in kendi çıktısı (`reports/faz11_rapor.md` ve `.json`, kör nokta ölçümünden önce) olduğu gibi korunur;
+  komut onun üzerine yazmaz. Sunumda güncel dosya kullanılır.
 - Hangi tablonun hangi dosyadan ve hangi anahtardan okunduğu betikteki `MANIFEST`'te açıkça yazılı. "En son koşu"
   dosya tarihine göre değil bu listeye göre belirlenir; bir fazın birden çok rapor sürümü varsa README'nin nihai
   sonuç diye sunduğu dosya seçildi.
@@ -1695,8 +1696,14 @@ numarayı düzeltmenin hedeflediği biçimde ("564713'tür (fatura …)", "… n
 | Aynı müşterinin bekleyen çeklerinin numaraları ve tutarları | C031975: 2.015,72 TL, C033510: 2.483,56 TL | 38 sn |
 
 Çek kimlikleri, tutarları ve vadeleri ambarla karşılaştırıldı, aynı. Bu yazılışları eski doğrulayıcı da geçirirdi
-(yazılıştan çıkarım; eski kodla çalıştırılmadı). Yani kayıt numarası düzeltmesinin dayanağı hâlâ kayıtlı taslaklar
-(15 doğru taslak); canlı demoda tetiklendiği görülmedi.
+(yazılıştan çıkarım; eski kodla çalıştırılmadı). Canlı modelle tetiklendiği görülmedi.
+
+Bu yüzden düzeltme demonun kendi yolunda bir kabul testiyle de sınandı (`tests/test_kor_nokta_demo.py`, 2 test).
+Gerçek veri, demo arka ucu, Faz 3 kapısı, orkestratör ve doğrulayıcı birlikte çalışıyor; yalnızca model betikli.
+Betikli model `fatura_ara`'yı çağırıp numarayı tam hedeflenen biçimde yazar ("…'tür (fatura tarihi …)").
+- Doğru numarayla cevap ilk taslakta gösterilir. Aynı test eski doğrulayıcıyla çalıştırıldığında başarısız oldu,
+  yani düzeltmeyi gerçekten sınıyor.
+- Numarayı 2 kaydırıp yazan model durdurulur.
 
 Demonun öteki beş CFO örnek sorusu da yeni doğrulayıcıyla aynı gün yeniden soruldu. Beşi de geçti, rakamlar Faz 10
 provasındakiyle aynı: 75.826.754,65 TL, 7.238.020,42 TL ve 37.800.862,95 TL. Çek politikası soruları alıntılarıyla
