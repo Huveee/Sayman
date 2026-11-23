@@ -30,3 +30,6 @@ FAZLAR.md
 # Proje dışı eski dosyalar (önceki çalışmalardan kalan kopyalar)
 Entertech_LLM_RAG_Proje_Onerileri.xlsx
 Entertech_Teknokent_Firmalari.xlsx
+
+# Faz 10 demosunun durumu (saat kopyası, uyarı deposu, denetim kayıtları): her makinede yeniden oluşur
+data/demo/

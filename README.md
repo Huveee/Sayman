@@ -1503,6 +1503,87 @@ yüzden kırıldı (7.986 → 8.102 karakter); sınır 8200'e çıkarıldı.
   29 tokenlık değişiklikten ya da koşudan koşuya oynamadan; bu koşu ikisini ayıramıyor). Tek koşuluk
   karşılaştırmalarda birkaç soruluk farklar bu gürültünün içinde kalabilir.
 
+## Faz 10: demo (sahte ERP sayfası ve gömülü Sayman sohbet penceresi)
+
+Kurgusal bir ERP'nin ("Defne ERP", şirket "Örnek Ticaret A.Ş.") ana sayfası ve sağ altta, müşterinin ekranındaki
+bir destek sohbeti gibi açılan Sayman penceresi. Arka uç FastAPI (`src/sayman/demo/uygulama.py`), sayfa
+`src/sayman/demo/static/` altında; internete hiçbir istek atmaz.
+
+```powershell
+ollama serve
+```
+
+```powershell
+.venv\Scripts\python -I scripts\faz10_demo.py baslat
+```
+
+Tarayıcıda `http://127.0.0.1:8010` açılır. Prova bittikten sonra saati ve uyarıları başa almak için:
+
+```powershell
+.venv\Scripts\python -I scripts\faz10_demo.py sifirla
+```
+
+- **Giriş:** üç kurgusal kullanıcıdan biri seçilir (CFO, yurtiçi ve ihracat satış müdürü). Demoda parola yok;
+  gerçek bir ERP'de oturumu ERP'nin kendi girişi açar.
+- **Kimliği imzalayan arka uç:** tarayıcı yalnızca rastgele bir oturum çerezi (HttpOnly) tutar. Her soru ve
+  rapor için kimlik kartı arka uçta, oturumdaki kullanıcı adına imzalanır; imza anahtarı ve kart tarayıcıya hiç
+  gitmez. İstek gövdesine yazılan bir kullanıcı ya da rol yok sayılır.
+- **Günlük nakit raporu:** rakamlar, oturumdaki kullanıcının kartıyla Faz 3 kapısından çağrılan araçlardan gelir;
+  model rapora karışmaz. CFO dört bölüm görür (nakit, 7 günün ödemeleri, alacaklar, 7 gün içinde vadesi gelen
+  çekler); satış müdürü yalnızca kendi müşterilerinin alacaklarını ve çeklerini görür.
+- **Uyarılar:** Faz 4 izleme kuralları. Uyarılar kapıdan geçmediği için arka uçta süzülür: satış müdürü yalnızca
+  kendi kapsamındaki müşterilerin uyarılarını görür, şirket düzeyindeki uyarıları (ör. olağandışı büyük ödeme) görmez.
+  Açıklamadan bütün şirketin verisinden hesaplanan kısım da çıkarılır (karşılıksız çekte şirketin çek eşiği,
+  gecikmede müşterinin şirketteki sırası). Bu sızıntıyı bağımsız kod incelemesi buldu; testle kapatıldı.
+- **Zamanı ileri sar:** demo saatini 7 gün ilerletir. İzleme yeni günleri tarar, yeni uyarılar "Yeni" etiketiyle
+  gelir, rapor yeni günün raporu olur. 1 Eylül 2026'dan ilk sarış 3 Eylül'deki karşılıksız çek uyarısını getirir.
+  Demo durumu `data/demo/` klasöründe; ambar ve `data/saat.json` değişmez. Saat geri alınamaz, veri 12 Kasım 2026'da
+  biter; yeniden başlamak için `sifirla`.
+- **Model:** varsayılan Faz 8'in ince ayarlı modeli (`sayman-ayarli`); `--model qwen3.5:9b` ile temel model.
+  Model açılışta ve her saat ilerleyişinde arka planda ısıtılır (sistem istemi bugünün tarihiyle başladığı için
+  saat değişince ön bellek boşa düşer). Aynı anda tek soru cevaplanır; ikinci istek "meşgul" cevabı alır.
+- Demo, Faz 9 üçüncü koldaki iki düzeltmeyle çalışıyor. Kullanıcının kararı beklenirken düzeltmeler varsayılan
+  olarak kodda bırakıldı.
+
+**Kabul testleri** (`tests/test_faz10_demo.py`, betikli modelle, 18 test):
+
+- CFO, yurtiçi ve ihracat satış müdürü aynı soruya üç farklı cevap alır; her cevaptaki rakam, o rolün kartıyla
+  kapıdan dönen rakamdır. Satış müdürünün nakit sorusu "yetkiniz yok" ile biter.
+- Zamanı ileri sarmak (gerçek veriyle): tarih 7 gün ilerler, yalnızca ilerlenen günlerin uyarıları "yeni" gelir,
+  rapor yeni günün raporudur. Satış müdürleri yalnızca kendi müşterilerinin uyarılarını görür. Ambar ve
+  `data/saat.json` dosyalarının özeti akıştan önce ve sonra aynı.
+- Oturumsuz ya da uydurma çerezli istek 401; gövdedeki `kullanici` alanı cevabı değiştirmez; çerez HttpOnly ve
+  SameSite=Strict; başka bir alan adıyla gelen istek reddedilir; saat veri sonunda durur (409) ve yeniden açılan
+  demo kaldığı günden devam eder (saat dosyası yazılamadan kesilmiş olsa bile).
+
+**Canlı prova (23 Kasım 2026, `sayman-ayarli`, bu bilgisayar, 1 Eylül 2026):**
+
+| Kullanıcı | Soru | Sonuç | Süre |
+| --- | --- | --- | --- |
+| CFO | Vadesi geçmiş alacaklarımızın toplamı ne kadar? | 37.800.862,95 TL | 161 sn (model ısınırken) |
+| Yurtiçi satış | Aynı soru | 23.863.877,25 TL (yurtiçi müşteriler) | 59 sn |
+| İhracat satış | Aynı soru | 13.936.985,70 TL (yurt dışı müşteriler) | 60 sn |
+| Yurtiçi satış | Bankalarda toplam ne kadar nakit var? | "Bu bilgiyi görme yetkiniz yok." | 6 sn |
+| CFO | Bankalarda toplam ne kadar nakit var? | 75.826.754,65 TL | 31 sn |
+| CFO | Önümüzdeki 7 günde tedarikçilere ne kadar ödeme yapacağız? | 7.238.020,42 TL | 48 sn |
+| CFO | Çek kabul politikamıza göre en fazla kaç gün vadeli çek alabiliriz? | 120 gün, alıntı [POL-CEK#m2] | 42 sn |
+| CFO | Çeki karşılıksız çıkan bir müşteriyle nasıl çalışmalıyız? | 6 ay peşin, limit sıfır, alıntı [POL-CEK#m5] | 81 sn |
+| CFO | Nakit politikamıza göre asgari nakit eşiği nedir? | Durduruldu ("cevap üretemedim") | 75 sn |
+
+Rakamlar aynı günün raporundaki rakamlarla aynı. Tarayıcıda akış bir kez elle de denendi: CFO girişi, soru,
+"zamanı ileri sar", yeni uyarı ve yeni rapor.
+
+**Sınırlar:**
+
+- Cevaplar bu bilgisayarda 30–80 saniye, model ısınırken ilk soru 2–3 dakika sürüyor. Sunumdan önce demoyu birkaç
+  dakika erken başlatın; sohbet başlığındaki nokta yeşile ("Hazır") dönünce sorun.
+- Son satırdaki soru durduruldu: politika "son on iki ayın" diye yazıyor, model "12" yazınca doğrulayıcı sayıyı
+  kaynakta bulamadı. Yanlış bir rakam gösterilmedi ama cevap da verilmedi. Bu yüzden bu soru örnek sorulardan
+  çıkarıldı.
+- `sayman-ayarli`, Faz 8'deki araç listesiyle eğitildi. Faz 9'da çek aracına bir parametre eklendi; model bu
+  listeyle 86 soruluk sette yeniden ölçülmedi. Demo için Faz 8b'nin 0,93'ü iddia edilmez; yalnızca yukarıdaki prova
+  sonuçları var.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.

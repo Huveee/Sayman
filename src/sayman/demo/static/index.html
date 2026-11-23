@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Defne ERP</title>
+<link rel="stylesheet" href="/static/stil.css">
+</head>
+<body>
+
+<!-- Giriş ekranı -->
+<section id="giris" class="gizli">
+  <div class="giris-kutu">
+    <h1>Defne ERP</h1>
+    <p class="soluk">Demo: bir kullanıcı seçin</p>
+    <div id="kullanici-kartlari" class="kartlar"></div>
+    <p id="giris-hata" class="hata"></p>
+  </div>
+</section>
+
+<!-- ERP kabuğu -->
+<div id="kabuk" class="gizli">
+  <header class="ust">
+    <div class="marka"><strong>Defne ERP</strong><span>Örnek Ticaret A.Ş.</span></div>
+    <div class="ust-sag">
+      <span id="bugun" class="tarih">Bugün: —</span>
+      <span id="kullanici-bilgi" class="kullanici"></span>
+      <button id="cikis" class="btn ikincil">Çıkış</button>
+    </div>
+  </header>
+
+  <div class="govde">
+    <nav class="sol">
+      <a class="aktif" href="#">Ana sayfa</a>
+      <a href="#" class="pasif">Satış</a>
+      <a href="#" class="pasif">Finans</a>
+      <a href="#" class="pasif">Raporlar</a>
+      <a href="#" class="pasif">Ayarlar</a>
+    </nav>
+
+    <main class="ana">
+      <h2>Ana sayfa</h2>
+
+      <div class="demo-serit">
+        <span class="etiket">Demo kontrolü</span>
+        <button id="ileri" class="btn"><span id="ileri-yazi">Zamanı ileri sar</span><span id="ileri-spin" class="spin gizli"></span></button>
+      </div>
+
+      <div class="izgara">
+        <section class="kart">
+          <div class="kart-baslik">
+            <h3>Günlük nakit raporu</h3>
+            <span id="rapor-ust" class="soluk"></span>
+          </div>
+          <div id="rapor"></div>
+          <p class="dipnot">Rakamlar araçlardan gelir, model hesaplamaz.</p>
+        </section>
+
+        <section class="kart">
+          <div class="kart-baslik"><h3>Uyarılar</h3></div>
+          <div id="uyarilar"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sayman sohbet penceresi -->
+  <button id="sohbet-ac" class="sohbet-ac">Sayman</button>
+  <aside id="sohbet" class="sohbet gizli">
+    <div class="sohbet-ust">
+      <div>
+        <strong>Sayman · Finans asistanı</strong>
+        <small>Yalnızca okur, para hareketi yapmaz.</small>
+      </div>
+      <div class="sohbet-sag">
+        <span id="model-nokta" class="nokta"></span><span id="model-yazi" class="model-yazi"></span>
+        <button id="sohbet-kapat" class="kapat" aria-label="Kapat">×</button>
+      </div>
+    </div>
+    <div id="ornekler" class="ornekler"></div>
+    <div id="mesajlar" class="mesajlar"></div>
+    <form id="sor-form" class="sor-form">
+      <textarea id="soru" rows="2" placeholder="Bir soru yazın…"></textarea>
+      <button id="gonder" class="btn" type="submit">Gönder</button>
+    </form>
+  </aside>
+</div>
+
+<div id="toast" class="toast gizli"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
