@@ -13,7 +13,7 @@ paths:
 The fine-tuned model `sayman-ayarli` was trained on the exact text it sees. In these packages, a change to any of
 the following silently degrades the live demo. No unit test notices, only `tests/test_model_contract.py`:
 
-- `SISTEM_ISTEMI` and the fixed answer texts in `src/sayman/assistant/orchestrator.py`.
+- The text of `SYSTEM_PROMPT` and `FIXED_TEXTS` in `src/sayman/assistant/orchestrator.py`.
 - Tool names, descriptions, JSON-schema argument names, enums and defaults in `src/sayman/tools/catalog.py`.
 - Keys and value formats of every tool result, including the gate's envelope (`cagri_id`, `arac`, `tarih`,
   `kapsam`, `sonuc`, `kaynak`, `hata`, `mesaj`). The verifier types output fields by name: fields ending in `_no`
