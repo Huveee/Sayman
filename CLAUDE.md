@@ -13,11 +13,11 @@ Windows. Use the Python 3.11 venv with `-I` every time: `.venv/Scripts/python -I
 - Install: `.venv/Scripts/python -I -m pip install -r requirements.txt`, then
   `.venv/Scripts/python -I -m pip install -e . --no-deps --no-build-isolation`. Scripts import `sayman` from this
   editable install; they do not add `src/` to `sys.path`. Without it they fail with `ModuleNotFoundError: sayman`.
-- All tests: `.venv/Scripts/python -I -m pytest -q -p no:cacheprovider` (about 660 tests, about 5 min). Tests that
+- All tests: `.venv/Scripts/python -I -m pytest -p no:cacheprovider` (about 660 tests, about 5 min). Tests that
   need generated data under `data/` skip with a message naming the script to run.
-- One file: `.venv/Scripts/python -I -m pytest -q -p no:cacheprovider tests/test_phase06_verifier.py`
+- One file: `.venv/Scripts/python -I -m pytest -p no:cacheprovider tests/test_phase06_verifier.py`
 - One test: append `::test_name`.
-- Model contract only (3 s): `.venv/Scripts/python -I -m pytest -q -p no:cacheprovider tests/test_model_contract.py`
+- Model contract only (3 s): `.venv/Scripts/python -I -m pytest -p no:cacheprovider tests/test_model_contract.py`
 - Demo: `.venv/Scripts/python -I scripts/phase10_demo.py baslat`, then open http://127.0.0.1:8010. Needs Ollama
   running with `sayman-ayarli`; the fallback is `--model qwen3.5:9b`. Reset the demo clock and state with
   `.venv/Scripts/python -I scripts/phase10_demo.py sifirla`.

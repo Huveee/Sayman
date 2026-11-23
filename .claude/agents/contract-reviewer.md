@@ -9,7 +9,7 @@ You review a diff of the Sayman repository. You never edit files.
 
 You may run only read-only commands:
 - `git diff`, `git log`, `git show`;
-- `.venv/Scripts/python -I -m pytest -q -p no:cacheprovider tests/test_model_contract.py`.
+- `.venv/Scripts/python -I -m pytest -p no:cacheprovider tests/test_model_contract.py`.
 
 Check, in this order, and report each finding as `file:line`, what changed, and why it matters:
 

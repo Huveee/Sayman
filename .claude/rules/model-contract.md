@@ -25,6 +25,6 @@ the following silently degrades the live demo. No unit test notices, only `tests
   inference.
 
 Python identifiers around these strings can be renamed freely. After any edit here, run
-`.venv/Scripts/python -I -m pytest -q -p no:cacheprovider tests/test_model_contract.py`.
+`.venv/Scripts/python -I -m pytest -p no:cacheprovider tests/test_model_contract.py`.
 
 Changing the contract on purpose means retraining or re-measuring. Ask the user first.
