@@ -8,10 +8,14 @@ Sayılar:
   yüzde, gün → gün, ay → ay, fatura/müşteri/çek/hareket... → adet, takvim günü → tarih, 2025 gibi yıl → yıl.
   Türü belli olmayan sayı tutar, kur, gün, ay, hafta ya da adet türünden bir kaynakla eşleşebilir; yüzde ve tarih
   yalnızca kendi türüyle eşleşir. Böylece uydurulmuş "%12", "son 12 ay"daki 12 ile eşleşemez.
+- Kayıt numaraları (kaynak_fatura_no, cek_no gibi "_no" alanları) "numara" türünde kaynaktır: türü belli olmayan ya
+  da adet türündeki sayıyla eşleşir ("564713'tür (fatura tarihi ...)", "1335451 no'lu çek"), tutarla eşleşmez.
 - Kaynaklar yalnızca şunlardır: bu turda başarılı dönen araç sonuçlarındaki değerler (alan adına göre türlenir),
   alan adlarındaki dönem kalıpları (son_12_ay → 12 ay, kur_yuzde_10 → %10, gecikme_31_60 → 31 ve 60 gün), listelerin
   uzunluğu, aracın gün ve satır sayısı argümanları, belge araması sonuçlarındaki madde metinleri, kullanıcının
-  sorusu ve bugünün tarihi. Reddedilen çağrılar, açıklama ve not metinleri kaynak değildir.
+  sorusu ve bugünün tarihi. Reddedilen çağrılar, açıklama ve not metinleri kaynak değildir. Madde metinlerinde ve
+  soruda yazıyla yazılmış sayılar da kaynaktır ("son on iki ayın" → 12 ay, "ikiyüzellibin Türk Lirası" → 250.000 TL);
+  ek almış kelimeler ("ikinci", "altına") ve tek başına "bir" sayılmaz.
 - Eşleşme: kaynak değer cevapta gösterilen hassasiyete yuvarlanınca ya da kesilince cevaptaki sayıyı vermelidir
   (75.826.754,65 → "75,8 milyon", "75,82 milyon", "75.826.755" geçer; "75,81 milyon" geçmez). İşaret karşılaştırılmaz
   (çıkışlar eksi işaretsiz yazılabilir).
@@ -41,7 +45,8 @@ Bilinen sınırlar:
 - Sayının neye ait olduğuna yalnızca müşteri düzeyinde bakılır (sahiplik kuralı): soru bir müşteriyi açıkça
   anmıyorsa, ya da o müşteriye ait bir sonuç varken cevap başka bir sonucun sayısını kullanıyorsa geçer.
 - Kullanıcının sorusundaki sayılar kaynaktır: "DSO 59 gün mü?" sorusuna "Evet, 59 gün" cevabı geçer (ikinci kör nokta).
-- Yalnızca rakamla yazılan sayılara bakılır: "yirmi yıl" denetlenmez (üçüncü kör nokta). Belge cevaplarında alıntı
+- Cevapta yalnızca rakamla yazılan sayılara bakılır: "yirmi yıl" denetlenmez (üçüncü kör nokta; yazıyla sayılar
+  yalnızca kaynak metinlerde okunur). Belge cevaplarında alıntı
   şart olduğu için cevap gerçek bir alıntı taşır, ama alıntının yanındaki iddia alıntıyla karşılaştırılmaz:
   'yirmi yıl saklanır: "on yıl süreyle saklamakla yükümlüdür" [KANUN-6102#m82]' geçer.
 - Çift tırnak yalnızca belge alıntısı içindir: parça kimliği olmayan tırnaklı metin "kimliksiz_alinti" olarak
@@ -72,9 +77,22 @@ UYUM = {
     "ay": {"ay", "bilinmeyen"},
     "hafta": {"hafta", "adet", "bilinmeyen"},
     "yil": {"yil"},
-    "adet": {"adet", "bilinmeyen"},
-    "bilinmeyen": {"tutar", "kur", "gun", "ay", "hafta", "adet", "bilinmeyen"},
+    "adet": {"adet", "numara", "bilinmeyen"},
+    "bilinmeyen": {"tutar", "kur", "gun", "ay", "hafta", "adet", "numara", "bilinmeyen"},
 }
+# Kayıt numarası alanları (kaynak_fatura_no, cek_no): metin olarak gelir ama tutar değildir. "numara" türündeki kaynak
+# yalnızca türü belli olmayan ya da adet türündeki sayıyla eşleşir ("564713'tür (fatura tarihi ...)", "1335451 no'lu
+# çek": ardındaki "fatura"/"çek" kelimesi sayıyı adet yapar). Kayıt numarası tutar olarak yazılırsa yakalanır.
+_NUMARA_ALANI = re.compile(r"(?:^|_)no$")
+# Yazıyla sayılar: yalnızca kaynak metinlerde (belge maddesi, kullanıcının sorusu) okunur; cevaptaki yazıyla sayılar
+# hâlâ denetlenmez (bilinen sınır). Ek almış kelimeler ("ikinci", "altına", "onda") sayı değildir; tek başına "bir"
+# belirsiz tanımlıktır ("bir müşteri"), bileşikte ve ölçekle sayıdır ("on bir", "bir milyon").
+_BIRLER = {"bir": 1, "iki": 2, "üç": 3, "dört": 4, "beş": 5, "altı": 6, "yedi": 7, "sekiz": 8, "dokuz": 9}
+_ONLAR = {"on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "elli": 50, "altmış": 60, "yetmiş": 70, "seksen": 80,
+          "doksan": 90}
+_OLCEK_KELIMESI = {"bin": 1000, "milyon": 10 ** 6, "milyar": 10 ** 9}
+_MORFEMLER = sorted([*_BIRLER, *_ONLAR, "yüz", *_OLCEK_KELIMESI], key=len, reverse=True)
+_HARFLER = re.compile(r"[^\W\d_]+")
 PARA = re.compile(r"^(tl|try|₺|lira\w*|usd|eur|gbp|dolar\w*|avro\w*|euro\w*|sterlin\w*|\$|€|£)$")
 ADET = re.compile(r"^(fatura|müşteri|çek|hareket|işlem|adet|kalem|hesap|tahsilat|ödeme|tedarikçi|alacak|kayıt|"
                   r"sözleşme|madde|belge|satır)\w*$")
@@ -323,10 +341,98 @@ def _degerlerden(deger, alan: str, cagri_id: str, kaynaklar: list[Kaynak]) -> No
             t = dt.date.fromisoformat(deger)
             kaynaklar.extend([Kaynak("tarih", alan, cagri_id, tarih=t), Kaynak("yil", alan, cagri_id, Decimal(t.year))])
         elif _SAYI_METNI.match(deger):
-            tur = "kur" if alan in ("kur", "alis") else ("gun" if "gun" in alan else "tutar")
+            if _NUMARA_ALANI.search(alan):
+                tur = "numara"
+            else:
+                tur = "kur" if alan in ("kur", "alis") else ("gun" if "gun" in alan else "tutar")
             kaynaklar.append(Kaynak(tur, alan, cagri_id, abs(Decimal(deger))))
         elif _YILAN.match(deger):  # "son_90_gun" gibi seçenek değerleri
             kaynaklar.extend(_anahtar_kaliplari(deger, cagri_id))
+
+
+def _parcala(kelime: str) -> list[str] | None:
+    """Ek almamış bir sayı kelimesini parçalarına ayırır ("yirmibeş" → yirmi, beş); sayı değilse None."""
+    if not kelime:
+        return []
+    for m in _MORFEMLER:
+        if kelime.startswith(m):
+            kalan = _parcala(kelime[len(m):])
+            if kalan is not None:
+                return [m, *kalan]
+    return None
+
+
+def _yaziyla_sayilar(metin: str) -> list[tuple[int, int, Decimal, bool]]:
+    """Metindeki yazıyla sayılar: (başlangıç, bitiş, değer, ölçekli mi). "son on iki ayın" → 12; "iki yüz elli bin"
+    → 250000. Sıralaması bozuk dizi ("iki üç", "on yirmi") orada bölünür."""
+    kucuk = _kucult(metin)
+    sonuc: list[tuple[int, int, Decimal, bool]] = []
+    durum: dict = {}
+
+    def bitir():
+        if durum.get("parca"):
+            # tek başına "bir" belirsiz tanımlıktır
+            if durum["parca"] != ["bir"]:
+                deger = durum["toplam"] + durum["blok"]
+                sonuc.append((durum["bas"], durum["bit"], Decimal(deger), durum["olcekli"]))
+        durum.clear()
+
+    def ekle(m: str) -> bool:
+        son, blok = durum.get("son"), durum.get("blok", 0)
+        if m in _BIRLER:
+            if son not in (None, "onlar", "yuz", "olcek"):
+                return False
+            durum["blok"] = blok + _BIRLER[m]
+            durum["son"] = "birler"
+        elif m in _ONLAR:
+            if son not in (None, "yuz", "olcek"):
+                return False
+            durum["blok"] = blok + _ONLAR[m]
+            durum["son"] = "onlar"
+        elif m == "yüz":
+            if son == "birler" and blok < 10:
+                durum["blok"] = blok * 100
+            elif son in (None, "olcek"):
+                durum["blok"] = 100
+            else:
+                return False
+            durum["son"] = "yuz"
+        else:
+            v = _OLCEK_KELIMESI[m]
+            if son == "olcek" or (durum.get("son_olcek") or v + 1) <= v:
+                return False
+            durum["toplam"] = durum.get("toplam", 0) + (blok or 1) * v
+            durum.update(blok=0, son="olcek", son_olcek=v, olcekli=True)
+        return True
+
+    onceki_bit = None
+    for w in _HARFLER.finditer(kucuk):
+        parcalar = _parcala(w.group(0))
+        bitisik = onceki_bit is not None and not kucuk[onceki_bit:w.start()].strip(" \t")
+        if not bitisik:
+            bitir()
+        if parcalar is None:
+            bitir()
+            onceki_bit = None
+            continue
+        for deneme in range(2):
+            yedek = dict(durum)
+            if all(ekle(m) for m in parcalar):
+                break
+            durum.clear()
+            durum.update(yedek)
+            bitir()  # sıralama bozuldu: önceki sayı biter, bu kelimeyle yenisi başlar
+        else:
+            onceki_bit = None
+            continue
+        if "bas" not in durum:
+            durum.update(bas=w.start(), toplam=durum.get("toplam", 0), olcekli=durum.get("olcekli", False),
+                         parca=[])
+        durum["bit"] = w.end()
+        durum["parca"] = durum["parca"] + parcalar
+        onceki_bit = w.end()
+    bitir()
+    return sonuc
 
 
 def _metinden_kaynaklar(metin: str, alan: str, cagri_id: str) -> list[Kaynak]:
@@ -338,6 +444,8 @@ def _metinden_kaynaklar(metin: str, alan: str, cagri_id: str) -> list[Kaynak]:
                           Kaynak("yil", alan, cagri_id, Decimal(s.tarih.year))])
         else:
             k.append(Kaynak(s.tur, alan, cagri_id, s.deger))
+    for bas, bit, deger, olcekli in _yaziyla_sayilar(metin):
+        k.append(Kaynak(_tur(metin, bas, bit, str(deger), olcekli), alan, cagri_id, deger))
     return k
 
 

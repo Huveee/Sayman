@@ -39,6 +39,7 @@ F8U = {"tekrar": "faz8_unutma_tekrar.json", "donusturme": "faz8_unutma_donusturm
        "ince": "faz8_unutma.json", "kutuphane": "faz8_unutma_kutuphane_ayarli.json"}
 F8BA, F8BY, F8BK, F8BS = "faz8b_analiz.json", "faz8b_ayarli_olcum_yeni.json", "faz8b_kimlik_analiz.json", "faz8b_soru_seti.json"
 F9, F9B = "faz9_karsilastirma.json", "faz9_boyut.json"
+FK = "kor_nokta_olcum.json"
 
 # --- Manifest yardımcıları: hücre = (dosya, yol veya yol listesi, biçim); None = boş hücre -------------------------
 KOLLAR = ("el", "otomatik", "duzeltme")
@@ -260,6 +261,22 @@ MANIFEST = [
             [e] + [(F9B, f"{k}.{y}", "sayi") for k in ("el", "otomatik")] for e, y in [
                 ("Araç sayısı", "arac_sayisi"), ("Karakter", "karakter"), ("Token", "token"), ("Soru ve sonuçlara kalan token", "kalan")]]),
     ]),
+    # ---- Faz 11'den sonra: kor_nokta_olcum.json (scripts/kor_nokta_olcum.py; kayıtlı taslaklar, model çalıştırılmadı) ----
+    ("Faz 11'den sonra · Doğrulayıcının iki kör noktası (kayıtlı taslaklarla)", [
+        tablo("kor_nokta", "Eski ve yeni doğrulayıcı, aynı kayıtlı taslaklar", ["Ölçü", "Değer"], [
+            [e, (FK, f"model_toplami.{a}", "sayi")] for e, a in [
+                ("Model koşularındaki taslak", "taslak"), ("Ret → kabul, beklenen değeri taşıyor", "ret_kabul_dogru"),
+                ("Ret → kabul, beklenen değeri taşımıyor", "ret_kabul_eksik"),
+                ("Kabul → ret, beklenen değeri taşıyor", "kabul_ret_dogru"),
+                ("Kabul → ret, beklenen değeri taşımıyor", "kabul_ret_eksik"),
+                ("Gösterilen cevabı doğruya dönen soru", "kazanilan_dogru_cevap"),
+                ("Doğru cevabı kaybedilen soru", "kaybedilen_dogru_cevap"),
+                ("Beklenen değeri taşımayan yeni gösterilen cevap", "gosterilen_yeni_eksik")]]
+            + [["Kâhin koşularında kabul → ret", (FK, "kontrol_ozeti.kahin_kabul_ret", "sayi")],
+               ["Uydurma kontrollerinde ret → kabul", (FK, "kontrol_ozeti.uydurma_ret_kabul", "sayi")]],
+            "Sonradan yapılan ölçüm: kayıtlı taslaklar yeniden oynatıldı, model çalıştırılmadı; fazların ön kayıtlı sonuçları "
+            "değişmez. Beklenen değeri taşımayan cevaplar elle okundu (README)."),
+    ]),
 ]
 
 # --- "Sonuçlar ve sınırlamalar": şablondaki her sayı bir manifest hücresinden gelir (elle yazılmış sayı yoktur) ----------------
@@ -300,9 +317,14 @@ SONUCLAR = [
      {"n": (F8BK, "soru_sayisi", "sayi"), "k": (F8BK, "desteksiz_taslak.adet", "sayi"), "m": (F8BK, "yeni_kuralin_katkisi", "metin"),
       "y": (F8BK, "gosterilen.yeni.yanlis_kayit#", "sayi"), "e": (F8BK, "gosterilen.eski.yanlis_kayit#", "sayi")}),
     ("Araç deneyi: aynı modelle elle araçlar {a} soruyu, otomatik üretilen araçlar {b} soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri {p}, doğrulayıcının "
-     "kör noktası çıkarılınca {q}: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici.",
+     "kör noktası çıkarılınca {q}: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici. Bu kör nokta ve belgede yazıyla sayı "
+     "sonradan kapatıldı: kayıtlı {t} taslakta {ra} doğru taslak artık geçiyor, {k} soruda gösterilen cevap doğruya dönüyor; kâhinde "
+     "kabul → ret {c}, uydurma kontrollerinde ret → kabul {d}. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor.",
      {"a": (F9, ["kollar.el.tum_set.dogru", "kollar.el.tum_set.n"], "kesir"), "b": (F9, ["kollar.otomatik.tum_set.dogru", "kollar.otomatik.tum_set.n"], "kesir"),
-      "p": (F9, "birincil.mcnemar_p", "p"), "q": (F9, "birincil.duyarlilik.dogrulayici_kor_noktasi_haric_p", "p")}),
+      "p": (F9, "birincil.mcnemar_p", "p"), "q": (F9, "birincil.duyarlilik.dogrulayici_kor_noktasi_haric_p", "p"),
+      "t": (FK, "model_toplami.taslak", "sayi"), "ra": (FK, "model_toplami.ret_kabul_dogru", "sayi"),
+      "k": (FK, "model_toplami.kazanilan_dogru_cevap", "sayi"), "c": (FK, "kontrol_ozeti.kahin_kabul_ret", "sayi"),
+      "d": (FK, "kontrol_ozeti.uydurma_ret_kabul", "sayi")}),
     ("Hız sınırı: bu bilgisayarda (ekran kartsız) seçilen modelin üretim hızı saniyede {a} token; bu yüzden uzun cevaplar sürenin çoğunu alıyor ve süre sınırları "
      "buna göre konuldu. Bütün ölçümler tek makinede ve çoğunlukla tek koşuyla yapıldı.",
      {"a": (F0, "adaylar[model=qwen3.5:9b].uretim_tps", "iki")}),

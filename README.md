@@ -1542,8 +1542,8 @@ Tarayıcıda `http://127.0.0.1:8010` açılır. Prova bittikten sonra saati ve u
 - **Model:** varsayılan Faz 8'in ince ayarlı modeli (`sayman-ayarli`); `--model qwen3.5:9b` ile temel model.
   Model açılışta ve her saat ilerleyişinde arka planda ısıtılır (sistem istemi bugünün tarihiyle başladığı için
   saat değişince ön bellek boşa düşer). Aynı anda tek soru cevaplanır; ikinci istek "meşgul" cevabı alır.
-- Demo, Faz 9 üçüncü koldaki iki düzeltmeyle çalışıyor. Bu düzeltmelerin kalıcı olup olmayacağına henüz karar
-  verilmedi.
+- Demo, Faz 9 üçüncü koldaki iki düzeltmeyle çalışıyor (çek aracında `musteri_adi`, `en_fazla` sınır mesajı).
+  İkisi de kalıcı; gerekçesi aşağıdaki "Faz 11'den sonra" bölümünde.
 
 **Kabul testleri** (`tests/test_faz10_demo.py`, betikli modelle, 18 test):
 
@@ -1584,8 +1584,8 @@ toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 
 - "Zamanı ileri sar"dan sonra nokta yaklaşık 100 saniye yeniden sarıya döner (model yeni tarihle ısınır). Bu sürede
   yeni uyarıyı ve yeni raporu gösterin, nokta yeşile dönünce soruya geçin.
 - Son satırdaki soru durduruldu: politika "son on iki ayın" diye yazıyor, model "12" yazınca doğrulayıcı sayıyı
-  kaynakta bulamadı. Yanlış bir rakam gösterilmedi ama cevap da verilmedi. Bu yüzden bu soru örnek sorulardan
-  çıkarıldı.
+  kaynakta bulamadı. Yanlış bir rakam gösterilmedi ama cevap da verilmedi. Doğrulayıcı sonradan düzeltildi
+  ("Faz 11'den sonra" bölümü); soru yeniden denendi, geçti ve örnek sorulara geri kondu.
 - `sayman-ayarli`, Faz 8'deki araç listesiyle eğitildi. Faz 9'da çek aracına bir parametre eklendi; model bu
   listeyle 86 soruluk sette yeniden ölçülmedi. Demo için Faz 8b'nin 0,93'ü iddia edilmez; yalnızca yukarıdaki prova
   sonuçları var.
@@ -1597,7 +1597,8 @@ toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 
 ```
 
 - `reports/` altındaki ölçüm dosyalarından `reports/faz11_rapor.md` ve `reports/faz11_rapor.json` dosyalarını
-  üretir: Faz 0'dan Faz 9'a her fazın ölçüm tabloları ve sunum için "Sonuçlar ve sınırlamalar" maddeleri. Hiçbir
+  üretir: Faz 0'dan Faz 9'a her fazın ölçüm tabloları, aşağıdaki doğrulayıcı kör nokta ölçümü ve sunum için
+  "Sonuçlar ve sınırlamalar" maddeleri. Hiçbir
   ölçüm yeniden çalıştırılmaz, model çağrılmaz.
 - Hangi tablonun hangi dosyadan ve hangi anahtardan okunduğu betikteki `MANIFEST`'te açıkça yazılı. "En son koşu"
   dosya tarihine göre değil bu listeye göre belirlenir; bir fazın birden çok rapor sürümü varsa README'nin nihai
@@ -1610,6 +1611,75 @@ toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 
   değişir. Eksik dosya ya da anahtar hata koduyla biter. İki çalıştırma birebir aynı çıktıyı verir.
 - README ile dosyalar karşılaştırıldı, sayılar uyuşuyor. Faz 10'un canlı prova sonuçları bir ölçüm dosyası olmadığı
   için raporda yok; yalnızca yukarıdaki Faz 10 bölümünde.
+
+## Faz 11'den sonra: Faz 9 düzeltmeleri kararı ve doğrulayıcının iki kör noktası
+
+### Faz 9'un iki düzeltmesi kalıcı
+
+- **Çek aracında `musteri_adi`.** Üçüncü kolda 8 çek sorusunun 8'i doğruydu; 65'ten 68'e çıkışın düzeltmeye
+  bağlanabilen +4'ü buradan geliyor. Bu, araç tasarımı önerileriyle de uyumlu: Anthropic'in araç rehberi, modelin
+  aradığı kaydı doğrudan süzebileceği parametreleri ve az ama işe yarar sonuç döndüren araçları öneriyor.
+- **`en_fazla` sınır mesajı.** Bu koşuda etkisi görülmedi; eski mesajla da model hemen 10 ile yeniden deniyordu.
+  Yine de kalıyor, üç nedenle:
+  - MCP şartnamesi (2025-11-25) aralık dışı değer gibi girdi hatalarının araç hatası olarak dönmesini öneriyor. Bu
+    hata ne yapılacağını söylemeli ki model parametreyi düzeltip yeniden deneyebilsin; yeni mesaj bunu yapıyor.
+  - Faz 8b'de sınır hatasından sonra numara uyduran model, demonun kendi modeli (`sayman-ayarli`).
+  - Mesaj yalnızca hata anında döner, araç listesini büyütmez.
+- **Bedeli:** araç listesi 2336 tokendan yaklaşık 2365'e çıktı; bütçe 2400, yani 35 token pay kaldı. Yeni bir
+  parametre eklenmeden önce boyut yeniden ölçülmeli.
+
+### Doğrulayıcının iki kör noktası kapatıldı
+
+İki kör nokta da doğru cevabı durduruyordu, yanlış bir rakam göstermiyordu.
+
+1. **Kayıt numarasından sonra gelen isim.** Model "…numarası 564713'tür (fatura tarihi …)" ya da "1335451 no'lu çek"
+   yazınca, ardından gelen "fatura" ya da "çek" kelimesi yüzünden sayı adet türü alıyordu. Araçtaki numara ise metin
+   olarak geldiği için tutar türündeydi. İkisi eşleşmediği için doğru numara kaynaksız sayılıyordu (Faz 9).
+2. **Belgede yazıyla yazılmış sayı.** Politika "son on iki ayın" diyor, model "son 12 ayın" yazıyor. Belgeden
+   yalnızca rakamlar kaynak sayıldığı için 12 kaynaksız kalıyordu (Faz 10 provasındaki asgari nakit sorusu).
+
+**Düzeltme** (`src/sayman/asistan/dogrulayici.py`):
+
+- `_no` ile biten alanlar (`kaynak_fatura_no`, `cek_no`) artık "numara" türünde kaynak. Türü belli olmayan ya da adet
+  türündeki sayıyla eşleşir, tutarla eşleşmez. Eskiden bu alanlar tutar türündeydi; yani "564713 TL" gibi bir uydurma
+  geçerdi, artık yakalanıyor.
+- Belge maddelerinde ve kullanıcının sorusunda yazıyla yazılmış sayılar da kaynak ("on iki", "onbeş",
+  "ikiyüzellibin"). Türü, rakamla yazılan sayılardaki gibi ardından gelen kelime belirler: "on iki ayın" 12 ay olur,
+  cevaptaki "%12" ya da "12 gün" ile eşleşmez. Ek almış kelimeler ("ikinci", "altına", "onda") ve tek başına "bir"
+  sayılmaz. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor (üçüncü kör nokta duruyor).
+
+**Testler** (`tests/test_dogrulayici_kor_nokta.py`, 11 test): düzeltmeden önce yazıldı; ilk çalıştırmada 8'i
+başarısızdı. Yanlış numara, yanlış tür ve yanlış sayı yakalanmaya devam ediyor. Faz 6 ve Faz 8b'nin doğrulayıcı
+testleri değiştirilmeden geçiyor.
+
+**Kayıtlı taslaklarla ölçüm** (`scripts/kor_nokta_olcum.py`, `reports/kor_nokta_olcum.json`). Faz 7, 8, 8b ve 9'un 13
+model koşusundaki 1.593 taslak, eski (`6f1a970`) ve yeni doğrulayıcıdan geçirildi. Model çalıştırılmadı.
+
+| Kararı değişen taslak | Sayı |
+| --- | --- |
+| Ret → kabul, beklenen değeri taşıyor | 15 |
+| Ret → kabul, beklenen değeri taşımıyor | 5 |
+| Kabul → ret | 0 |
+
+- **Gösterilecek cevap.** Orkestratör ilk geçen taslağı gösterir. Buna göre 7 soruda "cevap üretemedim" yerine
+  doğru cevap gösterilirdi: altısı son fatura numarası sorusu (Faz 7'de S-fat_son-02 ve -04, Faz 8 temel modelde
+  S-fat_son-04, Faz 9 otomatik kolda Y-fat_son-01 ve -03, Faz 9 üçüncü kolda Y-fat_son-04), biri ince ayarlı modelin
+  "ana hesapta kalması gereken en az para" sorusu (S-belge-04, Faz 8). Hiçbir soruda doğru bir cevap kaybedilmedi.
+- **Beklenen değeri taşımayan 3 cevap** gösterilirdi. Üçü de elle okundu; üçünde de sayılar araç sonucuyla aynı:
+  - Y-oz_son_tahsilat-03 (Faz 9 elle kol ve üçüncü kol): "son ödeme ne zaman" soruldu. Model açık faturaları getirdi
+    ve vadeyi ("son ödeme tarihi") yazdı. Sayılar doğru ama soruya cevap değil. Doğrulayıcı sayının neye ait olduğuna
+    bakmaz (bilinen sınır). Eski doğrulayıcı bu cevabı yanlış bir nedenle, numarayı adet sanarak durduruyordu.
+  - Y-oz_cek_tutar-02 (Faz 9 otomatik kol): iki çeki doğru tutarlarıyla listeledi ama toplamı vermedi. Cevap eksik,
+    yanlış değil.
+- **Kontroller.** Kâhin koşularında (her cevap doğru) hiçbir taslak kabul → ret olmadı. Uydurma kontrollerinde (bir
+  hane, yanlış birim, yanlış araç, başka müşteri, uydurma kimlik) hiçbir taslak ret → kabul olmadı.
+- **Bu, sonradan yapılan bir ölçüm.** Saklanan setlerin kayıtlı taslakları yeniden oynatıldı; model yeniden
+  çalıştırılmadı ve fazların ön kayıtlı sonuçları değişmedi. Gerçek bir koşuda, kabul edilen taslaktan sonraki
+  taslaklar hiç yazılmazdı; burada yalnızca ilk geçen taslak sayıldı.
+
+**Canlı deneme** (23 Kasım 2026, demo, `sayman-ayarli`, CFO, 1 Eylül 2026): "Nakit politikamıza göre asgari nakit
+eşiği nedir?" sorusu 47 sn'de cevaplandı. Cevap "son 12 ayın ortalama aylık net satışının %10'u" oldu ve alıntı
+[POL-NAKIT#m2] geldi. İlk provada bu soru durdurulmuştu; şimdi örnek sorularda.
 
 ## Veri kaynakları
 

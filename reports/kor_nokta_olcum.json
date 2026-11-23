@@ -1,0 +1,628 @@
+{
+ "aciklama": "Düzeltme (README \"Doğrulayıcının iki kör noktası\"): kayıt numarası alanları (kaynak_fatura_no, cek_no) \"numara\" türünde kaynaktır; belge maddelerindeki ve sorudaki yazıyla sayılar (\"on iki ay\") kaynaktır. Eski doğrulayıcı düzeltmeden önceki commit'ten okunur, yenisi çalışma ağacından; ikisi aynı taslaklara aynı girdilerle uygulanır.",
+ "eski_commit": "6f1a970",
+ "model_kosulari": {
+  "faz7_gelistirme": {
+   "sayilar": {
+    "taslak": 81
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "faz7_saklanan": {
+   "sayilar": {
+    "gosterilen_yeni_dogru": 2,
+    "kazanilan_dogru_cevap": 2,
+    "ret_kabul_dogru": 4,
+    "taslak": 276
+   },
+   "sorular": {
+    "kazanilan": [
+     "S-fat_son-02",
+     "S-fat_son-04"
+    ],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": [
+    {
+     "soru_id": "S-fat_son-02",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Bright Gifts Partners Ltd müşterisine kestiğimiz en son fatura numarası 564428'dir. Bu faturanın tarihi 27 Ağustos 2026, tutarı ise 70,15 USD (3.369,25 TL) olup durumu \"açık\" olarak kaydedilmiştir."
+    },
+    {
+     "soru_id": "S-fat_son-02",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Bright Gifts Partners Ltd müşterisine kestiğimiz en son fatura numarası 564428'dir. Bu faturanın kaynağı F035729, tarihi 2026-08-27 olup tutarı 70,15 USD (3.369,25 TL) olarak belirtilmiştir."
+    },
+    {
+     "soru_id": "S-fat_son-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Ada Yakut Oyuncak A.Ş. müşterisine kestiğiniz en son fatura numarası **563697**'dir (fatura ID: F035324). Bu fatura 20 Ağustos 2026 tarihinde kesilmiş olup, vade tarihi de aynı gün olarak belirtilmiştir."
+    },
+    {
+     "soru_id": "S-fat_son-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Ada Yakut Oyuncak A.Ş. müşterisine kestiğiniz en son fatura numarası **563697**'dir (fatura ID: F035324). Bu fatura 20 Ağustos 2026 tarihinde kesilmiş olup, vade tarihi de aynı gün olarak belirtilmiştir."
+    }
+   ]
+  },
+  "faz8_temel_kendi_gelistirme": {
+   "sayilar": {
+    "taslak": 85
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "faz8_temel_kendi_saklanan": {
+   "sayilar": {
+    "gosterilen_yeni_dogru": 1,
+    "kazanilan_dogru_cevap": 1,
+    "ret_kabul_dogru": 2,
+    "taslak": 284
+   },
+   "sorular": {
+    "kazanilan": [
+     "S-fat_son-04"
+    ],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": [
+    {
+     "soru_id": "S-fat_son-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Ada Yakut Oyuncak A.Ş. müşterisine kestiğiniz en son fatura **563697** numaralıdır (fatura ID: F035324). Bu fatura 2026-08-20 tarihinde kesilmiş ve vade tarihi de aynı gün olmuştur."
+    },
+    {
+     "soru_id": "S-fat_son-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Ada Yakut Oyuncak A.Ş. müşterisine kestiğiniz en son fatura **563697** numarasıdır (fatura ID: F035324). Bu fatura 2026-08-20 tarihinde kesilmiş ve vade tarihi de aynı gün olmuştur."
+    }
+   ]
+  },
+  "faz8_ayarli_gelistirme": {
+   "sayilar": {
+    "taslak": 60
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "faz8_ayarli_saklanan": {
+   "sayilar": {
+    "gosterilen_yeni_dogru": 1,
+    "kazanilan_dogru_cevap": 1,
+    "ret_kabul_dogru": 2,
+    "taslak": 218
+   },
+   "sorular": {
+    "kazanilan": [
+     "S-belge-04"
+    ],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": [
+    {
+     "soru_id": "S-belge-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Nakit Yönetimi Politikası uyarınca ana TL hesabının en düşük bakiyesi: son 12 ayın ortalama aylık net satışının %10'u. \"gün içindeki en düşük bakiyesi, son on iki ayın ortalama aylık net satışının %10 oranından az olmamalıdır\" [POL-NAKIT#m2"
+    },
+    {
+     "soru_id": "S-belge-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Nakit Yönetimi Politikası uyarınca en düşük bakiye: son 12 ayın ortalama aylık net satışının %10'u. \"gün içindeki en düşük bakiyesi, son on iki ayın ortalama aylık net satışının %10 oranından az olmamalıdır\" [POL-NAKIT#m2]"
+    }
+   ]
+  },
+  "faz7_saklanan_tekrar": {
+   "sayilar": {
+    "taslak": 12
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "faz8_temel_tekrar_gelistirme": {
+   "sayilar": {
+    "taslak": 80
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "faz8b_ayarli_yeni": {
+   "sayilar": {
+    "taslak": 128
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "faz8b_ayarli_kimlik": {
+   "sayilar": {
+    "taslak": 45
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "faz9_el_yeni": {
+   "sayilar": {
+    "gosterilen_yeni_eksik": 1,
+    "ret_kabul_eksik": 2,
+    "taslak": 126
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": [
+     "Y-oz_son_tahsilat-03"
+    ]
+   },
+   "ornekler": [
+    {
+     "soru_id": "Y-oz_son_tahsilat-03",
+     "yon": "ret_kabul",
+     "sinif": "eksik",
+     "taslak": "Kuzey Meltem Hediyelik San. ve Tic. Ltd. Şti.'den 2 adet açık fatura bulunmaktadır:\n\n1. Fatura No: 561878 - Son ödeme tarihi: 31 Ekim 2026, Tutar: 11.987,86 TL\n2. Fatura No: 552970 - Son ödeme tarihi: 12 Ağustos 2026, Tutar: 23.342,01 TL\n\nB"
+    },
+    {
+     "soru_id": "Y-oz_son_tahsilat-03",
+     "yon": "ret_kabul",
+     "sinif": "eksik",
+     "taslak": "Kuzey Meltem Hediyelik San. ve Tic. Ltd. Şti.'den 2 adet açık fatura bulunmaktadır:\n\n1. Fatura ID: F034438 - Kaynak Fatura No: 561878 - Son ödeme tarihi: 31 Ekim 2026, Tutar: 11987,86 TL\n2. Fatura ID: F030082 - Kaynak Fatura No: 552970 - So"
+    }
+   ]
+  },
+  "faz9_oto_yeni": {
+   "sayilar": {
+    "gosterilen_once_dogru": 1,
+    "gosterilen_yeni_dogru": 2,
+    "gosterilen_yeni_eksik": 1,
+    "kazanilan_dogru_cevap": 2,
+    "ret_kabul_dogru": 5,
+    "ret_kabul_eksik": 1,
+    "taslak": 79
+   },
+   "sorular": {
+    "kazanilan": [
+     "Y-fat_son-01",
+     "Y-fat_son-03"
+    ],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": [
+     "Y-oz_cek_tutar-02"
+    ]
+   },
+   "ornekler": [
+    {
+     "soru_id": "Y-oz_cek_tutar-02",
+     "yon": "ret_kabul",
+     "sinif": "eksik",
+     "taslak": "Liman Rüzgar Tasarım Ltd. Şti. firmasından alınmış ve henüz tahsil edilmemiş (portföyde) çeklerin detayları aşağıdadır:\n\n*   **1335451** no'lu çek: **2015.72** TL\n*   **7257919** no'lu çek: **2483.56** TL\n\nBu iki çekin toplam tutarı araç so"
+    },
+    {
+     "soru_id": "Y-fat_son-01",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Yaprak Güneş Mağazacılık A.Ş. müşterisine en son kesilen faturanın numarası **497351**'dir (fatura ID: F003457)."
+    },
+    {
+     "soru_id": "Y-fat_son-01",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Yaprak Güneş Mağazacılık A.Ş. müşterisine en son kesilen faturanın numarası **497351**'dir (fatura ID: F003457). Bu bilgi, müşteri kimliği M03414 için tarihe göre azalan sırada getirilen faturalar listesinden alınmıştır."
+    },
+    {
+     "soru_id": "Y-fat_son-02",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Pınar Gökçe Ticaret San. ve Tic. Ltd. Şti. firmasına kestiğiniz son faturanın numarası **563929**'dır (fatura ID: F035473)."
+    },
+    {
+     "soru_id": "Y-fat_son-03",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Bright Home Partners SL müşterisine en son kesilen faturanın numarası **564201**'dir (fatura ID: F035616)."
+    },
+    {
+     "soru_id": "Y-fat_son-03",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Bright Home Partners SL müşterisine en son kesilen faturanın numarası **564201**'dir (fatura ID: F035616)."
+    }
+   ]
+  },
+  "faz9_duzeltme_yeni": {
+   "sayilar": {
+    "gosterilen_yeni_dogru": 1,
+    "gosterilen_yeni_eksik": 1,
+    "kazanilan_dogru_cevap": 1,
+    "ret_kabul_dogru": 2,
+    "ret_kabul_eksik": 2,
+    "taslak": 119
+   },
+   "sorular": {
+    "kazanilan": [
+     "Y-fat_son-04"
+    ],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": [
+     "Y-oz_son_tahsilat-03"
+    ]
+   },
+   "ornekler": [
+    {
+     "soru_id": "Y-oz_son_tahsilat-03",
+     "yon": "ret_kabul",
+     "sinif": "eksik",
+     "taslak": "Kuzey Meltem Hediyelik San. ve Tic. Ltd. Şti.'den 2 adet açık fatura bulunmaktadır:\n\n1. Fatura No: 561878 - Son ödeme tarihi: 31 Ekim 2026, Tutar: 11.987,86 TL\n2. Fatura No: 552970 - Son ödeme tarihi: 12 Ağustos 2026, Tutar: 23.342,01 TL\n\nB"
+    },
+    {
+     "soru_id": "Y-oz_son_tahsilat-03",
+     "yon": "ret_kabul",
+     "sinif": "eksik",
+     "taslak": "Kuzey Meltem Hediyelik San. ve Tic. Ltd. Şti.'den 2 adet açık fatura bulunmaktadır:\n\n1. Fatura No: 561878 - Son ödeme tarihi: 31 Ekim 2026, Tutar: 11987,86 TL\n2. Fatura No: 552970 - Son ödeme tarihi: 12 Ağustos 2026, Tutar: 23342,01 TL\n\nBu "
+    },
+    {
+     "soru_id": "Y-fat_son-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Akın Doğa Oyuncak San. ve Tic. Ltd. Şti. firmasına kestiğiniz son faturanın numarası **564713**'tür (fatura tarihi 2026-08-30)."
+    },
+    {
+     "soru_id": "Y-fat_son-04",
+     "yon": "ret_kabul",
+     "sinif": "dogru",
+     "taslak": "Akın Doğa Oyuncak San. ve Tic. Ltd. Şti. firmasına kestiğiniz son faturanın numarası **564713**'tür (fatura tarihi 2026-08-30). Bu bilgi, `fatura_ara` aracının döndürdüğü sonuçta yer almaktadır."
+    }
+   ]
+  }
+ },
+ "kontroller": {
+  "gelistirme_kahin": {
+   "sayilar": {
+    "taslak": 62
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "gelistirme_bir_hane": {
+   "sayilar": {
+    "taslak": 116
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "gelistirme_yanlis_birim": {
+   "sayilar": {
+    "taslak": 62
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "gelistirme_yanlis_arac": {
+   "sayilar": {
+    "taslak": 68
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "gelistirme_baska_musteri": {
+   "sayilar": {
+    "taslak": 62
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "gelistirme_uydurma_kimlik": {
+   "yok": true
+  },
+  "gelistirme_yaziyla": {
+   "sayilar": {
+    "taslak": 62
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "saklanan_kahin": {
+   "sayilar": {
+    "taslak": 215
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "saklanan_bir_hane": {
+   "sayilar": {
+    "taslak": 394
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "saklanan_yanlis_birim": {
+   "sayilar": {
+    "taslak": 215
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "saklanan_yanlis_arac": {
+   "sayilar": {
+    "taslak": 250
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "saklanan_baska_musteri": {
+   "sayilar": {
+    "taslak": 215
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "saklanan_uydurma_kimlik": {
+   "yok": true
+  },
+  "saklanan_yaziyla": {
+   "sayilar": {
+    "taslak": 215
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "yeni_kahin": {
+   "sayilar": {
+    "taslak": 117
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "yeni_bir_hane": {
+   "sayilar": {
+    "taslak": 183
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "yeni_yanlis_birim": {
+   "sayilar": {
+    "taslak": 117
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "yeni_yanlis_arac": {
+   "sayilar": {
+    "taslak": 134
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "yeni_baska_musteri": {
+   "sayilar": {
+    "taslak": 150
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "yeni_uydurma_kimlik": {
+   "yok": true
+  },
+  "yeni_yaziyla": {
+   "sayilar": {
+    "taslak": 100
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "kimlik_kahin": {
+   "sayilar": {
+    "taslak": 36
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "kimlik_bir_hane": {
+   "sayilar": {
+    "taslak": 44
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "kimlik_yanlis_birim": {
+   "sayilar": {
+    "taslak": 36
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "kimlik_yanlis_arac": {
+   "sayilar": {
+    "taslak": 52
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "kimlik_baska_musteri": {
+   "sayilar": {
+    "taslak": 36
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "kimlik_uydurma_kimlik": {
+   "sayilar": {
+    "taslak": 63
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "kimlik_yaziyla": {
+   "sayilar": {
+    "taslak": 36
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  },
+  "yeni_kahin_oto": {
+   "sayilar": {
+    "taslak": 86
+   },
+   "sorular": {
+    "kazanilan": [],
+    "kaybedilen": [],
+    "yeni_gosterilen_eksik": []
+   },
+   "ornekler": []
+  }
+ },
+ "model_toplami": {
+  "gosterilen_once_dogru": 1,
+  "gosterilen_yeni_dogru": 7,
+  "gosterilen_yeni_eksik": 3,
+  "kabul_ret_dogru": 0,
+  "kabul_ret_eksik": 0,
+  "kaybedilen_dogru_cevap": 0,
+  "kazanilan_dogru_cevap": 7,
+  "ret_kabul_dogru": 15,
+  "ret_kabul_eksik": 5,
+  "taslak": 1593
+ },
+ "kontrol_ozeti": {
+  "kahin_kabul_ret": 0,
+  "uydurma_ret_kabul": 0
+ }
+}

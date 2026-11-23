@@ -2608,6 +2608,115 @@
           ]
         }
       ]
+    },
+    {
+      "baslik": "Faz 11'den sonra · Doğrulayıcının iki kör noktası (kayıtlı taslaklarla)",
+      "tablolar": [
+        {
+          "id": "kor_nokta",
+          "baslik": "Eski ve yeni doğrulayıcı, aynı kayıtlı taslaklar",
+          "not": "Sonradan yapılan ölçüm: kayıtlı taslaklar yeniden oynatıldı, model çalıştırılmadı; fazların ön kayıtlı sonuçları değişmez. Beklenen değeri taşımayan cevaplar elle okundu (README).",
+          "kolonlar": [
+            "Ölçü",
+            "Değer"
+          ],
+          "kaynaklar": [
+            "kor_nokta_olcum.json"
+          ],
+          "satirlar": [
+            {
+              "ad": "Model koşularındaki taslak",
+              "degerler": [
+                1593
+              ],
+              "gosterim": [
+                "1.593"
+              ]
+            },
+            {
+              "ad": "Ret → kabul, beklenen değeri taşıyor",
+              "degerler": [
+                15
+              ],
+              "gosterim": [
+                "15"
+              ]
+            },
+            {
+              "ad": "Ret → kabul, beklenen değeri taşımıyor",
+              "degerler": [
+                5
+              ],
+              "gosterim": [
+                "5"
+              ]
+            },
+            {
+              "ad": "Kabul → ret, beklenen değeri taşıyor",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Kabul → ret, beklenen değeri taşımıyor",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Gösterilen cevabı doğruya dönen soru",
+              "degerler": [
+                7
+              ],
+              "gosterim": [
+                "7"
+              ]
+            },
+            {
+              "ad": "Doğru cevabı kaybedilen soru",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Beklenen değeri taşımayan yeni gösterilen cevap",
+              "degerler": [
+                3
+              ],
+              "gosterim": [
+                "3"
+              ]
+            },
+            {
+              "ad": "Kâhin koşularında kabul → ret",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            },
+            {
+              "ad": "Uydurma kontrollerinde ret → kabul",
+              "degerler": [
+                0
+              ],
+              "gosterim": [
+                "0"
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "sonuclar": [
@@ -2665,9 +2774,10 @@
       ]
     },
     {
-      "metin": "Araç deneyi: aynı modelle elle araçlar 65/86 soruyu, otomatik üretilen araçlar 18/86 soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri 0,0490, doğrulayıcının kör noktası çıkarılınca 0,1185: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici.",
+      "metin": "Araç deneyi: aynı modelle elle araçlar 65/86 soruyu, otomatik üretilen araçlar 18/86 soruyu doğru cevapladı. Ön kayıtlı birincil testin p değeri 0,0490, doğrulayıcının kör noktası çıkarılınca 0,1185: yön net, anlamlılık kırılgan. Üçüncü kol yalnızca betimleyici. Bu kör nokta ve belgede yazıyla sayı sonradan kapatıldı: kayıtlı 1.593 taslakta 15 doğru taslak artık geçiyor, 7 soruda gösterilen cevap doğruya dönüyor; kâhinde kabul → ret 0, uydurma kontrollerinde ret → kabul 0. Cevaptaki yazıyla sayılar hâlâ denetlenmiyor.",
       "kaynaklar": [
-        "faz9_karsilastirma.json"
+        "faz9_karsilastirma.json",
+        "kor_nokta_olcum.json"
       ]
     },
     {

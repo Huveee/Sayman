@@ -51,14 +51,15 @@ ORNEK_SORULAR = {
             "Önümüzdeki 7 günde tedarikçilere ne kadar ödeme yapacağız?",
             "Vadesi geçmiş alacaklarımızın toplamı ne kadar?",
             "Çek kabul politikamıza göre en fazla kaç gün vadeli çek alabiliriz?",
-            "Çeki karşılıksız çıkan bir müşteriyle politikamıza göre nasıl çalışmalıyız?"],
+            "Çeki karşılıksız çıkan bir müşteriyle politikamıza göre nasıl çalışmalıyız?",
+            "Nakit politikamıza göre asgari nakit eşiği nedir?"],
     "satis": ["Vadesi geçmiş alacaklarımızın toplamı ne kadar?",
               "Bekleyen çeklerimizin toplamı ne kadar?",
               "Bankalarda toplam ne kadar nakit var?"],
 }
 # Canlı provada (22-23 Kasım 2026, sayman-ayarli) bu sorular doğrulanmış cevap verdi; satış müdürünün nakit sorusu
-# bilerek "yetkiniz yok" ile biter. "Nakit politikamıza göre asgari nakit eşiği" sorusu durduruldu: politika "on iki
-# ay" yazıyor, model "12" yazınca doğrulayıcı sayıyı kaynakta bulamadı (bilinen sınır, README Faz 10).
+# bilerek "yetkiniz yok" ile biter. "Asgari nakit eşiği" sorusu ilk provada durdurulmuştu (politika "on iki ay"
+# yazıyor, doğrulayıcı yazıyla sayıyı okumuyordu); doğrulayıcı düzeltmesinden sonra canlı denendi ve geçti (README).
 UYARI_ALANLARI = ("uyari_id", "gun", "onem", "baslik", "aciklama", "musteri_id")
 
 
