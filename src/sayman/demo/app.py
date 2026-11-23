@@ -293,6 +293,15 @@ def build_app(demo: Demo) -> FastAPI:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+    @app.middleware("http")
+    async def revalidate_page_files(request: Request, call_next):
+        # Without Cache-Control a browser reuses the page script by its own guess (a stale app.js after an update);
+        # no-cache keeps the copy but asks the server every time (304 when unchanged).
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     def current_user(request: Request) -> str:
         user = demo.sessions.get(request.cookies.get(COOKIE_NAME, ""))
         if user is None:

@@ -1760,7 +1760,9 @@ olarak, alıntılanan maddenin sayfasında açılır. PDF'ler bir kez üretilir:
   (`Cache-Control: no-store`), çünkü demoda aynı tarayıcıda kullanıcı değişiyor.
 - Modelin gördüğü hiçbir şey değişmedi: alıntı biçimi aynı, bağlantıya yalnızca tarayıcıda çevriliyor. `/api` yolları
   da aynı; PDF'ler `/belge/...` altında.
-- **Testler** (`tests/test_phase10_document_pdfs.py`, 22 test; tarayıcı gerektirmez).
+- **Testler** (`tests/test_phase10_document_pdfs.py`, 25 test; tarayıcı gerektirmez). Canlı denemede tarayıcının
+  güncellenen `app.js` yerine önbellekteki eski kopyayı kullandığı görüldü; sayfa ve statik dosyalar artık
+  `Cache-Control: no-cache` ile her açılışta sunucuya sorulur.
 
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 

@@ -137,6 +137,14 @@ def test_other_paths_are_not_served(pdf_demo, path):
     assert _login(app, CFO).get(path, follow_redirects=False).status_code == 404
 
 
+@pytest.mark.parametrize("path", ["/", "/static/app.js", "/static/style.css"])
+def test_page_files_are_revalidated(pdf_demo, path):
+    """Found in the demo: the browser kept a stale app.js after the update, so citations were not links."""
+    _, app = pdf_demo
+    r = TestClient(app).get(path)
+    assert r.status_code == 200 and r.headers["cache-control"] == "no-cache"
+
+
 @pytest.mark.parametrize("path", ["/belge/POL-CEK.pdf", "/belge/POL-CEK/m2"])
 def test_pdf_needs_a_session(pdf_demo, path):
     _, app = pdf_demo
