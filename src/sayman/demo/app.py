@@ -17,8 +17,8 @@ Security:
   pass the document tool's rule (belge_ara permission and the document's roles);
   an unknown and a forbidden document get the same 404, so a link cannot reveal that a contract exists.
 - An answer goes only to the session that asked. If that session ends while the model is still working (log out, or
-  another user logs in on the same browser), the server withholds the answer (401) and the page drops the request,
-  so the next user never sees it.
+  another user logs in on the same browser), the model stops working on it, the server withholds the answer (401)
+  and the page drops the request, so the next user never sees it and does not wait for it.
 - Demo state (clock copy, alert store, audit logs, scope copies) is kept in its own folder; the warehouse and
   data/saat.json do not change. The clock cannot be turned back; to start over the folder is deleted.
 """
@@ -55,6 +55,7 @@ MAX_QUESTION_LENGTH = 500
 MAX_STEP_DAYS = 31
 SHOWN_ALERTS = 20
 MAX_SESSIONS = 50
+STOPPED_TURN_WAIT_S = 5.0   # how long a question waits for a stopped one to end before "başka bir işi bitiriyor"
 DISPLAY_NAMES = {"selin.aydin": "Selin Aydın", "murat.kaya": "Murat Kaya", "deniz.arslan": "Deniz Arslan"}  # fictional
 SAMPLE_QUESTIONS = {
     "cfo": ["Bankalarda toplam ne kadar nakit var?",
@@ -165,6 +166,8 @@ class Demo:
         self.assistant = Assistant(self.server, model, Settings(), audit_log=AuditLog(self.directory / "asistan.jsonl"))
         self.lock = threading.Lock()  # a model turn and advancing the clock do not run at the same time
         self.sessions: dict[str, str] = {}
+        self._turn_lock = threading.Lock()
+        self._turn_session: str | None = None  # the session whose question the model is answering now
         self.model_ready = warmer is None
         self._warm_condition = threading.Condition()
         self._warm_date: dt.date | None = None   # the newest date still waiting to be warmed up
@@ -257,6 +260,31 @@ class Demo:
             sections.append({"baslik": title, "ozet": summary, "satirlar": [list(s) for s in rows]})
         return {"tarih": self.clock.simdi.isoformat(), **self.profile(user), "bolumler": sections}
 
+    # -- sessions and questions --------------------------------------------------------------------
+
+    def answer(self, session: str, user: str, question: str):
+        """Answers one question for the session. The caller must hold the lock."""
+        begin_turn = getattr(self.assistant.model, "begin_turn", None)
+        with self._turn_lock:
+            self._turn_session = session
+            if begin_turn is not None:
+                begin_turn()
+        try:
+            return self.assistant.ask(question, self.card(user))
+        finally:
+            with self._turn_lock:
+                self._turn_session = None
+
+    def close_session(self, session: str) -> None:
+        """Ends a session. If the model is still answering that session's question, the question is stopped (when the
+        model can stop, see sayman.demo.cancellable): its answer would be withheld anyway, and the next user would
+        wait for it. The stopped turn stays in the audit log under the user who asked."""
+        self.sessions.pop(session, None)
+        cancel = getattr(self.assistant.model, "cancel", None)
+        with self._turn_lock:
+            if session and session == self._turn_session and cancel is not None:
+                cancel()
+
     # -- clock and model ---------------------------------------------------------------------------
 
     def advance(self, days: int) -> dict:
@@ -338,8 +366,8 @@ def build_app(demo: Demo) -> FastAPI:
         if demo.sessions.get(request.cookies.get(COOKIE_NAME, "")) != user:
             raise HTTPException(401, "Oturum kapandı; cevap gösterilmedi.")
 
-    def acquire_lock():
-        if not demo.lock.acquire(blocking=False):
+    def acquire_lock(wait_s: float = 0.0):
+        if not demo.lock.acquire(timeout=wait_s):
             raise HTTPException(409, "Sayman başka bir işi bitiriyor; birazdan yeniden deneyin.")
 
     @app.get("/")
@@ -355,7 +383,7 @@ def build_app(demo: Demo) -> FastAPI:
         user = body.get("kullanici")
         if not isinstance(user, str) or user not in demo.permissions.users:
             raise HTTPException(400, "Bilinmeyen kullanıcı.")
-        demo.sessions.pop(request.cookies.get(COOKIE_NAME, ""), None)  # the old session is closed
+        demo.close_session(request.cookies.get(COOKIE_NAME, ""))  # the old session is closed
         while len(demo.sessions) >= MAX_SESSIONS:
             demo.sessions.pop(next(iter(demo.sessions)))
         token = secrets.token_urlsafe(32)
@@ -365,7 +393,7 @@ def build_app(demo: Demo) -> FastAPI:
 
     @app.post("/api/cikis")
     def logout(request: Request, response: Response):
-        demo.sessions.pop(request.cookies.get(COOKIE_NAME, ""), None)
+        demo.close_session(request.cookies.get(COOKIE_NAME, ""))
         response.delete_cookie(COOKIE_NAME)
         return {"tamam": True}
 
@@ -390,9 +418,9 @@ def build_app(demo: Demo) -> FastAPI:
         question = body.get("soru")
         if not isinstance(question, str) or not question.strip() or len(question) > MAX_QUESTION_LENGTH:
             raise HTTPException(422, f"Soru 1 ile {MAX_QUESTION_LENGTH} karakter arasında olmalı.")
-        acquire_lock()
+        acquire_lock(STOPPED_TURN_WAIT_S)  # a question stopped at logout frees the model in a moment
         try:
-            turn = demo.assistant.ask(question.strip(), demo.card(user))
+            turn = demo.answer(request.cookies.get(COOKIE_NAME, ""), user, question.strip())
         finally:
             demo.lock.release()
         still_signed_in(request, user)

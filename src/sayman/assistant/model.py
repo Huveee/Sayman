@@ -34,6 +34,11 @@ class OllamaModel:
             r = client.chat(**self.chat_arguments(messages, tools))
         except httpx.TimeoutException as e:
             raise ModelTimeout(str(e)) from e
+        return self.response(r)
+
+    @staticmethod
+    def response(r) -> ModelResponse:
+        """ModelResponse from an ollama.ChatResponse."""
         m = r.message
         calls = [(tc.function.name, dict(tc.function.arguments or {})) for tc in (m.tool_calls or [])]
         return ModelResponse(content=m.content or "", tool_calls=calls, truncated=r.done_reason == "length",

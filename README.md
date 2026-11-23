@@ -1831,7 +1831,8 @@ CFO'nun cevabı ihracat müdürünün sohbetinde göründü. Bu rol o bilgiyi g�
   - İş yine de yapılmış olur ve denetim kaydında soran kullanıcının adıyla durur. Saat bütün demo için ortak olduğu
     için ileri sarma geri alınmaz.
 - Model aynı anda tek soru cevaplıyor. Önceki soru bitene kadar yeni kullanıcı "Sayman başka bir işi bitiriyor"
-  cevabını alır; bu davranış değişmedi.
+  cevabını alır. Bu düzeltmede bu davranış değişmedi; bir sonraki düzeltmede değişti (aşağıda, "Terk edilen soru
+  durdurulur").
 
 **Doğrulama.**
 - Canlı denemede senaryo aynen tekrarlandı:
@@ -1843,6 +1844,46 @@ CFO'nun cevabı ihracat müdürünün sohbetinde göründü. Bu rol o bilgiyi g�
   - Çıkıştan sonra cevap verilmiyor.
   - Başka bir tarayıcıda açılan oturum, CFO'nun cevabını engellemiyor.
   - İleri sarmadan sonra rapor verilmiyor.
+
+### Terk edilen soru durdurulur (24 Kasım 2026)
+
+**Gözlem.** Önceki düzeltmeden sonra aynı senaryoda gösterge "Hazır" diyordu ama ihracat müdürünün sorusu "Sayman
+başka bir işi bitiriyor" cevabını aldı.
+
+**Neden.**
+- Model, CFO'nun artık kimseye gösterilmeyecek sorusu üzerinde çalışmaya devam ediyordu. Bu soru 30–70 saniye
+  sürebiliyordu.
+- Gösterge yalnızca modelin ısınıp ısınmadığını gösteriyordu, meşgul olup olmadığını göstermiyordu.
+
+**Düzeltme.**
+- **Soru durdurulur** (`src/sayman/demo/cancellable.py`, `Demo.close_session`):
+  - Bir oturum kapanınca (çıkış ya da aynı tarayıcıda başka bir kullanıcının girişi), model o oturumun sorusunu
+    cevaplıyorsa soru durdurulur.
+  - Model çağrısı, `OllamaModel`'in isteğinin bayt bayt aynısıdır. Kapatılabilen bir bağlantıyla gider; ısınmadaki
+    yöntemin aynısı.
+  - Bağlantı kapanınca Ollama işi iptal eder. Orkestratör turu "model_hatasi" durumuyla bitirir; denetim kaydında
+    sebep `TurnCancelled` olarak, soran kullanıcının adıyla durur.
+  - Orkestratöre, sistem istemine ve sabit metinlere dokunulmadı.
+- **Kısa bekleme.** Yeni soru, durdurulan sorunun bitmesini en çok 5 saniye bekler, sonra "başka bir işi bitiriyor"
+  der. Durdurulan soru milisaniyeler içinde biter.
+- **Gösterge.**
+  - Model başka bir soruyu cevaplarken "Meşgul" yazar. "Hazır" yalnızca soru hemen başlayabilecekken görünür.
+  - Her cevaptan sonra gösterge hemen yenilenir.
+- Aynı anda iki ayrı tarayıcıdan soru sorulursa ikinci soru yine "başka bir işi bitiriyor" cevabını alır, çünkü
+  model tek soru cevaplıyor. Başka bir tarayıcıdaki giriş ya da çıkış, bir sorunun yarıda kalmasına yol açmaz.
+
+**Doğrulama.**
+- Canlı deneme:
+  - CFO sordu; 5 saniye sonra çıkış yaptı ve ihracat müdürü girdi.
+  - Ollama günlüğünde CFO'nun çağrısı `cancel task` ile kesildi. Denetim kaydında `selin.aydin`, `model_hatasi`,
+    `TurnCancelled` olarak duruyor.
+  - İhracat müdürünün sorusu beklemeden başladı ve 72 saniyede, kendi kapsamıyla (yurt dışı müşteriler)
+    cevaplandı.
+- Testler:
+  - `tests/test_phase10_cancellable.py` (4 test): aynı istek ve aynı cevap, çalışan çağrının durması, durdurulan
+    sorunun yeni istek göndermemesi, süre aşımı.
+  - `tests/test_phase10_session_end.py` (3 yeni test): giriş ve çıkış soruyu durduruyor, başka bir tarayıcı
+    durdurmuyor.
 
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 

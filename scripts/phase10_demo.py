@@ -35,6 +35,7 @@ def start_demo(arg) -> int:
     from sayman.documents.search import build_searcher
     from sayman.demo.app import Demo, build_app
     from sayman.demo.warmup import OllamaWarmer
+    from sayman.demo.cancellable import CancellableModel
     from sayman.data.table_io import read_csv
     from sayman.data.clock import read_clock
 
@@ -45,8 +46,8 @@ def start_demo(arg) -> int:
     print("Demo kuruluyor (veri okunuyor, kapsam kopyaları kuruluyor)...", flush=True)
     demo = Demo(warehouse=ROOT / "data" / "ambar" / "sayman.duckdb", state_dir=STATE_DIR,
                 initial_clock=read_clock(ROOT / "data" / "saat.json"), key=signing_key, permissions=read_permissions(),
-                tables=read_csv(ROOT / "data" / "uretilen"), model=model, model_name=arg.model, belge=document_search,
-                search_method="bm25" if arg.belge == "yok" else arg.belge, step_days=arg.adim,
+                tables=read_csv(ROOT / "data" / "uretilen"), model=CancellableModel(model), model_name=arg.model,
+                belge=document_search, search_method="bm25" if arg.belge == "yok" else arg.belge, step_days=arg.adim,
                 warmer=OllamaWarmer(model), document_pdfs=DOCUMENT_PDFS)
     if document_search is not None and not demo.document_index:
         print("Uyarı: belge PDF'leri yok; cevaptaki kaynak bağlantıları açılmaz. Üretmek için: "

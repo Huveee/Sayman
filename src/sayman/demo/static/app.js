@@ -148,8 +148,10 @@ async function durumYenile() {
   } catch (_) { return; }
   $("bugun").textContent = "Bugün: " + uzunTarih(durum.bugun);
   $("ileri-yazi").textContent = `Zamanı ileri sar (+${durum.adim_gun} gün)`;
-  $("model-nokta").classList.toggle("hazir", !!durum.model_hazir);
-  $("model-yazi").textContent = durum.model_hazir ? "Hazır" : "Isınıyor";
+  // "Hazır" only when a question would start now: warmed up and not answering another question
+  const bos = !!durum.model_hazir && !durum.mesgul;
+  $("model-nokta").classList.toggle("hazir", bos);
+  $("model-yazi").textContent = !durum.model_hazir ? "Isınıyor" : durum.mesgul ? "Meşgul" : "Hazır";
 }
 
 // ---- Report ----
@@ -335,7 +337,6 @@ async function gonder(metin) {
     meta.append(el("span", "", `Kullanılan araçlar: ${araclar.length ? araclar.join(", ") : "yok"} · ${Math.round(v.sure_s)} sn`));
     if (v.durum && v.durum !== "tamam") meta.append(el("span", "chip durum", DURUM_ETIKET[v.durum] || v.durum));
     b.append(meta);
-    if (v.bugun && durum && v.bugun !== durum.bugun) durumYenile();
   } catch (e) {
     clearInterval(sayac);
     bekle.remove();
@@ -347,6 +348,7 @@ async function gonder(metin) {
       meşgul = false;
       girdiKilidi(false);
       $("soru").focus();
+      durumYenile(); // the indicator shows at once whether Sayman is free (or why it was busy)
     }
   }
 }
