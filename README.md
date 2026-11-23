@@ -1713,6 +1713,30 @@ Demonun öteki beş CFO örnek sorusu da yeni doğrulayıcıyla aynı gün yenid
 provasındakiyle aynı: 75.826.754,65 TL, 7.238.020,42 TL ve 37.800.862,95 TL. Çek politikası soruları alıntılarıyla
 geldi ([POL-CEK#m2], [POL-CEK#m5]). Süreler 31–65 sn.
 
+### Sayı biçimi: İngilizce yazılan rakamlar (23 Kasım 2026)
+
+Demo provasında "önümüzdeki ay durumumuz nasıl olur?" sorusu "cevap üretemedim" ile bitti. Model doğru aracı
+(`nakit_akis_tahmini`, 4 hafta) çağırmış, haftalık net akışları da doğru almıştı, ama İngilizce biçimde yazmıştı:
+"+8,851,941.82 TL". Doğrulayıcı sayıları Türkçe okuduğu için bunu 8,851 olarak okudu ve kaynaksız saydı. Düzeltme
+turundaki ikinci taslak da aynı biçimdeydi.
+
+**Düzeltme** (`src/sayman/assistant/orchestrator.py`, `to_turkish_number_format`): orkestratör taslağı doğrulamadan
+önce biçimi kesin belli İngilizce sayıları Türkçeye çevirir. Bunlar virgüllü binlik gruplardan sonra noktalı ondalık
+gelen ("12,396.40") ya da en az iki virgüllü grubu olan ("12,973,882") sayılardır. Rakamlar değişmez, yalnızca
+ayırıcılar yer değiştirir. Tek gruplu "3,294" Türkçede ondalık sayı olabileceği için dokunulmaz. Doğrulanan ve
+gösterilen metin çevrilmiş hâlidir; modelin konuşma geçmişindeki kendi taslağı ham kalır. Modelin gördüğü sistem
+istemi, araç tanımları ve araç sonuçları değişmedi; model sözleşmesi testi aynen geçiyor. Doğrulayıcının kendisi de
+değişmedi.
+
+**Etkisi.** Faz 7, 8, 8b ve 9'un kayıtlı 1.593 taslağının hiçbiri bu çeviriden etkilenmiyor: modeller ölçümlerde bu
+biçimi hiç kullanmamış. Bu yüzden hiçbir ölçüm sonucu değişmez; kör nokta ölçümü ve Faz 8b yeniden puanlama raporları
+bayt bayt aynı üretiliyor. Aynı soru düzeltmeden sonra canlı modelle (`sayman-ayarli`) şu cevabı verdi: "Bilinen
+kalemlerle önümüzdeki 4 haftanın net nakit akışı: +8.851.941,82 TL, +5.786.496,72 TL, -3.294.199,68 TL,
+-12.973.882,43 TL."
+
+**Testler** (`tests/test_phase06_number_format.py`, 16 test): çevrilen ve dokunulmayan biçimler, cevabın Türkçe
+gösterilmesi ve model geçmişinin ham kalması.
+
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 
 Kod tabanı uluslararası standartlara göre düzenlendi:

@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import secrets
 import time
 from dataclasses import dataclass, field
@@ -136,6 +137,26 @@ class Turn:
 def tool_definitions() -> list[dict]:
     return [{"type": "function", "function": {"name": a.name, "description": a.description, "parameters": a.schema}}
             for a in TOOLS]
+
+
+# An unambiguous English-format number: comma thousands groups followed by a dot decimal ("12,396.40"), or at least two
+# comma groups ("12,973,882"). A single group without a decimal ("3,294") is a valid Turkish decimal and is not matched.
+_ENGLISH_NUMBER = re.compile(r"(?<![\d.,])(\d{1,3}(?:,\d{3})+)(\.\d+)?(?!\d|[.,]\d)")
+
+
+def to_turkish_number_format(text: str) -> str:
+    """Rewrites unambiguous English-format numbers in a draft into Turkish format: "8,851,941.82" -> "8.851.941,82".
+
+    The verifier reads numbers the Turkish way, so "8,851,941.82" reads as 8,851 and fails although the value came from
+    a tool. Only the separators change, never the digits. The draft is verified and shown in Turkish format; the
+    model's own message history keeps the raw text.
+    """
+    def convert(m: re.Match) -> str:
+        integer, fraction = m.group(1), m.group(2)
+        if fraction is None and integer.count(",") < 2:
+            return m.group(0)
+        return integer.replace(",", ".") + ("," + fraction[1:] if fraction else "")
+    return _ENGLISH_NUMBER.sub(convert, text)
 
 
 def correction_message(draft: ModelResponse, d: Verification) -> str | None:
@@ -271,17 +292,18 @@ class Assistant:
                     return finish("ret", reason="yetki_yok")
                 continue
 
-            d = verify(c.content, question, turn.calls, today)
-            turn.drafts.append(c.content)
+            content = to_turkish_number_format(c.content)
+            d = verify(content, question, turn.calls, today)
+            turn.drafts.append(content)
             turn.verifications.append(d)
             turn.draft_steps.append({"cagri_no": turn.model_calls, "arac_cagrisi": len(turn.calls),
                                         "kesildi": bool(c.truncated)})
             message = correction_message(c, d)
             if message is None:
                 scope_noted = None
-                return finish("tamam", c.content.strip())
-            if d.gecerli and c.content.strip() and not c.truncated:  # only the scope is missing
-                scope_noted = (c.content.strip(), d.missing_scope)
+                return finish("tamam", content.strip())
+            if d.gecerli and content.strip() and not c.truncated:  # only the scope is missing
+                scope_noted = (content.strip(), d.missing_scope)
             if corrections >= a.duzeltme:
                 return finish("uretemedim")
             corrections += 1
