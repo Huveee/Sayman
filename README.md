@@ -1737,6 +1737,31 @@ kalemlerle önümüzdeki 4 haftanın net nakit akışı: +8.851.941,82 TL, +5.78
 **Testler** (`tests/test_phase06_number_format.py`, 16 test): çevrilen ve dokunulmayan biçimler, cevabın Türkçe
 gösterilmesi ve model geçmişinin ham kalması.
 
+### Kaynak bağlantıları: belgeler PDF olarak (23 Kasım 2026)
+
+Cevaptaki her belge alıntısı (`[POL-CEK#m2]`) artık tıklanabilir bir bağlantı. Tıklanınca belge yeni sekmede PDF
+olarak, alıntılanan maddenin sayfasında açılır. PDF'ler bir kez üretilir:
+
+```powershell
+.venv\Scripts\python -I scripts\phase10_document_pdfs.py
+```
+
+- **Kanunlar** (Çek Kanunu, Türk Borçlar Kanunu, Türk Ticaret Kanunu) zaten PDF: `data/ham/mevzuat` altındaki
+  orijinal mevzuat.gov.tr PDF'leri olduğu gibi kopyalanır. Her maddenin sayfası, kanunu maddelere bölen ayrıştırmanın
+  aynısıyla bulunur (`src/sayman/documents/legislation.py`).
+- **Politika ve sözleşmeler** PDF değil, yalnızca `belgeler.jsonl` içinde madde madde metin. Her biri HTML'e çevrilip
+  bilgisayardaki Edge (ya da Chrome) ile başsız modda PDF'e basılır; internetten bir şey indirilmez. Madde başlıkları
+  PDF'in yer imleri olur, her maddenin sayfası bu yer imlerinden okunur (`src/sayman/documents/pdf_export.py`).
+- Betik, kaydetmeden önce 3.003 maddenin her birinin eşlenen sayfada göründüğünü denetler. Çıktı:
+  `data/belge/pdf/<belge_id>.pdf` (84 PDF, 3'ü orijinal kanun PDF'i) ve sayfa eşlemesi `sayfalar.json`.
+- **Erişim** belge aracının kuralıyla aynı: rolün `belge_ara` izni olmalı ve rol belgenin rolleri arasında olmalı;
+  yurtiçi satış müdürü bir ihracat müşterisinin sözleşmesini açamaz. Bilinmeyen ve yasak belge aynı 404'ü alır; böylece
+  bir bağlantı, bir sözleşmenin var olduğunu açığa vurmaz. PDF tarayıcıda satır içi açılır ve saklanmaz
+  (`Cache-Control: no-store`), çünkü demoda aynı tarayıcıda kullanıcı değişiyor.
+- Modelin gördüğü hiçbir şey değişmedi: alıntı biçimi aynı, bağlantıya yalnızca tarayıcıda çevriliyor. `/api` yolları
+  da aynı; PDF'ler `/belge/...` altında.
+- **Testler** (`tests/test_phase10_document_pdfs.py`, 22 test; tarayıcı gerektirmez).
+
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 
 Kod tabanı uluslararası standartlara göre düzenlendi:
@@ -1964,5 +1989,6 @@ Bilerek Türkçe kalanlar:
 | `data/olcum` | Kâhin ve kontrol koşularının dosyaları, ölçümlerin denetim kayıtları (git'e girmez) |
 | `data/ham` | İndirilen kanun PDF'leri (`mevzuat`) ve Belebele Türkçe soruları (`belebele`) (git'e girmez) |
 | `data/belge` | Belge kütüphanesi, soru seti, vektör ve sıralama önbelleği, Qdrant dizini (git'e girmez) |
+| `data/belge/pdf` | Belgelerin PDF'leri ve madde sayfaları; `phase10_document_pdfs.py` üretir (git'e girmez) |
 | `data/modeller` | Hugging Face'ten indirilen sıralayıcı modeli (git'e girmez) |
 | `data/egitim` | Eğitim şirketi, eğitim örnekleri, Kaggle çıktıları, model dosyaları ve ölçüm kayıtları (git'e girmez) |

@@ -12,6 +12,9 @@ Security:
   the alerts that have no customer (company level).
 - The report is built from tools called through the gate with the card of the session's user; the model has no
   part in the report. The section of a tool the role cannot call does not appear in the report.
+- A citation in an answer links to the document's PDF (/belge/<id>/<article> redirects to the page). The PDF is served
+  only to a session whose role passes the document tool's rule (belge_ara permission and the document's roles);
+  an unknown and a forbidden document get the same 404, so a link cannot reveal that a contract exists.
 - Demo state (clock copy, alert store, audit logs, scope copies) is kept in its own folder; the warehouse and
   data/saat.json do not change. The clock cannot be turned back; to start over the folder is deleted.
 """
@@ -27,7 +30,7 @@ from pathlib import Path
 from typing import Callable
 
 from fastapi import Body, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -38,6 +41,7 @@ from sayman.tools.permissions import PermissionTable
 from sayman.assistant.orchestrator import SYSTEM_PROMPT, Assistant, Settings, tool_definitions
 from sayman.monitoring.scheduler import AlertStore, run_scheduler
 from sayman.data.clock import Clock, read_clock, write_clock
+from sayman.documents.pdf_export import ARTICLE_KEY, DOCUMENT_ID, read_page_map
 
 STATIC_DIR = Path(__file__).with_name("static")
 COOKIE_NAME = "sayman_oturum"
@@ -129,9 +133,10 @@ class Demo:
     def __init__(self, *, warehouse: Path, state_dir: Path, initial_clock: Clock, key: bytes, permissions: PermissionTable,
                  tables: dict[str, list[dict]], model, model_name: str = "sahte", belge=None,
                  search_method: str = "bm25", step_days: int = 7, time_fn: Callable[[], float] = time.time,
-                 warmer: Callable[[dt.date], None] | None = None):
+                 warmer: Callable[[dt.date], None] | None = None, document_pdfs: Path | None = None):
         """tables: the tables the monitoring rules read (data/uretilen). warmer: if given, the model is warmed up in the
-        background at start and every time the clock advances; if not given (fake model) it counts as ready."""
+        background at start and every time the clock advances; if not given (fake model) it counts as ready.
+        document_pdfs: the folder written by scripts/phase10_document_pdfs.py; citations in answers link there."""
         self.directory = Path(state_dir)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.clock_path = self.directory / "saat.json"
@@ -165,6 +170,10 @@ class Demo:
         self.lock = threading.Lock()  # a model turn and advancing the clock do not run at the same time
         self.sessions: dict[str, str] = {}
         self.model_ready = warmer is None
+        # Document PDFs: the roles come from the same chunks the document tool searches.
+        self.document_roles = {c.belge_id: c.roller for c in belge.chunk_by_id.values()} if belge is not None else {}
+        self.document_pdfs = Path(document_pdfs) if document_pdfs is not None else None
+        self.article_pages = read_page_map(self.document_pdfs) if self.document_pdfs is not None else {}
         self._warm_up()
 
     # -- identity ----------------------------------------------------------------------------------
@@ -177,6 +186,26 @@ class Demo:
 
     def card(self, user: str) -> str:
         return generate_card(user, self.key, CARD_LIFETIME_S, self.time_fn())
+
+    # -- document PDFs -----------------------------------------------------------------------------
+
+    def can_open_document(self, user: str, document_id: str) -> bool:
+        """The same rule as the document tool: the role may call belge_ara and is among the document's roles."""
+        role = self.permissions.users[user]
+        return "belge_ara" in self.permissions.roller[role].tools and role in self.document_roles.get(document_id, ())
+
+    def document_pdf(self, user: str, document_id: str) -> Path | None:
+        if self.document_pdfs is None or not DOCUMENT_ID.fullmatch(document_id):
+            return None
+        if not self.can_open_document(user, document_id):
+            return None
+        path = self.document_pdfs / f"{document_id}.pdf"
+        return path if path.is_file() else None
+
+    def article_page(self, user: str, document_id: str, article: str) -> int | None:
+        if not ARTICLE_KEY.fullmatch(article) or self.document_pdf(user, document_id) is None:
+            return None
+        return self.article_pages.get(document_id, {}).get(article)
 
     # -- alerts ------------------------------------------------------------------------------------
 
@@ -354,5 +383,21 @@ def build_app(demo: Demo) -> FastAPI:
     @app.get("/api/rapor")
     def report(request: Request):
         return demo.report(current_user(request))
+
+    @app.get("/belge/{document_id}.pdf")
+    def document_pdf(request: Request, document_id: str):
+        path = demo.document_pdf(current_user(request), document_id)
+        if path is None:
+            raise HTTPException(404, "Belge bulunamadı.")
+        return FileResponse(path, media_type="application/pdf", headers={
+            "Content-Disposition": f'inline; filename="{document_id}.pdf"', "Cache-Control": "no-store"})
+
+    @app.get("/belge/{document_id}/{article}")
+    def document_article(request: Request, document_id: str, article: str):
+        page = demo.article_page(current_user(request), document_id, article)
+        if page is None:
+            raise HTTPException(404, "Belge bulunamadı.")
+        return RedirectResponse(f"/belge/{document_id}.pdf#page={page}", status_code=302,
+                                headers={"Cache-Control": "no-store"})
 
     return app

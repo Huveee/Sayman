@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 STATE_DIR = ROOT / "data" / "demo"
+DOCUMENT_PDFS = ROOT / "data" / "belge" / "pdf"
 
 
 def start_demo(arg) -> int:
@@ -45,7 +46,10 @@ def start_demo(arg) -> int:
                 initial_clock=read_clock(ROOT / "data" / "saat.json"), key=signing_key, permissions=read_permissions(),
                 tables=read_csv(ROOT / "data" / "uretilen"), model=model, model_name=arg.model, belge=document_search,
                 search_method="bm25" if arg.belge == "yok" else arg.belge, step_days=arg.adim,
-                warmer=ollama_warmer(model))
+                warmer=ollama_warmer(model), document_pdfs=DOCUMENT_PDFS)
+    if document_search is not None and not demo.article_pages:
+        print("Uyarı: belge PDF'leri yok; cevaptaki kaynak bağlantıları açılmaz. Üretmek için: "
+              ".venv\\Scripts\\python -I scripts\\phase10_document_pdfs.py", flush=True)
     print(f"Hazır: http://127.0.0.1:{arg.port}  (bugün {demo.clock.simdi}; model arka planda ısınıyor)", flush=True)
     try:
         uvicorn.run(build_app(demo), host="127.0.0.1", port=arg.port, log_level="warning")

@@ -16,6 +16,7 @@ company's policy and contract articles.
 
 from __future__ import annotations
 
+import bisect
 import re
 from pathlib import Path
 
@@ -42,11 +43,11 @@ def _title_start(text: str, article_start: int) -> tuple[int, str]:
     return article_start, ""
 
 
-def split_articles(text: str, law_no: str) -> tuple[Article, ...]:
-    document_id = f"KANUN-{law_no}"
+def _taken_articles(text: str, document_id: str):
+    """(position of the "MADDE n –" heading, Article) for every article taken from the text, in order."""
     matches = list(_ARTICLE.finditer(text))
     title_starts = [_title_start(text, e.start()) for e in matches]
-    articles, seen = [], set()
+    seen = set()
     for i, e in enumerate(matches):
         if e.group(1) or e.group(3):
             continue
@@ -56,8 +57,33 @@ def split_articles(text: str, law_no: str) -> tuple[Article, ...]:
         if number in seen or len(body) < 20 or body.startswith("(Mülga"):
             continue
         seen.add(number)
-        articles.append(Article(f"{document_id}#m{number}", document_id, number, title_starts[i][1] or f"Madde {number}", body, None, None))
-    return tuple(articles)
+        yield e.start(), Article(f"{document_id}#m{number}", document_id, number, title_starts[i][1] or f"Madde {number}", body, None, None)
+
+
+def split_articles(text: str, law_no: str) -> tuple[Article, ...]:
+    return tuple(article for _, article in _taken_articles(text, f"KANUN-{law_no}"))
+
+
+def article_pages_from_texts(page_texts: list[str], document_id: str) -> dict[str, int]:
+    """The 1-based page of every article taken, found by the same parse over the same joined text as pdf_text."""
+    starts, offset = [], 0
+    for page in page_texts:
+        starts.append(offset)
+        offset += len(page) + 1
+    return {a.parca_id.split("#", 1)[1]: bisect.bisect_right(starts, position)
+            for position, a in _taken_articles("\n".join(page_texts), document_id)}
+
+
+def law_pdf(directory: Path, document_id: str) -> Path | None:
+    """The original mevzuat.gov.tr PDF of a law document, if it was downloaded."""
+    number = document_id.removeprefix("KANUN-")
+    path = directory / f"{number}.pdf"
+    return path if document_id.startswith("KANUN-") and number in LAWS and path.is_file() else None
+
+
+def article_pages(path: Path, document_id: str) -> dict[str, int]:
+    from pypdf import PdfReader
+    return article_pages_from_texts([s.extract_text() for s in PdfReader(path).pages], document_id)
 
 
 def laws(directory: Path) -> list[Document]:

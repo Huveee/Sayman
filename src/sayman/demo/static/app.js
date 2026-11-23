@@ -223,14 +223,33 @@ async function ornekleriYukle() {
   } catch (_) { /* ignore */ }
 }
 
-// Only **bold** and line breaks; everything is added with textContent
+// A citation "[POL-CEK#m2]": the same pattern as _CHUNK_ID in src/sayman/documents/citation.py
+const KAYNAK = /\[([A-Za-z0-9_\-]+)#(m\d+)\]/g;
+
+// Text with citations: each citation becomes a link that opens the document's PDF at the article in a new tab
+function kaynakliCiz(hedef, metin) {
+  let son = 0;
+  for (const m of metin.matchAll(KAYNAK)) {
+    if (m.index > son) hedef.append(document.createTextNode(metin.slice(son, m.index)));
+    const a = el("a", "kaynak", m[0]);
+    a.href = `/belge/${encodeURIComponent(m[1])}/${m[2]}`;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.title = "Belgeyi PDF olarak yeni sekmede aç";
+    hedef.append(a);
+    son = m.index + m[0].length;
+  }
+  if (son < metin.length) hedef.append(document.createTextNode(metin.slice(son)));
+}
+
+// Only **bold**, line breaks and citation links; everything is added with textContent
 function metinCiz(hedef, metin) {
   String(metin).split("\n").forEach((satir, i) => {
     if (i) hedef.append(document.createElement("br"));
     satir.split("**").forEach((parca, j) => {
       if (!parca) return;
-      if (j % 2) hedef.append(el("strong", "", parca));
-      else hedef.append(document.createTextNode(parca));
+      if (j % 2) { const s = el("strong", ""); kaynakliCiz(s, parca); hedef.append(s); }
+      else kaynakliCiz(hedef, parca);
     });
   });
 }

@@ -13,7 +13,7 @@ Windows. Use the Python 3.11 venv with `-I` every time: `.venv/Scripts/python -I
 - Install: `.venv/Scripts/python -I -m pip install -r requirements.txt`, then
   `.venv/Scripts/python -I -m pip install -e . --no-deps --no-build-isolation`. Scripts import `sayman` from this
   editable install; they do not add `src/` to `sys.path`. Without it they fail with `ModuleNotFoundError: sayman`.
-- All tests: `.venv/Scripts/python -I -m pytest -p no:cacheprovider` (about 680 tests, about 6 min). Tests that
+- All tests: `.venv/Scripts/python -I -m pytest -p no:cacheprovider` (about 700 tests, about 6 min). Tests that
   need generated data under `data/` skip with a message naming the script to run.
 - One file: `.venv/Scripts/python -I -m pytest -p no:cacheprovider tests/test_phase06_verifier.py`
 - One test: append `::test_name`.
@@ -21,6 +21,8 @@ Windows. Use the Python 3.11 venv with `-I` every time: `.venv/Scripts/python -I
 - Demo: `.venv/Scripts/python -I scripts/phase10_demo.py baslat`, then open http://127.0.0.1:8010. Needs Ollama
   running with `sayman-ayarli`; the fallback is `--model qwen3.5:9b`. Reset the demo clock and state with
   `.venv/Scripts/python -I scripts/phase10_demo.py sifirla`.
+- Document PDFs for the citation links in demo answers: `.venv/Scripts/python -I scripts/phase10_document_pdfs.py`.
+  Needs Edge or Chrome; writes `data/belge/pdf/`.
 - Full report: `.venv/Scripts/python -I scripts/phase11_report.py`. It writes `reports/faz11_rapor_guncel.md`.
 
 # Layout

@@ -94,6 +94,8 @@ h1, h2, h3 { margin: 0; }
 .balon { max-width: 88%; padding: 8px 12px; border-radius: 12px; word-wrap: break-word; }
 .balon.kullanici { align-self: flex-end; background: var(--ana); color: #fff; border-bottom-right-radius: 3px; }
 .balon.sayman { align-self: flex-start; background: #eef1f5; border-bottom-left-radius: 3px; }
+.balon a.kaynak { color: var(--ana); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.balon a.kaynak:hover { color: var(--ana-koyu); }
 .balon .meta { margin-top: 6px; font-size: 11.5px; color: var(--soluk); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .sor-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--cizgi); }
 .sor-form textarea { flex: 1; resize: none; border: 1px solid var(--cizgi); border-radius: 6px; padding: 7px 9px; font: inherit; }
