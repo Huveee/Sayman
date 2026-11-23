@@ -10,7 +10,9 @@ chat in a fake ERP page. The README (Turkish) is the project report, phase by ph
 Windows. Use the Python 3.11 venv with `-I` every time: `.venv/Scripts/python -I ...`. PowerShell takes
 `.venv\Scripts\python -I ...`.
 
-- Install: `.venv/Scripts/python -I -m pip install -r requirements.txt`
+- Install: `.venv/Scripts/python -I -m pip install -r requirements.txt`, then
+  `.venv/Scripts/python -I -m pip install -e . --no-deps --no-build-isolation`. Scripts import `sayman` from this
+  editable install; they do not add `src/` to `sys.path`. Without it they fail with `ModuleNotFoundError: sayman`.
 - All tests: `.venv/Scripts/python -I -m pytest -q -p no:cacheprovider` (about 660 tests, about 5 min). Tests that
   need generated data under `data/` skip with a message naming the script to run.
 - One file: `.venv/Scripts/python -I -m pytest -q -p no:cacheprovider tests/test_phase06_verifier.py`

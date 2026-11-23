@@ -30,7 +30,6 @@ from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.data import invariants, calibration  # noqa: E402
 from sayman.data.table_io import write_csv, file_digest, data_digest  # noqa: E402

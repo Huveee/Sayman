@@ -26,7 +26,6 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.data.table_io import file_digest  # noqa: E402
 from sayman.data.uci import write_raw_csv, read_xlsx  # noqa: E402

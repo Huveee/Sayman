@@ -20,7 +20,6 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.documents import library  # noqa: E402
 from sayman.documents.semantic import SemanticIndex, EmbeddingCache  # noqa: E402

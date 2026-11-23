@@ -27,7 +27,6 @@ from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.data.table_io import write_csv, data_digest  # noqa: E402
 from sayman.data.exchange_rates import read_rates  # noqa: E402

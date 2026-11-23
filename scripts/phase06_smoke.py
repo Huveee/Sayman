@@ -31,7 +31,6 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.tools.catalog import DOCUMENT_MAX_LIMIT, DOCUMENT_TEXT_LIMIT, _truncate  # noqa: E402
 from sayman.tools.audit_log import AuditLog  # noqa: E402

@@ -90,3 +90,4 @@ more-itertools==11.2.1
 backports-tarfile==1.2.0
 email-validator==2.3.0
 dnspython==2.9.2
+setuptools==84.2.1

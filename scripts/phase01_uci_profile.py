@@ -14,7 +14,6 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.data.uci import NON_SALE_CODES, read_raw_csv, clean  # noqa: E402
 

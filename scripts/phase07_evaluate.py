@@ -55,7 +55,6 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.warehouse.loader import open_warehouse, query_rows  # noqa: E402
 from sayman.tools.audit_log import AuditLog  # noqa: E402

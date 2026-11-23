@@ -1,8 +1,19 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "sayman"
 version = "0.0.1"
 description = "Sayman: Yapay Zekâ Destekli Finans Asistanı"
 requires-python = ">=3.11,<3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"sayman.tools" = ["*.json"]
+"sayman.demo" = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

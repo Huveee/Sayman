@@ -21,7 +21,6 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.monitoring.scheduler import AlertStore, AlertStoreError, run_scheduler  # noqa: E402
 from sayman.data.table_io import read_csv  # noqa: E402

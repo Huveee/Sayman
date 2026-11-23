@@ -11,7 +11,11 @@ Python 3.11 gerekir.
 ```bash
 py -3.11 -m venv .venv
 .venv/Scripts/python -I -m pip install -r requirements.txt
+.venv/Scripts/python -I -m pip install -e . --no-deps --no-build-isolation
 ```
+
+Son satır `src/sayman` paketini düzenlenebilir modda kurar; `scripts/` altındaki betikler paketi buradan bulur. Kod
+değişiklikleri yeniden kurulum gerektirmez.
 
 API anahtarları gerektiğinde `.env.example` dosyası `.env` adıyla kopyalanıp doldurulur. `.env` git'e eklenmez.
 
