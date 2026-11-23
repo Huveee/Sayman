@@ -1,0 +1,48 @@
+diff --git a/src/sayman/araclar/araclar.py b/src/sayman/araclar/araclar.py
+index 3423618..96782c6 100644
+--- a/src/sayman/araclar/araclar.py
++++ b/src/sayman/araclar/araclar.py
+@@ -349,8 +349,15 @@ def _cek_portfoyu(b, a):
+     durumlar = CEK_DURUMLARI[a.get("durum", "bekleyen")]
+     p = {"d": d, "n": _en_fazla(a)}
+     vade = ""
++    if a.get("musteri_adi"):  # Faz 9 üçüncü kol: tek müşterinin çekleri
++        eslesen = musteri_bul(b, a["musteri_adi"], d)
++        aciklama = _musteri_sonucu(eslesen)
++        if aciklama:
++            return d, aciklama, {}
++        vade = " AND c.musteri_id = $m"
++        p["m"] = eslesen[0]["musteri_id"]
+     if a.get("vade_gun") is not None:
+-        vade = " AND c.vade_tarihi BETWEEN $d AND CAST($d AS DATE) + CAST($vg AS INTEGER)"
++        vade += " AND c.vade_tarihi BETWEEN $d AND CAST($d AS DATE) + CAST($vg AS INTEGER)"
+         p["vg"] = a["vade_gun"]
+     durum_listesi = ", ".join(f"'{x}'" for x in durumlar)  # sabit küme, kullanıcı girdisi değil
+     taban = f"""
+@@ -512,9 +519,10 @@ ARACLAR: list[Arac] = [
+          {"para_birimi": {"type": "string", "enum": ["USD", "EUR", "GBP"], "description": "Para birimi"},
+           "tarih": TARIH},
+          _doviz_kuru, ("para_birimi",)),
+-    Arac("cek_portfoyu", "Müşterilerden alınan çekleri durumuna ve vadesine göre listeler.",
++    Arac("cek_portfoyu", "Müşterilerden alınan çekleri durumuna, vadesine ya da müşteriye göre listeler.",
+          {"durum": {"type": "string", "enum": list(CEK_DURUMLARI),
+                     "description": "Çekin durumu; bekleyen = portföyde ya da tahsilde (varsayılan)"},
++          "musteri_adi": {**AD, "description": "Yalnızca bu müşterinin çekleri"},
+           "vade_gun": {"type": "integer", "minimum": 0, "maximum": 365,
+                        "description": "Vadesine en fazla kaç gün kalanlar"},
+           "en_fazla": EN_FAZLA, "tarih": TARIH},
+diff --git a/src/sayman/araclar/sunucu.py b/src/sayman/araclar/sunucu.py
+index 1868729..fa7246d 100644
+--- a/src/sayman/araclar/sunucu.py
++++ b/src/sayman/araclar/sunucu.py
+@@ -73,7 +73,9 @@ def arguman_mesaji(hata: jsonschema.ValidationError, sema: dict) -> str:
+         return f"{alan} YYYY-MM-DD biçiminde geçerli bir tarih olmalı."
+     if v == "enum":
+         return f"{alan} şunlardan biri olmalı: {', '.join(o['enum'])}."
+-    if v in ("minimum", "maximum"):
++    if v == "maximum":  # Faz 9 üçüncü kol: sınırı aşan model ne yapacağını bilsin
++        return f"{alan} en çok {o['maximum']} olabilir; {o['maximum']} ile yeniden deneyin."
++    if v == "minimum":
+         return f"{alan} {o['minimum']} ile {o['maximum']} arasında olmalı."
+     if v == "maxLength":
+         return f"{alan} en çok {o['maxLength']} karakter olabilir."

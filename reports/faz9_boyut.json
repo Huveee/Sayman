@@ -1,0 +1,53 @@
+{
+ "model": "qwen3.5:9b",
+ "num_ctx": 8192,
+ "cevap_payi": 512,
+ "butce": 7680,
+ "model_yukleme_s": 14.2,
+ "sistem_istemi_token": 384,
+ "el": {
+  "arac_sayisi": 14,
+  "karakter": 7986,
+  "token": 2336,
+  "kalan": 4960
+ },
+ "otomatik": {
+  "arac_sayisi": 14,
+  "karakter": 10836,
+  "token": 2209,
+  "kalan": 5087
+ },
+ "sayfalar": {
+  "faturalar_api_v1_faturalar_get:10": {
+   "karakter": 3346,
+   "token": 1763,
+   "karakter_token": 1.9
+  },
+  "faturalar_api_v1_faturalar_get:25": {
+   "karakter": 8063,
+   "token": 4269,
+   "karakter_token": 1.89
+  },
+  "tahsilatlar_api_v1_tahsilatlar_get:10": {
+   "karakter": 2518,
+   "token": 1278,
+   "karakter_token": 1.97
+  },
+  "tahsilatlar_api_v1_tahsilatlar_get:25": {
+   "karakter": 5976,
+   "token": 3025,
+   "karakter_token": 1.98
+  },
+  "cekler_api_v1_cekler_get:10": {
+   "karakter": 2726,
+   "token": 1429,
+   "karakter_token": 1.91
+  },
+  "cekler_api_v1_cekler_get:25": {
+   "karakter": 6492,
+   "token": 3388,
+   "karakter_token": 1.92
+  }
+ },
+ "not": "kalan: soru, model mesajları ve araç sonuçları için kalan token (bütçe - sistem istemi - araç listesi)"
+}

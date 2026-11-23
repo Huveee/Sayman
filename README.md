@@ -1226,6 +1226,283 @@ Elle okumada görülen öteki hatalar (numara uydurma değil; iki düzende aynı
 - Tireli biçimleri kimlik kuralına almak hâlâ açık bir aday. Bu koşu, eski kuralın onları gerçek sonuçlar varken
   yakaladığını göstermedi.
 
+## Faz 9: araç deneyi (elle tasarlanmış araçlar ↔ otomatik üretilen araçlar)
+
+**Soru.** Sayman'ın araçları elle tasarlandı: her araç bir finans sorusunu tek çağrıda, hazır hesaplanmış bir değerle
+cevaplar (yaşlandırma, DSO, müşteri özeti). Bunun yerine şirketin zaten elinde olan sıradan bir ERP ve banka API'sinden
+araçları otomatik üretseydik ne olurdu?
+
+### Düzenek (ölçümden önce kuruldu)
+
+- **Sahte API** (`src/sayman/deney/sahte_api.py`, FastAPI): müşteri, fatura, tahsilat, çek, tedarikçi, alış faturası,
+  ödeme, POS, kur ve banka uçları; 14 uç, hepsi GET. Tasarım "tipik bir ERP API'si ne sunar" sorusuna göre verildi ve
+  dosyanın başına yazıldı: yalnızca kayıt listeleri ve tek kayıt, hazır rapor ucu yok; iki hazır toplam var (müşterinin
+  cari bakiyesi, banka bakiyesi); listeler sayfalı (varsayılan 25, en çok 100 kayıt); tutara göre sıralama yok.
+  Tutarlar metin olarak taşınır ("1234.56"). İlk taslakta sayıydı, ama doğrulayıcı kayan noktalı sayıları kaynak
+  saymadığı için otomatik koldaki her tutar reddedilirdi; doğrulayıcı iki kolda aynı kalsın diye API değişti.
+- **Otomatik araçlar** (`src/sayman/deney/otomatik.py`): `fastmcp` 3.4.11 `FastMCP.from_openapi` her uç için bir araç
+  üretir (ör. `faturalar_api_v1_faturalar_get`, açıklaması "Satış ve iade faturalarını listeler"). Modele olduğu gibi
+  gösterilir.
+- **Aynı kapı mantığı:** otomatik araçlar da kimlik kartı → araç var mı → argüman şeması → çağrı → aynı zarf sırasıyla
+  geçer; her çağrı denetim kaydına yazılır. Rol başlığı (`X-Rol`) bir güvenlik şemasıdır, argümanlara girmez; model
+  rol gönderemez (bilinmeyen argüman reddedilir, testi var). Satış rollerine banka, tedarikçi, ödeme ve POS uçları
+  API'de 403 döner, kapı bunu `yetki_yok` yapar. Satış rolleri Faz 3'teki kapsam kopyalarını kullanır.
+- **Aynı olanlar:** model (temel `qwen3.5:9b`, iki kol da), sistem istemi, orkestratör, doğrulayıcı, puanlayıcı ve
+  Faz 8b'nin dondurulmuş "yeni" setinin 86 araç sorusu. Ölçüm betiği aynı (`scripts/faz7_olc.py --kol otomatik`).
+
+**Boyut ölçümü** (`scripts/faz9_boyut.py`, `reports/faz9_boyut.json`; Ollama'nın kendi token sayısıyla):
+
+| | Elle araçlar | Otomatik araçlar |
+| --- | --- | --- |
+| Araç sayısı | 14 | 14 |
+| Araç listesi | 2336 token | 2209 token |
+| Bütçeden (8192 - 512 cevap payı - 384 sistem istemi) kalan | 4960 | 5087 |
+
+Otomatik bir liste sayfası büyüktür: 25 faturalık varsayılan sayfa 4269 token, 25 tahsilat 3025, 25 çek 3388. Bir
+sayfa sığar, ikincisi bağlamı taşırır (100 kayıtlık sayfa tek başına taşırır). Elle araçlar sonucu en çok 10 kayıtla
+sınırlar. Bu farkı kapatmak için API'ye dokunulmadı: elle tasarımın bir parçası olduğu için ölçülen şeyin içinde.
+
+### Soruların sınıflandırılması (`scripts/faz9_sinif.py`, `reports/faz9_siniflar.json`)
+
+Ölçüt çağrı sayısı değil, "cevabın değeri ulaşılabilir bir API cevabında aynen geçiyor mu?". Sistem istemi modelin kendi
+toplamasını yasaklar, doğrulayıcı da araç sonucunda olmayan her sayıyı (doğru olsa bile) durdurur.
+
+| Sınıf | Soru | Ne demek |
+| --- | --- | --- |
+| tek_cagri | 34 | Tek bir çağrının sonucunda değer aynen var (ör. son fatura, kur, `toplam_kayit` ile geciken fatura sayısı) |
+| zincir | 3 | Değer aynen var ama iki çağrı ya da iki sonucun karşılaştırması gerekir (ör. portföydeki ve tahsildeki ilk vadeli çek) |
+| engelli | 3 | Değer var (müşteri kartında cari bakiye), ama doğrulayıcının müşteri sahipliği kuralı elle araçların alan adlarına (`musteri_adi`, `musteri`) bağlı; kartta bu adlar yok, doğru cevap duruyor |
+| toplama | 40 | Kayıtları toplamak, ortalamak, kurla çevirmek ya da bütün sayfaları taramak gerekir (DSO, yaşlandırma, nakit toplamı) |
+| yok | 6 | Gereken tanım API'de yok (nakit akışı tahmini, döviz pozisyonu) |
+
+Doğrudan sınıflardaki (tek_cagri, zincir) 37 sorunun hepsinde API'nin verdiği değer soru setindeki beklenen değerle
+aynı çıktı. Bazı sınıflar veriye bağlı: müşterinin bekleyen tek çeki varsa tek_cagri, birden çok çeki varsa toplama.
+Sınıflar canlı koşudan önce donduruldu (özet `59af5ea8…`, API tanımı `329c0934…`).
+
+**Kâhinler** (her cevabı bilen sahte model; gerçek kapı, orkestratör ve doğrulayıcıdan geçer):
+
+- Otomatik kâhin (`src/sayman/deney/kahin.py`) dondurulmuş planı adım adım yürütür (ad → kimlik → kart gibi), cevabı
+  araç sonucundan okur. Doğrudan 37 sorunun 37'sinde doğru; tüm sette **tavan 37/86 = 0,43**.
+- Elle kâhin aynı sette 85/86 (Faz 8b): "2062 hareket" yıl sayılıyor (bilinen kör nokta).
+
+### Ön kayıt (canlı koşudan önce yazıldı)
+
+**Koşular.** Her kol bir kez koşar: önce elle araçlar (`--ollama-model qwen3.5:9b --etiket faz9_el`), sonra otomatik
+araçlar (`--kol otomatik --etiket faz9_oto`). Her koşudan önce modeller boşaltılır, koşu sürerken Ollama'da başka iş
+çalışmaz. bge-m3 iki kolda da yüklenir (bellek durumu aynı olsun).
+
+**Birincil ölçü:** doğrudan sınıflardaki 37 soruda gösterilen doğru cevap oranı, eşli karşılaştırma (aynı soru iki
+kolda). Kesin McNemar testi, iki yönlü, α = 0,05. p < 0,05 ise "fark var" denir; değilse "bu örneklemde fark
+gösterilemedi". Beklenti: elle kol ≥ otomatik kol.
+
+**İkincil ölçüler** (eşik yok, ikisi yan yana raporlanır):
+
+- Tüm sette (86) gösterilen doğru oranı, kâhin tavanlarının yanında (elle 85/86, otomatik 37/86).
+- Gösterilen yanlış sayı (cevap gösterildi, doğru değil, içinde sayı var), kol ve sınıf kırılımıyla. Beklenti:
+  otomatik kol toplama sorularında tek bir kaydın değerini toplammış gibi gösterebilir.
+- Toplama ve yok sınıflarında: doğru değeri taşıyan ama doğrulayıcının durdurduğu taslak sayısı; gösterilen doğru
+  sayısı (sıfırdan büyükse tek tek incelenir).
+- `baglam_siniri` ile biten soru sayısı ve en büyük istem tokenı.
+- Süre medyanı ve p90, istem tokenı medyanı.
+- Engelli 3 soru ayrıca listelenir.
+
+**Zorunlu:** iki kolda sızıntı 0. Puanlayıcının kapsam denetimi zarfın `kaynak` alanına bakar; otomatik zarfta bu alan
+boş olduğu için denetim orada kendiliğinden geçerdi. Bu yüzden Faz 9 analizi otomatik sonuçlardaki kayıt kimliklerini
+sonucun kendisinden toplar (`otomatik.kaynak_kimlikleri`) ve aynı denetimden geçirir. Bir negatif kontrol (kapsam dışı
+kimlik taşıyan sahte satır) yakalanmalı.
+
+**Karşılaştırılmayanlar:** araç seçimi ve parametre doğruluğu (araç adlarına bağlı).
+
+**Otomatik kolda uymayan kurallar** (bilinerek aynı bırakıldı):
+
+- Kapsam kuralı yalnızca elle araçların adlarına bakar; otomatik kolda kapsam notu hiç eklenmez.
+- Sahiplik kuralının düzeltme mesajı `musteri_ozeti` aracını önerir; otomatik kolda böyle bir araç yok.
+- Gelecek tarih kapıda reddedilmez; API bugünden sonraki kaydı zaten göstermez.
+- Sistem istemi `belge_ara`dan söz eder; otomatik kolda belge aracı yok (86 soru araç sorusu).
+
+**Bilinen yanlılık:** soru setinin beklenen değerleri elle araçların tanımlarıyla üretildi. Sınıflandırma bunu
+ayırmak için var: birincil ölçü yalnızca otomatik kolun da aynen ulaşabildiği sorularda.
+
+**Üçüncü kol (keşif amaçlı, hipotez yok):** elle araçlara Faz 8b'den çıkan iki düzeltme: `en_fazla` sınırı aşılınca
+hata mesajı "10 ile yeniden deneyin" der; `cek_portfoyu` müşteri adıyla süzülebilir. Aynı model, aynı 86 soru. Bu
+düzeltmeler Faz 8b sonuçlarına bakılarak seçildi ve aynı sorularla ölçülüyor; sonucu yalnızca betimleyici.
+
+### Sonuçlar (canlı koşu, 22 Kasım 2026)
+
+Kayıtlar `reports/faz9_el_yeni.jsonl` ve `reports/faz9_oto_yeni.jsonl`, raporlar `reports/faz9_el_olcum_yeni.json` ve
+`reports/faz9_oto_olcum_yeni.json`, karşılaştırma `reports/faz9_karsilastirma.json` (`scripts/faz9_analiz.py`). İki kol
+da 86/86 soruyu bitirdi; her koşu bir kez yapıldı, yeniden sorulan soru yok. Ön kayıt metni yukarıda olduğu gibi
+duruyor; koşudan sonra eklenen her şey bu başlığın altında ve öyle işaretli.
+
+| | Elle araçlar | Otomatik araçlar |
+| --- | --- | --- |
+| Tüm set, gösterilen doğru | 65/86 (0,76) | 18/86 (0,21) |
+| Kâhin tavanı | 85/86 | 37/86 |
+| Doğrudan sınıflar (37), gösterilen doğru | 25/37 (0,68) | 16/37 (0,43) |
+| Gösterilen yanlış (ön kayıttaki tanım) | 9 | 12 |
+| `baglam_siniri` ile biten | 0 | 30 |
+| Süre medyanı / p90 | 55 / 130 sn | 75 / 202 sn |
+| 300 sn süre sınırına takılan | 0 | 4 |
+| İstem tokenı medyanı / en büyük | 3288 / 4884 | 3027 / 6378 |
+| Sızıntı | 0 | 0 (negatif kontrol yakalandı) |
+
+| Sınıf | Soru | Elle doğru | Otomatik doğru |
+| --- | --- | --- | --- |
+| tek_cagri | 34 | 22 | 16 |
+| zincir | 3 | 3 | 0 |
+| engelli | 3 | 3 | 2 |
+| toplama | 40 | 33 | 0 |
+| yok | 6 | 4 | 0 |
+
+**Birincil ölçü (ön kayıtlı):** doğrudan sınıflardaki 37 soruda ikisi de doğru 12, yalnızca elle doğru 13, yalnızca
+otomatik doğru 4, ikisi de yanlış 8. Kesin McNemar p = 0,049. Ön kayıttaki kurala göre karar **"fark var"**; yön
+beklentiyle aynı (elle > otomatik).
+
+**Bu karar kırılgan** (aşağıdaki iki hesaplama ön kayıtta yoktu, koşudan sonra eklendi):
+
+- Uyuşmayan 17 çiftten yalnızca biri ters dönseydi p = 0,077 olurdu.
+- "Yalnızca elle doğru" 13 sorunun 2'si (Y-fat_son-01, Y-fat_son-03) doğrulayıcının bir kör noktası. Otomatik kol doğru
+  fatura numarasını buldu ama cevabı "…numarası 497351'dir (fatura ID: F003457)" diye sürdürdü. Sayı ayrıştırıcı
+  numaranın ardından gelen "fatura" kelimesini birim sandı ve 497351'i "497351 fatura" gibi bir adet saydı; araç
+  sonucundaki numara metniyle eşleştirmedi, cevabı durdurdu. Doğrulayıcı iki kolda aynı ve kör nokta cümlenin
+  kuruluşuna bağlı, ama bu koşuda yalnızca otomatik kola denk geldi. Aynı kör nokta bir toplama sorusunda da görüldü
+  ("1335451 no'lu çek" adet sayıldı; puanı değiştirmedi). Bu iki soru çıkarılırsa p = 0,12 olur.
+- Dürüst okuma: yön her kırılımda aynı ve tüm sette fark büyük (65'e 18), ama birincil testin anlamlılığı bir iki
+  soruya bağlı.
+
+**Otomatik kol doğrudan sorularda neden kaybetti** (21 kayıp, kayıtlar tek tek okundu):
+
+| Neden | Soru |
+| --- | --- |
+| Model hiç araç çağırmadan cevap yazdı (uydurma kur, uydurma müşteri kimliği gibi); doğrulayıcı 6'sını durdurdu | 7 |
+| Model 50 ya da 100 kayıtlık sayfa istedi, sonuç bağlamı taşırdı | 5 |
+| Müşteri sorusunda tedarikçiler ucunu seçti; satış rolünde bu uç yasak, soru "yetkiniz yok" ile bitti | 3 |
+| Yanlış süzgeç ya da yanlış kayıt ("31-60 gün diliminde borcu yok" gibi) | 3 |
+| Doğru değeri buldu, doğrulayıcının kör noktası durdurdu (yukarıda) | 2 |
+| 300 sn süre sınırı | 1 |
+
+Otomatik araçlar OpenAPI'den üretildiği için rolü bilmez: satış rolüne yasak uçlar da listede görünür ve kapıda 403
+alır. Yanlış bir uç seçimi soruyu bitiriyor (otomatik koldaki 4 `ret`in 4'ü de böyle).
+
+**Elle kol doğrudan sorularda neden kaybetti** (12 kayıp): `cek_portfoyu` müşteriye göre süzemiyor, model "bu
+müşterinin çeki yok" dedi ya da durduruldu (4); "son tahsilat" sorusunda tahsilat yerine fatura aracı (4); dilim
+sorusunda `geciken_alacaklar` seçildi, sahiplik kuralı cevabı durdurdu (2); araç çağırmadan cevap (2). Otomatik kolun tek başına
+kazandığı 4 sorudan 3'ü bu çek sorusu: otomatik `cekler` ucu müşteri kimliğiyle süzülebiliyor. Üçüncü koldaki çek
+düzeltmesi tam bu açığı hedefliyor.
+
+**Bağlam.** 30 `baglam_siniri` sorusunun (toplama 25, zincir 3, tek_cagri 2) 26'sında model varsayılan 25 yerine 50
+ya da 100 kayıtlık sayfa istedi ve tek sayfa bütçeyi taşırdı. Kalan 4'ünde varsayılan sayfalar birikti (banka
+hareketi sayan 3 soruda 5 çağrı, bir çek sorusunda 2 tam sayfa). Bu, ön kayıttaki "bir sayfa sığar, ikincisi taşırır"
+ölçümüyle uyumlu; taşmanın asıl nedeni modelin büyük sayfa istemesi. Orkestratör taşacak istemi modele hiç göndermez;
+gönderilen en büyük istem 6378 token.
+
+**Toplama ve yok sınıfları:** otomatik kolda gösterilen doğru 0/46; tek tek incelenecek soru çıkmadı. 2 soruda
+(Y-oz_cek_tutar-02, Y-oz_gecikme-01) model doğru değeri kendisi hesapladı (ör. iki çekin toplamı 4.499,28 TL). Değer
+araç sonucunda aynen geçmediği için doğrulayıcı bunları tasarım gereği durdurdu.
+
+**Gösterilen yanlış, elle okununca** (ön kayıttaki tanım "gösterildi, doğru değil, içinde sayı var" idi; tanım
+değiştirilmedi, yanına okuma eklendi):
+
+- Otomatik koldaki 12'nin 7'si dürüst "bunu yapamam" cevabı; içindeki sayı sorudan geliyor ("2 haftalık", "10 Nisan
+  2026"). Bunlar Y-akis_ilk_hafta ×3, Y-pos_komisyon ×3, Y-yas_dilim-03. POS sorularının üçünde model hiç araç
+  çağırmadığı halde "POS işlemlerini inceledim" diye yazdı. Rakam yanlış değil ama süreç hakkındaki söz yanlış.
+- Kalan 5'i gerçekten yanlış ya da eksik değer: Y-oz_son_tahsilat-04, Y-oz_dilim-03, Y-oz_dilim-05 (borcu var, "yok"
+  dedi), Y-kur_poz-02 (USD banka bakiyesini döviz pozisyonu diye verdi), Y-kur_poz-03 (yalnızca EUR banka bakiyesi).
+- Elle koldaki 9'un 1'i aynı türden ret (Y-kur_bugun-03), 8'i gerçekten yanlış değer.
+- Ön kayıttaki beklenti ("otomatik kol tek bir kaydın değerini toplammış gibi gösterebilir") büyük ölçüde
+  gerçekleşmedi: toplama sorularının çoğu bağlam sınırında durdu. Benzeri yalnızca Y-kur_poz-02'de görüldü (tek
+  bileşen bütün yerine); elle kolda da aynı hata bir kez var (Y-kur_poz-01).
+
+**Engelli sınıf.** Sınıflandırma kâhinin dondurulmuş planına göre yapıldı (müşteri kartı yolundan gidince sahiplik
+kuralı durduruyordu). Canlı model 3 sorunun 2'sinde başka bir yoldan doğru cevap verdi: müşterinin tek açık faturası
+vardı, fatura kaydında `musteri` alanı da olduğu için sahiplik kuralı geçti. Üçüncüsünde tedarikçi ucunu seçti, yetkisi
+yoktu. Yani 37/86 mutlak bir tavan değil, "dondurulmuş planın tavanı". Sınıflar değiştirilmedi.
+
+**Karşılaştırma için not.** Faz 8b'de aynı 86 soruda ince ayarlı model elle araçlarla rakam doğruluğunda 0,930
+almıştı. Burada iki kol da
+temel modeli kullanıyor; elle koldaki 0,76 ile Faz 8b'nin sonucu aynı şeyi ölçmüyor.
+
+### Üçüncü kol: elle araçlar + iki düzeltme (keşif amaçlı)
+
+Kayıt `reports/faz9_duzeltme_yeni.jsonl`, rapor `reports/faz9_duzeltme_olcum_yeni.json`, düzeltmelerin kod farkı
+`reports/faz9_ucuncu_kol_yama.diff`. Sıra şöyleydi: düzeltmesiz elle kol → otomatik kol → düzeltmeler koda uygulandı →
+üçüncü kol. İki elle kolun kayıtlarındaki `kod_ozeti` farklı (65/86'yı veren kod `03663f96…`, üçüncü kol `cacc3c1d…`).
+Ön kayıtta dendiği gibi bu kol için p değeri yok; aşağıdakiler yalnızca betimleme.
+
+| | Elle araçlar | Elle + iki düzeltme |
+| --- | --- | --- |
+| Tüm set, gösterilen doğru | 65/86 | 68/86 |
+| Doğrudan sınıflar (37), gösterilen doğru | 25/37 | 28/37 |
+| Gösterilen yanlış (ön kayıttaki tanım) | 9 | 11 |
+| Süre medyanı / p90 | 55 / 130 sn | 52 / 106 sn |
+| `baglam_siniri` / sızıntı | 0 / 0 | 0 / 0 |
+
+**65'ten 68'e çıkışın yalnızca +4'ü düzeltmeye bağlanabiliyor.** Ayrıntı:
+
+- **Çek aracına müşteri adı (işe yaradı).** Model 8 çek sorusunun 8'inde yeni `musteri_adi` parametresini kullandı.
+  Düzeltmesiz elle kolda bu soruların 4'ü yanlıştı (Y-oz_cek_tutar-01, -03, -05, -06: "bu müşterinin çeki yok" dedi ya
+  da durduruldu); dördü de doğru oldu. Zaten doğru olan 4 soruda çağrı sayısı 2'den 1'e indi, çünkü model artık müşteri
+  özetine gitmiyor.
+- **`en_fazla` sınır mesajı (etkisi görülmedi).** Model 5 soruda 10'dan büyük sayfa istedi, yeni mesajı aldı ve 5'inde
+  de hemen 10 ile yeniden denedi. Ama eski mesajla da öyle oluyordu: düzeltmesiz elle kolda bu hata 3 kez çıktı, 3'ünde
+  de model hemen 10 ile yeniden denedi. Bu koşuda düzeltmenin çözeceği bir sorun görülmedi. (Faz 8b'de sorun ince
+  ayarlı modelde ve numara uydurmaya iten sorularda görülmüştü; burada temel model ve olağan sorular var.)
+- **Düzeltmelerle ilgisi olmayan 7 soru da değişti.** 3'ü doğruya döndü (Y-fat_son-05, Y-kur_bugun-03, Y-yas_toplam-02),
+  4'ü yanlışa (Y-fat_son-04, Y-fat_tutar-01, Y-kur_bugun-02, Y-yas_toplam-01); net −1. Model kimi soruda başka araç
+  seçti ya da araç çağırmadı, kimi soruda aynı çağrıyı yapıp cevabı başka yazdı. Değiştirilen kod bu 7 sorudan
+  yalnızca birinde çalıştı: Y-yas_toplam-02'de yeni sınır mesajı devreye girdi. Ama fark ondan önce başlıyor (model bu
+  kez 5 yerine 100 kayıt istedi), o yüzden bu soru da düzeltmeye yazılmadı.
+- **Bu 7 sorunun nedeni bu koşudan ayrılamıyor.** Model sıcaklık 0 ve sabit tohumla (seed 42) çalışıyor. İki koşu
+  arasında modelin gördüğü tek fark araç listesi: ilk turdaki istem her soruda tam 29 token büyüdü (kayıtlardaki
+  `sistem_ozeti` de bu yüzden farklı; sistem istemi değişmedi). Ama Faz 8'de, temel modelin araç çağırıp çağırmamasının
+  Ollama'nın o an önceden ne işlediğine de bağlı olabildiği görülmüştü. Aynı istemle yeniden koşu yapılmadığı için, bu
+  7 sorunun 29 tokendan mı yoksa koşudan koşuya oynamadan mı döndüğü bilinmiyor.
+
+**Yan bulgu: aynı sorular yeniden sorulunca birkaç soru dönüyor.** Bu 7 sorudan 2'si, ana karşılaştırmanın birincil
+testindeki uyuşmayan çiftlerden. Y-fat_son-05 ana koşuda yalnızca otomatik kolda doğruydu, burada elle kolda da doğru.
+Y-kur_bugun-02 ana koşuda yalnızca elle kolda doğruydu, burada elle kolda yanlış (model araç çağırmadı). Yani "bir çift
+ters dönerse" durumu varsayım değil; elle araçlarla yapılan ikinci koşuda iki çift yer değiştirdi. Bu tek bir örnek,
+gürültünün büyüklüğü için bir ölçü değil. Yine de birincil testteki p = 0,049'un neden kırılgan sayıldığını somut
+olarak gösteriyor.
+
+**Yeni gösterilen yanlışlar (elle okundu):**
+
+- Y-yas_toplam-01: "toplam alacak" soruldu, model 30 günden fazla gecikmiş alacakların toplamını verdi. Yanlış araç,
+  ama cevap neyi verdiğini açıkça söylüyor.
+- Y-cek_bekleyen-03: "bekleyen çekler" soruldu, model tahsil edilenler dahil bütün çekleri (5.068 adet) toplam diye
+  verdi. Düzeltmesiz kolda bu soru durdurulmuştu; burada yanlış cevap gösterildi.
+- Y-fat_tutar-01: eksik cevap. Fatura EUR cinsinden (4.243,39 EUR), model yalnızca TL karşılığını verdi; verdiği
+  sayı yanlış değil.
+- Düzeltmesiz koldaki ret (Y-kur_bugun-03) burada doğru cevaplandı.
+
+**Doğrulayıcının kör noktası elle araçlarda da çıktı.** Y-fat_son-04'te model doğru numarayı buldu ama
+"…numarası 564713'tür (fatura tarihi 2026-08-30)" diye yazdı. Numaradan sonra "fatura" geldiği için doğrulayıcı
+cevabı durdurdu. Bu kör nokta yalnızca otomatik araçlara özgü değil. Düzeltmesiz elle kolun kayıtları tarandı: orada
+birincil testteki uyuşmayan çiftlerin hiçbirini etkilememiş.
+
+**Boyut.** Elle araç listesi 2336 token idi (`reports/faz9_boyut.json`); düzeltmeyle yaklaşık 2365 oldu. Orkestratörün
+araç listesi bütçesi 2400, yani 35 token pay kaldı. Faz 3'teki "araç listesi 8000 karakteri geçmesin" testi bu
+yüzden kırıldı (7.986 → 8.102 karakter); sınır 8200'e çıkarıldı.
+
+### Sonuç: Faz 9 ne gösterdi?
+
+- Aynı model, aynı doğrulayıcı ve aynı sorularla elle tasarlanmış araçlar 86 sorunun 65'ini, otomatik üretilen
+  araçlar 18'ini doğru cevapladı. Farkın büyük kısmı otomatik kolun hiç ulaşamadığı sorulardan geliyor: toplama
+  gerektiren 46 sorunun hiçbirini cevaplayamadı.
+- Değerin API'de hazır durduğu 37 soruda da elle araçlar önde (25'e 16). Ön kayıtlı test "fark var" dedi, ama sonuç bir
+  iki soruya bağlı.
+- Otomatik koldaki kayıpların çoğu işin modele kalmasından geliyor: sayfa boyutunu model seçiyor ve büyük sayfa
+  istiyor, rolüne yasak uçları da görüyor, toplamayı yapamıyor (yapınca da doğrulayıcı durduruyor). Elle araçlarda
+  bunlar araç tasarımında çözülmüştü: en çok 10 kayıt, hazır toplamlar, role göre kapsam.
+- Doğrulayıcı otomatik kolda da işini yaptı: doğrudan sorulardaki 7 araçsız cevabın 6'sını durdurdu, sızıntı 0. Ama bir
+  kör noktası çıktı: bir kayıt numarasının ardından "fatura", "çek" gibi bir isim gelince numarayı adet sanıyor. Bu
+  kör nokta ana koşuda otomatik kolun iki doğru cevabını, üçüncü kolda elle araçların bir doğru cevabını durdurdu.
+  Düzeltmesi sonraki bir işe kaldı (bu fazda doğrulayıcı değişmedi).
+- Üçüncü kolda çek aracına eklenen müşteri adı, elle araçların 4 çek kaybını kapattı (8 çek sorusunun 8'i doğru). Sınır
+  mesajı düzeltmesinin etkisi görülmedi. Aynı koşuda düzeltmeyle ilgisi olmayan 7 soru da döndü (araç listesindeki
+  29 tokenlık değişiklikten ya da koşudan koşuya oynamadan; bu koşu ikisini ayıramıyor). Tek koşuluk
+  karşılaştırmalarda birkaç soruluk farklar bu gürültünün içinde kalabilir.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -1244,7 +1521,7 @@ Elle okumada görülen öteki hatalar (numara uydurma değil; iki düzende aynı
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör, `olcum`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi, Faz 8 eşleştirme ve unutma testi, `egitim`: Faz 8 eğitim verisi, öğretmen, sızıntı denetimi ve GGUF özeti) |
+| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör, `olcum`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi, Faz 8 eşleştirme ve unutma testi, `egitim`: Faz 8 eğitim verisi, öğretmen, sızıntı denetimi ve GGUF özeti, `deney`: Faz 9 sahte API, otomatik araçlar, kapıları ve kâhini) |
 | `tests` | Yazılım testleri ve kabul testleri |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
 | `kaggle` | Faz 8'de Kaggle'da çalışan eğitim, birleştirme ve uyum betikleri |

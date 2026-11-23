@@ -73,7 +73,9 @@ def arguman_mesaji(hata: jsonschema.ValidationError, sema: dict) -> str:
         return f"{alan} YYYY-MM-DD biçiminde geçerli bir tarih olmalı."
     if v == "enum":
         return f"{alan} şunlardan biri olmalı: {', '.join(o['enum'])}."
-    if v in ("minimum", "maximum"):
+    if v == "maximum":  # Faz 9 üçüncü kol: sınırı aşan model ne yapacağını bilsin
+        return f"{alan} en çok {o['maximum']} olabilir; {o['maximum']} ile yeniden deneyin."
+    if v == "minimum":
         return f"{alan} {o['minimum']} ile {o['maximum']} arasında olmalı."
     if v == "maxLength":
         return f"{alan} en çok {o['maxLength']} karakter olabilir."

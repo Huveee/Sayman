@@ -137,7 +137,7 @@ def test_denetim_kaydi_ve_sema(ortam):
     r4, h4 = ara(s, YURTICI)
     assert h1 and r1["mesaj"] == "Argüman hatası: sorgu en az 3 karakter olmalı."
     assert h2 and r2["mesaj"] == "Argüman hatası: sorgu en çok 300 karakter olabilir."
-    assert h3 and r3["mesaj"] == "Argüman hatası: en_fazla 1 ile 3 arasında olmalı."
+    assert h3 and r3["mesaj"] == "Argüman hatası: en_fazla en çok 3 olabilir; 3 ile yeniden deneyin."
     assert h4 and r4["mesaj"] == "Argüman hatası: Eksik argüman: sorgu."
     kayit = s.kayit.satirlar[once:]
     assert [(k["arac"], k["kullanici"], k["rol"], k["sonuc"]) for k in kayit] == \

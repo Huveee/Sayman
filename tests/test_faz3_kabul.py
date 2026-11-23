@@ -149,7 +149,9 @@ def test_satis_rolu_izinli_araclarda_kapsamdaki_veriyle_ayni_cevap(sunucu, hakem
 def test_cevaplar_ve_arac_listesi_sinirli_ve_hizli(sunucu, saat):
     araclar = [{"type": "function", "function": {"name": t.name, "description": t.description,
                                                  "parameters": t.inputSchema}} for t in sunucu.araclar()]
-    assert len(json.dumps(araclar, ensure_ascii=False)) < 8000
+    # Faz 9 üçüncü kol cek_portfoyu'na musteri_adi ekledi (+116 karakter; öncesi 7.986). Asıl sınır token bütçesi
+    # (orkestrator.Ayar.arac_listesi_token = 2400); karakter sınırı onun kaba vekili.
+    assert len(json.dumps(araclar, ensure_ascii=False)) < 8200
     en_cok = sunucu.baglantilar["hepsi"].execute(
         "SELECT m.ad FROM faturalar f JOIN musteriler m USING (musteri_id) GROUP BY m.ad "
         "ORDER BY count(*) DESC, m.ad LIMIT 1").fetchone()[0]

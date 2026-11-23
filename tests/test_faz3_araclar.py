@@ -407,6 +407,28 @@ def test_cek_portfoyu(sunucu):
     assert sonuc(sunucu, CFO, "cek_portfoyu", vade_gun=20)["cek_sayisi"] == 1
 
 
+def test_cek_portfoyu_musteri_adiyla(sunucu):
+    """Faz 9 üçüncü kol: çekler müşteri adıyla süzülür (iki çek de M1 Alfa'nın)."""
+    assert sonuc(sunucu, CFO, "cek_portfoyu", musteri_adi="Alfa Ltd.", durum="hepsi")["cek_sayisi"] == 2
+    assert sonuc(sunucu, CFO, "cek_portfoyu", musteri_adi="Delta Ltd.", durum="hepsi")["cek_sayisi"] == 0
+    # Müşteri ve vade süzgeci birlikte (vade koşulu müşteri koşulunun üstüne yazılmaz, eklenir).
+    assert sonuc(sunucu, CFO, "cek_portfoyu", musteri_adi="Alfa Ltd.", vade_gun=20)["cek_sayisi"] == 1
+    assert sonuc(sunucu, CFO, "cek_portfoyu", musteri_adi="Alfa Ltd.", vade_gun=10)["cek_sayisi"] == 0
+    assert sonuc(sunucu, CFO, "cek_portfoyu", musteri_adi="Zeta Ltd.")["bulunamadi"] is True
+    # Kapsam: ihracat müdürü yurtiçi müşterinin çeklerini göremez; cevap "böyle müşteri yok" ile aynı.
+    assert sonuc(sunucu, IHRACAT, "cek_portfoyu", musteri_adi="Alfa Ltd.") == \
+        sonuc(sunucu, IHRACAT, "cek_portfoyu", musteri_adi="Zeta Ltd.")
+    assert sonuc(sunucu, YURTICI, "cek_portfoyu", musteri_adi="Alfa Ltd.", durum="hepsi")["cek_sayisi"] == 2
+
+
+def test_en_fazla_siniri_asilinca_ne_yapilacagini_soyler(sunucu):
+    """Faz 9 üçüncü kol: sınırı aşan model hangi değerle yeniden deneyeceğini mesajdan öğrenir."""
+    yanit, hata = cagir(sunucu, CFO, "cek_portfoyu", en_fazla=11)
+    assert hata and yanit["mesaj"] == "Argüman hatası: en_fazla en çok 10 olabilir; 10 ile yeniden deneyin."
+    yanit, hata = cagir(sunucu, CFO, "cek_portfoyu", en_fazla=0)
+    assert hata and yanit["mesaj"] == "Argüman hatası: en_fazla 1 ile 10 arasında olmalı."
+
+
 def test_pos_tahsilatlari(sunucu):
     s = sonuc(sunucu, CFO, "pos_tahsilatlari", baslangic="2025-03-01", bitis="2025-03-31")
     assert s == {"baslangic": "2025-03-01", "bitis": "2025-03-31", "islem_sayisi": 2, "iade_sayisi": 0,

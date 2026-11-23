@@ -1,0 +1,2339 @@
+{
+ "aciklama": "Faz 9 sınıflandırması: değer ulaşılabilir bir API cevabında aynen geçiyor mu (scripts/faz9_sinif.py).",
+ "bugun": "2026-09-01",
+ "soru_seti": "faz8b_soru_seti.json",
+ "soru_seti_ozeti": "4eb6d47e8b43919a17b67c286162275cc5ce103ac51dd33bd41ea07ed988ff58",
+ "api_ozeti": "329c0934c8c51dfb16503b248b9be32fe4497f4126d22436ea03ee4390f9d9c5",
+ "otomatik_liste_token": 2300,
+ "sayilar": {
+  "engelli": 3,
+  "tek_cagri": 34,
+  "toplama": 40,
+  "yok": 6,
+  "zincir": 3
+ },
+ "niyetler": {
+  "akis_ilk_hafta": {
+   "yok": 3
+  },
+  "banka_adet": {
+   "toplama": 3
+  },
+  "cek_bekleyen": {
+   "toplama": 3
+  },
+  "cek_en_erken_no": {
+   "zincir": 3
+  },
+  "dso": {
+   "toplama": 4
+  },
+  "dso_tarihli": {
+   "toplama": 3
+  },
+  "fat_son": {
+   "tek_cagri": 5
+  },
+  "fat_tutar": {
+   "tek_cagri": 3
+  },
+  "gec_adet": {
+   "tek_cagri": 3
+  },
+  "gec_en_buyuk": {
+   "toplama": 4
+  },
+  "kur_bugun": {
+   "tek_cagri": 3
+  },
+  "kur_poz": {
+   "yok": 3
+  },
+  "nakit_toplam": {
+   "toplama": 2
+  },
+  "ode_toplam": {
+   "toplama": 3
+  },
+  "oz_acik": {
+   "engelli": 3
+  },
+  "oz_cek_tutar": {
+   "tek_cagri": 6,
+   "toplama": 2
+  },
+  "oz_dilim": {
+   "tek_cagri": 7,
+   "toplama": 1
+  },
+  "oz_eski_vade": {
+   "tek_cagri": 3
+  },
+  "oz_gecikme": {
+   "toplama": 4
+  },
+  "oz_son_tahsilat": {
+   "tek_cagri": 4
+  },
+  "pos_komisyon": {
+   "toplama": 3
+  },
+  "yas_dilim": {
+   "toplama": 4
+  },
+  "yas_toplam": {
+   "toplama": 4
+  }
+ },
+ "sorular": [
+  {
+   "soru_id": "Y-oz_cek_tutar-01",
+   "niyet": "oz_cek_tutar",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Müşterinin bekleyen tek bir çeki var.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "musteri_adi": "Palmiye İnci Kırtasiye Ltd. Şti."
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      8,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "19032.82"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Bekleyen çeklerin toplamı: 19.032,82 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_cek_tutar-02",
+   "niyet": "oz_cek_tutar",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Bekleyen 2 çek var; tutarları toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-oz_cek_tutar-03",
+   "niyet": "oz_cek_tutar",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Müşterinin bekleyen tek bir çeki var.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "musteri_adi": "Rüzgar Sardunya Ambalaj Ltd. Şti."
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      14,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "23854.80"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Bekleyen çeklerin toplamı: 23.854,80 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_cek_tutar-04",
+   "niyet": "oz_cek_tutar",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Müşterinin bekleyen tek bir çeki var.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "musteri_adi": "Akın Zümrüt Dış Ticaret A.Ş."
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      15,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "41262.81"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Bekleyen çeklerin toplamı: 41.262,81 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_cek_tutar-05",
+   "niyet": "oz_cek_tutar",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Müşterinin bekleyen tek bir çeki var.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "musteri_adi": "Nehir Tan Oyuncak Ltd. Şti."
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      8,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "27702.92"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Bekleyen çeklerin toplamı: 27.702,92 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_cek_tutar-06",
+   "niyet": "oz_cek_tutar",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Müşterinin bekleyen tek bir çeki var.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "musteri_adi": "Kartal Akın Ticaret San. ve Tic. Ltd. Şti."
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      20,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "263688.39"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Bekleyen çeklerin toplamı: 263.688,39 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_cek_tutar-07",
+   "niyet": "oz_cek_tutar",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Müşterinin bekleyen tek bir çeki var.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "musteri_adi": "Ege Ufuk Hediyelik Ltd. Şti."
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      3,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "26858.01"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Bekleyen çeklerin toplamı: 26.858,01 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_cek_tutar-08",
+   "niyet": "oz_cek_tutar",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Müşterinin 118 çeki var, 7 tanesi bekliyor; tutarları toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-oz_gecikme-01",
+   "niyet": "oz_gecikme",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Ortalama gecikme için kapanan her faturanın gecikme gününü bulup ortalamak gerekir."
+  },
+  {
+   "soru_id": "Y-oz_gecikme-02",
+   "niyet": "oz_gecikme",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Ortalama gecikme için kapanan her faturanın gecikme gününü bulup ortalamak gerekir."
+  },
+  {
+   "soru_id": "Y-oz_gecikme-03",
+   "niyet": "oz_gecikme",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Ortalama gecikme için kapanan her faturanın gecikme gününü bulup ortalamak gerekir."
+  },
+  {
+   "soru_id": "Y-oz_gecikme-04",
+   "niyet": "oz_gecikme",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Ortalama gecikme için kapanan her faturanın gecikme gününü bulup ortalamak gerekir."
+  },
+  {
+   "soru_id": "Y-oz_son_tahsilat-01",
+   "niyet": "oz_son_tahsilat",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "tahsilatlar_api_v1_tahsilatlar_get",
+     "argumanlar": {
+      "musteri_adi": "Alpine Supplies House Lda",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tarih"
+     ]
+    },
+    {
+     "anahtar": 1,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "2026-04-29",
+    "1809.23"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son tahsilat tarihi: 29 Nisan 2026\nSon tahsilat tutarı: 1.809,23 EUR",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_son_tahsilat-02",
+   "niyet": "oz_son_tahsilat",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "tahsilatlar_api_v1_tahsilatlar_get",
+     "argumanlar": {
+      "musteri_adi": "Ekin Kale Züccaciye San. ve Tic. Ltd. Şti.",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tarih"
+     ]
+    },
+    {
+     "anahtar": 1,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "2026-07-13",
+    "7056.93"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son tahsilat tarihi: 13 Temmuz 2026\nSon tahsilat tutarı: 7.056,93 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_son_tahsilat-03",
+   "niyet": "oz_son_tahsilat",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "tahsilatlar_api_v1_tahsilatlar_get",
+     "argumanlar": {
+      "musteri_adi": "Kuzey Meltem Hediyelik San. ve Tic. Ltd. Şti.",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tarih"
+     ]
+    },
+    {
+     "anahtar": 1,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "2026-05-27",
+    "22587.74"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son tahsilat tarihi: 27 Mayıs 2026\nSon tahsilat tutarı: 22.587,74 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_son_tahsilat-04",
+   "niyet": "oz_son_tahsilat",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "tahsilatlar_api_v1_tahsilatlar_get",
+     "argumanlar": {
+      "musteri_adi": "Golden Home Group Ltd",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tarih"
+     ]
+    },
+    {
+     "anahtar": 1,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "2026-05-01",
+    "698.99"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son tahsilat tarihi: 1 Mayıs 2026\nSon tahsilat tutarı: 698,99 EUR",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_acik-01",
+   "niyet": "oz_acik",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "engelli",
+   "gerekce": "Müşteri adından kimliğe, kimlikten müşteri kartına (cari bakiye). Kâhinin cevabı doğrulayıcıdan geçmedi.",
+   "plan": [
+    {
+     "arac": "musteriler_api_v1_musteriler_get",
+     "argumanlar": {
+      "ad": "Bright Gifts House Ltd",
+      "sayfa_boyutu": 1
+     }
+    },
+    {
+     "arac": "musteri_api_v1_musteriler",
+     "argumanlar": {
+      "musteri_id": {
+       "$": [
+        0,
+        "kayitlar",
+        0,
+        "musteri_id"
+       ]
+      }
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 1,
+     "yol": [
+      "cari_bakiye_tl"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "12029.70"
+   ],
+   "kahin": {
+    "durum": "uretemedim",
+    "dogru": false,
+    "cevap": "Bu soruya doğrulanabilir bir cevap üretemedim: cevaptaki bazı sayılar ya da alıntılar araç sonuçlarıyla eşleşmedi. Soruyu daha dar sorarak yeniden deneyebilirsiniz.",
+    "dogrulama": [
+     {
+      "gecerli": false,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": true
+     },
+     {
+      "gecerli": false,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": true
+     }
+    ]
+   },
+   "eski_sinif": "zincir"
+  },
+  {
+   "soru_id": "Y-oz_acik-02",
+   "niyet": "oz_acik",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "engelli",
+   "gerekce": "Müşteri adından kimliğe, kimlikten müşteri kartına (cari bakiye). Kâhinin cevabı doğrulayıcıdan geçmedi.",
+   "plan": [
+    {
+     "arac": "musteriler_api_v1_musteriler_get",
+     "argumanlar": {
+      "ad": "Karadeniz Ada Tekstil San. ve Tic. Ltd. Şti.",
+      "sayfa_boyutu": 1
+     }
+    },
+    {
+     "arac": "musteri_api_v1_musteriler",
+     "argumanlar": {
+      "musteri_id": {
+       "$": [
+        0,
+        "kayitlar",
+        0,
+        "musteri_id"
+       ]
+      }
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 1,
+     "yol": [
+      "cari_bakiye_tl"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "28421.22"
+   ],
+   "kahin": {
+    "durum": "uretemedim",
+    "dogru": false,
+    "cevap": "Bu soruya doğrulanabilir bir cevap üretemedim: cevaptaki bazı sayılar ya da alıntılar araç sonuçlarıyla eşleşmedi. Soruyu daha dar sorarak yeniden deneyebilirsiniz.",
+    "dogrulama": [
+     {
+      "gecerli": false,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": true
+     },
+     {
+      "gecerli": false,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": true
+     }
+    ]
+   },
+   "eski_sinif": "zincir"
+  },
+  {
+   "soru_id": "Y-oz_acik-03",
+   "niyet": "oz_acik",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "engelli",
+   "gerekce": "Müşteri adından kimliğe, kimlikten müşteri kartına (cari bakiye). Kâhinin cevabı doğrulayıcıdan geçmedi.",
+   "plan": [
+    {
+     "arac": "musteriler_api_v1_musteriler_get",
+     "argumanlar": {
+      "ad": "Bright Supplies Group SARL",
+      "sayfa_boyutu": 1
+     }
+    },
+    {
+     "arac": "musteri_api_v1_musteriler",
+     "argumanlar": {
+      "musteri_id": {
+       "$": [
+        0,
+        "kayitlar",
+        0,
+        "musteri_id"
+       ]
+      }
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 1,
+     "yol": [
+      "cari_bakiye_tl"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "42809.74"
+   ],
+   "kahin": {
+    "durum": "uretemedim",
+    "dogru": false,
+    "cevap": "Bu soruya doğrulanabilir bir cevap üretemedim: cevaptaki bazı sayılar ya da alıntılar araç sonuçlarıyla eşleşmedi. Soruyu daha dar sorarak yeniden deneyebilirsiniz.",
+    "dogrulama": [
+     {
+      "gecerli": false,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": true
+     },
+     {
+      "gecerli": false,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": true
+     }
+    ]
+   },
+   "eski_sinif": "zincir"
+  },
+  {
+   "soru_id": "Y-oz_eski_vade-01",
+   "niyet": "oz_eski_vade",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Euro Decor House GmbH",
+      "durum": "acik",
+      "siralama": "vade_artan",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "vade_tarihi"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "2026-09-18"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "En eski açık faturanın vadesi: 18 Eylül 2026",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_eski_vade-02",
+   "niyet": "oz_eski_vade",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Sedef Nar Dış Ticaret San. ve Tic. Ltd. Şti.",
+      "durum": "acik",
+      "siralama": "vade_artan",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "vade_tarihi"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "2026-08-30"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "En eski açık faturanın vadesi: 30 Ağustos 2026",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_eski_vade-03",
+   "niyet": "oz_eski_vade",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Yaprak Ada Hediyelik A.Ş.",
+      "durum": "acik",
+      "siralama": "vade_artan",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "vade_tarihi"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "2025-05-27"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "En eski açık faturanın vadesi: 27 Mayıs 2025",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-01",
+   "niyet": "oz_dilim",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Dilimde tek bir TL faturası var (kalan tutar).",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Zirve Liman Oyuncak A.Ş.",
+      "durum": "acik",
+      "vade_bitis": "2026-07-02",
+      "vade_baslangic": "2026-06-03"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "kalan_tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "6202.52"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Vadesini 61 ile 90 gün arasında geçmiş alacak: 6.202,52 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-02",
+   "niyet": "oz_dilim",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Dilimde tek bir döviz faturası var, hiç ödenmemiş (TL karşılığı).",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Alpine Trading Co GmbH",
+      "durum": "acik",
+      "vade_bitis": "2026-08-31",
+      "vade_baslangic": "2026-08-02"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tutar_tl"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "27328.51"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Vadesini 1 ile 30 gün arasında geçmiş alacak: 27.328,51 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-03",
+   "niyet": "oz_dilim",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Dilimde tek bir TL faturası var (kalan tutar).",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Zümrüt Toros Oyuncak Ltd. Şti.",
+      "durum": "acik",
+      "vade_bitis": "2026-08-01",
+      "vade_baslangic": "2026-07-03"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "kalan_tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "1623.61"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Vadesini 31 ile 60 gün arasında geçmiş alacak: 1.623,61 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-04",
+   "niyet": "oz_dilim",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Dilimde tek bir TL faturası var (kalan tutar).",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Kuzey Palmiye Ev Gereçleri A.Ş.",
+      "durum": "acik",
+      "vade_bitis": "2026-08-31",
+      "vade_baslangic": "2026-08-02"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "kalan_tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "267.43"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Vadesini 1 ile 30 gün arasında geçmiş alacak: 267,43 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-05",
+   "niyet": "oz_dilim",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Dilimde tek bir döviz faturası var, hiç ödenmemiş (TL karşılığı).",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Bright Living Partners Ltd",
+      "durum": "acik",
+      "vade_bitis": "2026-08-01",
+      "vade_baslangic": "2026-07-03"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "tutar_tl"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "42868.99"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Vadesini 31 ile 60 gün arasında geçmiş alacak: 42.868,99 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-06",
+   "niyet": "oz_dilim",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Dilimde tek bir TL faturası var (kalan tutar).",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Kaya Fidan Ticaret Ltd. Şti.",
+      "durum": "acik",
+      "vade_bitis": "2026-08-31",
+      "vade_baslangic": "2026-08-02"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "kalan_tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "58883.90"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Vadesini 1 ile 30 gün arasında geçmiş alacak: 58.883,90 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-07",
+   "niyet": "oz_dilim",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Dilimde tek bir TL faturası var (kalan tutar).",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Nar Akdeniz Mağazacılık San. ve Tic. Ltd. Şti.",
+      "durum": "acik",
+      "vade_bitis": "2026-08-31",
+      "vade_baslangic": "2026-08-02"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "kalan_tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "3417.02"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Vadesini 1 ile 30 gün arasında geçmiş alacak: 3.417,02 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-oz_dilim-08",
+   "niyet": "oz_dilim",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dilimde 7 fatura var; kalanlarını toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-yas_toplam-01",
+   "niyet": "yas_toplam",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Kapsamdaki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir (binlerce kayıt)."
+  },
+  {
+   "soru_id": "Y-yas_toplam-02",
+   "niyet": "yas_toplam",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Kapsamdaki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir (binlerce kayıt)."
+  },
+  {
+   "soru_id": "Y-yas_toplam-03",
+   "niyet": "yas_toplam",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Kapsamdaki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir (binlerce kayıt)."
+  },
+  {
+   "soru_id": "Y-yas_toplam-04",
+   "niyet": "yas_toplam",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Kapsamdaki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir (binlerce kayıt)."
+  },
+  {
+   "soru_id": "Y-cek_bekleyen-01",
+   "niyet": "cek_bekleyen",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Sayı iki durumun (portföyde, tahsilde) toplamı; tutar bütün bekleyen çeklerin toplamı."
+  },
+  {
+   "soru_id": "Y-cek_bekleyen-02",
+   "niyet": "cek_bekleyen",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Sayı iki durumun (portföyde, tahsilde) toplamı; tutar bütün bekleyen çeklerin toplamı."
+  },
+  {
+   "soru_id": "Y-cek_bekleyen-03",
+   "niyet": "cek_bekleyen",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Sayı iki durumun (portföyde, tahsilde) toplamı; tutar bütün bekleyen çeklerin toplamı."
+  },
+  {
+   "soru_id": "Y-gec_adet-01",
+   "niyet": "gec_adet",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Sayı toplam_kayit alanında; vade_bitis = bugün - gün.",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "durum": "acik",
+      "vade_bitis": "2026-05-04",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "toplam_kayit"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    323
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Fatura sayısı: 323",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-gec_adet-02",
+   "niyet": "gec_adet",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Sayı toplam_kayit alanında; vade_bitis = bugün - gün.",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "durum": "acik",
+      "vade_bitis": "2026-07-03",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "toplam_kayit"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    126
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Fatura sayısı: 126",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-gec_adet-03",
+   "niyet": "gec_adet",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "gerekce": "Sayı toplam_kayit alanında; vade_bitis = bugün - gün.",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "durum": "acik",
+      "vade_bitis": "2026-06-03",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "toplam_kayit"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    397
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Fatura sayısı: 397",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-dso-01",
+   "niyet": "dso",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "DSO alacak ve satış toplamlarından hesaplanır."
+  },
+  {
+   "soru_id": "Y-dso-02",
+   "niyet": "dso",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "DSO alacak ve satış toplamlarından hesaplanır."
+  },
+  {
+   "soru_id": "Y-dso-03",
+   "niyet": "dso",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "DSO alacak ve satış toplamlarından hesaplanır."
+  },
+  {
+   "soru_id": "Y-dso-04",
+   "niyet": "dso",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "DSO alacak ve satış toplamlarından hesaplanır."
+  },
+  {
+   "soru_id": "Y-fat_son-01",
+   "niyet": "fat_son",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Yaprak Güneş Mağazacılık A.Ş.",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "fatura_id"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "F003457"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son fatura: F003457",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-fat_son-02",
+   "niyet": "fat_son",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Pınar Gökçe Ticaret San. ve Tic. Ltd. Şti.",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "fatura_id"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "F035473"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son fatura: F035473",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-fat_son-03",
+   "niyet": "fat_son",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Bright Home Partners SL",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "fatura_id"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "F035616"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son fatura: F035616",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-fat_son-04",
+   "niyet": "fat_son",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Akın Doğa Oyuncak San. ve Tic. Ltd. Şti.",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "fatura_id"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "F035880"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son fatura: F035880",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-fat_son-05",
+   "niyet": "fat_son",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "faturalar_api_v1_faturalar_get",
+     "argumanlar": {
+      "musteri_adi": "Güneş Kale Dış Ticaret San. ve Tic. Ltd. Şti.",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "kayitlar",
+      0,
+      "fatura_id"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "F033904"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Son fatura: F033904",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-gec_en_buyuk-01",
+   "niyet": "gec_en_buyuk",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Tutara göre sıralama yok; en büyüğü bulmak için bütün sayfaları taramak gerekir."
+  },
+  {
+   "soru_id": "Y-gec_en_buyuk-02",
+   "niyet": "gec_en_buyuk",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Tutara göre sıralama yok; en büyüğü bulmak için bütün sayfaları taramak gerekir."
+  },
+  {
+   "soru_id": "Y-gec_en_buyuk-03",
+   "niyet": "gec_en_buyuk",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Tutara göre sıralama yok; en büyüğü bulmak için bütün sayfaları taramak gerekir."
+  },
+  {
+   "soru_id": "Y-gec_en_buyuk-04",
+   "niyet": "gec_en_buyuk",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Tutara göre sıralama yok; en büyüğü bulmak için bütün sayfaları taramak gerekir."
+  },
+  {
+   "soru_id": "Y-cek_en_erken_no-01",
+   "niyet": "cek_en_erken_no",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "zincir",
+   "gerekce": "Portföydeki ve tahsildeki çeklerin ilk vadelisi karşılaştırılır.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "durum": "portfoyde",
+      "sayfa_boyutu": 1
+     }
+    },
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "durum": "tahsilde",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 1,
+     "yol": [
+      "kayitlar",
+      0,
+      "cek_id"
+     ]
+    },
+    {
+     "anahtar": 1,
+     "cagri": 1,
+     "yol": [
+      "kayitlar",
+      0,
+      "musteri"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "C025774",
+    "Tan Orkide Mağazacılık A.Ş."
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Çek numarası: C025774\nMüşteri: Tan Orkide Mağazacılık A.Ş.",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-cek_en_erken_no-02",
+   "niyet": "cek_en_erken_no",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "zincir",
+   "gerekce": "Portföydeki ve tahsildeki çeklerin ilk vadelisi karşılaştırılır.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "durum": "portfoyde",
+      "sayfa_boyutu": 1
+     }
+    },
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "durum": "tahsilde",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 1,
+     "yol": [
+      "kayitlar",
+      0,
+      "cek_id"
+     ]
+    },
+    {
+     "anahtar": 1,
+     "cagri": 1,
+     "yol": [
+      "kayitlar",
+      0,
+      "musteri"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "C025774",
+    "Tan Orkide Mağazacılık A.Ş."
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Çek numarası: C025774\nMüşteri: Tan Orkide Mağazacılık A.Ş.",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-cek_en_erken_no-03",
+   "niyet": "cek_en_erken_no",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "zincir",
+   "gerekce": "Portföydeki ve tahsildeki çeklerin ilk vadelisi karşılaştırılır.",
+   "plan": [
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "durum": "portfoyde",
+      "sayfa_boyutu": 1
+     }
+    },
+    {
+     "arac": "cekler_api_v1_cekler_get",
+     "argumanlar": {
+      "durum": "tahsilde",
+      "sayfa_boyutu": 1
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 1,
+     "yol": [
+      "kayitlar",
+      0,
+      "cek_id"
+     ]
+    },
+    {
+     "anahtar": 1,
+     "cagri": 1,
+     "yol": [
+      "kayitlar",
+      0,
+      "musteri"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "C025774",
+    "Tan Orkide Mağazacılık A.Ş."
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Çek numarası: C025774\nMüşteri: Tan Orkide Mağazacılık A.Ş.",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-nakit_toplam-01",
+   "niyet": "nakit_toplam",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Hesap bakiyelerini kurla TL'ye çevirip toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-nakit_toplam-02",
+   "niyet": "nakit_toplam",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Hesap bakiyelerini kurla TL'ye çevirip toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-kur_bugun-01",
+   "niyet": "kur_bugun",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "kurlar_api_v1_kurlar_get",
+     "argumanlar": {
+      "para_birimi": "EUR"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "alis"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "55.8652"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "EUR alış kuru: 55,8652 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-kur_bugun-02",
+   "niyet": "kur_bugun",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "kurlar_api_v1_kurlar_get",
+     "argumanlar": {
+      "para_birimi": "GBP"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "alis"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "65.1261"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "GBP alış kuru: 65,1261 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-kur_bugun-03",
+   "niyet": "kur_bugun",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "kurlar_api_v1_kurlar_get",
+     "argumanlar": {
+      "para_birimi": "USD"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "alis"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "48.1745"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "USD alış kuru: 48,1745 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-pos_komisyon-01",
+   "niyet": "pos_komisyon",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dönemdeki işlemlerin komisyonlarını toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-pos_komisyon-02",
+   "niyet": "pos_komisyon",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dönemdeki işlemlerin komisyonlarını toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-pos_komisyon-03",
+   "niyet": "pos_komisyon",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dönemdeki işlemlerin komisyonlarını toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-ode_toplam-01",
+   "niyet": "ode_toplam",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Vadesi yaklaşan alış faturalarının kalanlarını toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-ode_toplam-02",
+   "niyet": "ode_toplam",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Vadesi yaklaşan alış faturalarının kalanlarını toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-ode_toplam-03",
+   "niyet": "ode_toplam",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Vadesi yaklaşan alış faturalarının kalanlarını toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-akis_ilk_hafta-01",
+   "niyet": "akis_ilk_hafta",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "yok",
+   "gerekce": "Nakit akışı tahmininin yöntemi (hangi alacağın, çekin, borcun hangi hafta sayılacağı) API'de yok."
+  },
+  {
+   "soru_id": "Y-akis_ilk_hafta-02",
+   "niyet": "akis_ilk_hafta",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "yok",
+   "gerekce": "Nakit akışı tahmininin yöntemi (hangi alacağın, çekin, borcun hangi hafta sayılacağı) API'de yok."
+  },
+  {
+   "soru_id": "Y-akis_ilk_hafta-03",
+   "niyet": "akis_ilk_hafta",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "yok",
+   "gerekce": "Nakit akışı tahmininin yöntemi (hangi alacağın, çekin, borcun hangi hafta sayılacağı) API'de yok."
+  },
+  {
+   "soru_id": "Y-banka_adet-01",
+   "niyet": "banka_adet",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "4 hesapta hareket var ([475, 41, 9, 15]); sayıları toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-banka_adet-02",
+   "niyet": "banka_adet",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "4 hesapta hareket var ([622, 38, 10, 10]); sayıları toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-banka_adet-03",
+   "niyet": "banka_adet",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "4 hesapta hareket var ([1887, 120, 23, 32]); sayıları toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-kur_poz-01",
+   "niyet": "kur_poz",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "yok",
+   "gerekce": "Döviz pozisyonunun tanımı (hangi varlık ve borç kalemlerinin netleşeceği) API'de yok."
+  },
+  {
+   "soru_id": "Y-kur_poz-02",
+   "niyet": "kur_poz",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "yok",
+   "gerekce": "Döviz pozisyonunun tanımı (hangi varlık ve borç kalemlerinin netleşeceği) API'de yok."
+  },
+  {
+   "soru_id": "Y-kur_poz-03",
+   "niyet": "kur_poz",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "yok",
+   "gerekce": "Döviz pozisyonunun tanımı (hangi varlık ve borç kalemlerinin netleşeceği) API'de yok."
+  },
+  {
+   "soru_id": "Y-yas_dilim-01",
+   "niyet": "yas_dilim",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dilimdeki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-yas_dilim-02",
+   "niyet": "yas_dilim",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dilimdeki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-yas_dilim-03",
+   "niyet": "yas_dilim",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dilimdeki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-yas_dilim-04",
+   "niyet": "yas_dilim",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "Dilimdeki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir."
+  },
+  {
+   "soru_id": "Y-dso_tarihli-01",
+   "niyet": "dso_tarihli",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "DSO alacak ve satış toplamlarından hesaplanır."
+  },
+  {
+   "soru_id": "Y-dso_tarihli-02",
+   "niyet": "dso_tarihli",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "DSO alacak ve satış toplamlarından hesaplanır."
+  },
+  {
+   "soru_id": "Y-dso_tarihli-03",
+   "niyet": "dso_tarihli",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "toplama",
+   "gerekce": "DSO alacak ve satış toplamlarından hesaplanır."
+  },
+  {
+   "soru_id": "Y-fat_tutar-01",
+   "niyet": "fat_tutar",
+   "rol": "satis_ihracat",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "fatura_api_v1_faturalar",
+     "argumanlar": {
+      "fatura_id": "F012381"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "4243.39"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Fatura tutarı: 4.243,39 EUR",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-fat_tutar-02",
+   "niyet": "fat_tutar",
+   "rol": "cfo",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "fatura_api_v1_faturalar",
+     "argumanlar": {
+      "fatura_id": "F016551"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "17.18"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Fatura tutarı: 17,18 EUR",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  },
+  {
+   "soru_id": "Y-fat_tutar-03",
+   "niyet": "fat_tutar",
+   "rol": "satis_yurtici",
+   "alternatif": 0,
+   "sinif": "tek_cagri",
+   "plan": [
+    {
+     "arac": "fatura_api_v1_faturalar",
+     "argumanlar": {
+      "fatura_id": "F004555"
+     }
+    }
+   ],
+   "cevap": [
+    {
+     "anahtar": 0,
+     "cagri": 0,
+     "yol": [
+      "tutar"
+     ]
+    }
+   ],
+   "api_degerleri": [
+    "16799.10"
+   ],
+   "kahin": {
+    "durum": "tamam",
+    "dogru": true,
+    "cevap": "Fatura tutarı: 16.799,10 TL",
+    "dogrulama": [
+     {
+      "gecerli": true,
+      "kaynaksiz": [],
+      "kimliksiz": [],
+      "sahipsiz": false
+     }
+    ]
+   }
+  }
+ ],
+ "ozet": "59af5ea8c5ce91de7ccbf9c53f479cd0dfbbcb77370c91c875da8fad86bed630"
+}

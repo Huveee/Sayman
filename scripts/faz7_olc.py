@@ -28,6 +28,9 @@ Süre, adım ve bağlam sınırları modelin sonucudur ve yazılır.
   reports/<önek>_olcum_<set>.json (Faz 7 dosyalarına dokunulmaz)
 - kâhin ve kontroller: data/olcum/<set>_<model>.jsonl; --kahin-hepsi ile reports/faz7_kahin.json
 - Faz 8b yeni set: --soru-seti reports/faz8b_soru_seti.json --set yeni (kâhin özeti reports/faz8b_kahin.json)
+- Faz 9 otomatik araçlar: --kol otomatik. Araçlar sahte API'den fastmcp ile üretilir (sayman.deney.otomatik), kapı
+  OtomatikSunucu'dur; orkestratör, sistem istemi ve doğrulayıcı aynıdır. Kâhin dondurulmuş planı yürütür
+  (reports/faz9_siniflar.json); kâhin ve kontrol dosyaları "_oto" ekiyle ayrı yazılır.
 
 Kullanım (proje kökünden):
     .venv\\Scripts\\python -I -u scripts\\faz7_olc.py --kahin-hepsi
@@ -71,12 +74,17 @@ MODELLER = ("gercek", "kahin", *KONTROLLER)
 # (Faz 7 dosyaları "faz7"; ince ayarlı modelin dosyaları ayrı ve yeni, Faz 7 dosyalarının üstüne yazılmaz).
 OLLAMA_MODELI: str | None = None
 ETIKET = "faz7"
+# Faz 9: araç kolu. "el" elle tasarlanmış araçlar (Faz 3-8b); "otomatik" sahte API'den üretilen araçlar.
+KOL = "el"
+KOL_OZETI: str | None = None
+SINIFLAR = KOK / "reports" / "faz9_siniflar.json"
+OTOMATIK_LISTE_TOKEN = 2300  # Ollama'da 2209 ölçüldü (reports/faz9_boyut.json); scripts/faz9_sinif.py ile aynı
 
 
 def jsonl_yolu(set_adi: str, model: str, tekrar: bool = False) -> Path:
     if model == "gercek":
         return KOK / "reports" / f"{ETIKET}_{set_adi}{'_tekrar' if tekrar else ''}.jsonl"
-    return CALISMA / f"{set_adi}_{model}{'_tekrar' if tekrar else ''}.jsonl"
+    return CALISMA / f"{set_adi}_{model}{'_oto' if KOL == 'otomatik' else ''}{'_tekrar' if tekrar else ''}.jsonl"
 
 
 def jsonl_oku(yol: Path) -> list[dict]:
@@ -120,12 +128,13 @@ def set_izi() -> dict:
 
 
 def _iz(kayit: dict) -> tuple:
-    return tuple(kayit.get(k) for k in ("sistem_ozeti", "kod_ozeti", "soru_seti_ozeti", "hedef_ozeti"))
+    return tuple(kayit.get(k) for k in ("sistem_ozeti", "kod_ozeti", "soru_seti_ozeti", "hedef_ozeti", "kol_ozeti"))
 
 
 def _kayit(soru: dict, tur, sistem: dict, model_izi: dict, seti: dict) -> dict:
     return {
         "soru_id": soru["soru_id"], "sistem_ozeti": sistem["ozet"], "kod_ozeti": sistem["kod_ozeti"], **seti,
+        **({"kol": KOL, "kol_ozeti": KOL_OZETI} if KOL != "el" else {}),
         "model_ozeti": model_izi["ozet"], "durum": tur.durum, "cevap": tur.cevap, "sure_s": tur.sure_s,
         "model_cagrisi": tur.model_cagrisi, "neden": tur.neden,
         "cagrilar": [{"arac": c["arac"], "argumanlar": c["argumanlar"], "hata": c["yanit"].get("hata"),
@@ -149,7 +158,7 @@ def calistir(sorular: list[dict], model_adi: str, yol: Path, yeniden: bool = Fal
     if yeniden and yol.exists():
         yol.unlink()
     seti = set_izi()
-    simdiki = (sistem["ozet"], sistem["kod_ozeti"], seti["soru_seti_ozeti"], seti["hedef_ozeti"])
+    simdiki = (sistem["ozet"], sistem["kod_ozeti"], seti["soru_seti_ozeti"], seti["hedef_ozeti"], KOL_OZETI)
     onceki = jsonl_oku(yol)
     if {_iz(s) for s in onceki} - {simdiki}:
         raise SystemExit(f"{yol.name}: önceki satırlar başka bir sistem, soru seti ya da hedeflerle üretilmiş; "
@@ -168,20 +177,36 @@ def calistir(sorular: list[dict], model_adi: str, yol: Path, yeniden: bool = Fal
         from sayman.asistan.orkestrator import arac_tanimlari
         from sayman.belge.arama import arayici_kur
         model = OllamaModeli(model=OLLAMA_MODELI) if OLLAMA_MODELI else OllamaModeli()
-        arayici = arayici_kur(BELGE, "anlam")
+        arayici = arayici_kur(BELGE, "anlam")  # otomatik kolda da yüklenir: iki kolda bellek durumu aynı olsun
         bas = time.perf_counter()
         model([{"role": "user", "content": "Merhaba"}], arac_tanimlari(), 600)  # model belleğe yüklensin
         arayici.ara("ödeme vadesi", "cfo", 1, "anlam")
         print(f"ısınma {time.perf_counter() - bas:.1f} sn", flush=True)
+    elif KOL == "otomatik":
+        from sayman.deney.kahin import OtomatikKahin
+        if model_adi != "kahin":
+            raise SystemExit("otomatik kolda yalnızca kâhin var (kontroller elle araçların kâhinine bağlı)")
+        planlar = {k["soru_id"]: k for k in json.loads(SINIFLAR.read_text(encoding="utf-8"))["sorular"]}
+        model, arayici = OtomatikKahin(planlar), None
     else:
         model = Kahin(None if model_adi == "kahin" else model_adi, tum_parcalar)
         arayici = KahinArayici(tum_parcalar)
     with tempfile.TemporaryDirectory() as gecici:
-        sunucu = SaymanSunucusu(ambar=AMBAR, saat=lambda: saat, anahtar=anahtar, yetki=yetki_oku(),
-                                kayit=DenetimKaydi(CALISMA / f"denetim_{yol.stem}.jsonl"),
-                                kapsam_klasoru=Path(gecici) / "kapsam", belge=arayici, belge_yontemi="anlam")
+        if KOL == "otomatik":
+            from sayman.deney.otomatik import OtomatikSunucu
+            sunucu = OtomatikSunucu(ambar=AMBAR, saat=lambda: saat, anahtar=anahtar, yetki=yetki_oku(),
+                                    kayit=DenetimKaydi(CALISMA / f"denetim_{yol.stem}.jsonl"),
+                                    kapsam_klasoru=Path(gecici) / "kapsam")
+            ayar = Ayar(arac_listesi_token=OTOMATIK_LISTE_TOKEN)
+        else:
+            sunucu = SaymanSunucusu(ambar=AMBAR, saat=lambda: saat, anahtar=anahtar, yetki=yetki_oku(),
+                                    kayit=DenetimKaydi(CALISMA / f"denetim_{yol.stem}.jsonl"),
+                                    kapsam_klasoru=Path(gecici) / "kapsam", belge=arayici, belge_yontemi="anlam")
+            ayar = Ayar()
         try:
-            asistan = Asistan(sunucu, model, Ayar(), kayit=DenetimKaydi(CALISMA / f"turlar_{yol.stem}.jsonl"))
+            asistan = Asistan(sunucu, model, ayar, kayit=DenetimKaydi(CALISMA / f"turlar_{yol.stem}.jsonl"))
+            if KOL == "otomatik":
+                asistan.araclar = sunucu.arac_tanimlari()
             with open(yol, "a", encoding="utf-8", newline="\n") as f:
                 for i, s in enumerate(kalan, 1):
                     if hasattr(model, "soru"):
@@ -254,6 +279,7 @@ def rapor(set_adi: str, model_adi: str, veri: dict, kumeler: dict, parca_rolleri
         "sistem": parmak_izi.sistem(), "model_izi": parmak_izi.model(ollama_ozeti=model_adi == "gercek",
                                                                     model_adi=OLLAMA_MODELI)
         if model_adi == "gercek" else {"model": model_adi},
+        **({"kol": KOL, "kol_ozeti": KOL_OZETI} if KOL != "el" else {}),
         "tamamlanan": f"{len(puanlar)}/{len(sorular)}",
         "altyapi_yeniden_sorulan": [k["soru_id"] for k in kayitlar if k.get("altyapi")],
         "hedefler": puanlama.hedefleri_degerlendir(ozet, veri["hedefler"]), "ozet": ozet,
@@ -338,7 +364,7 @@ def uyanik_tut() -> None:
 
 
 def main() -> None:
-    global OLLAMA_MODELI, ETIKET, SORU_SETI
+    global OLLAMA_MODELI, ETIKET, SORU_SETI, KOL, KOL_OZETI
     uyanik_tut()
     ap = argparse.ArgumentParser(description="Faz 7 ölçümü")
     ap.add_argument("--set", choices=("gelistirme", "saklanan", "yeni", "kimlik"))
@@ -354,7 +380,15 @@ def main() -> None:
     ap.add_argument("--kahin-hepsi", action="store_true", help="kâhin ve kontroller, iki set; reports/faz7_kahin.json")
     ap.add_argument("--ollama-model", default=None, help="Faz 8: gerçek model yerine Ollama'daki bu model")
     ap.add_argument("--etiket", default="faz7", help="Faz 8: rapor dosyalarının öneki (ör. faz8_ayarli)")
+    ap.add_argument("--kol", choices=("el", "otomatik"), default="el",
+                    help="Faz 9: elle tasarlanmış araçlar (el) ya da sahte API'den üretilenler (otomatik)")
     a = ap.parse_args()
+    KOL = a.kol
+    if KOL == "otomatik":
+        from sayman.deney.otomatik import kol_ozeti
+        KOL_OZETI = kol_ozeti()
+        if a.kahin_hepsi or a.tekrar or a.set != "yeni" or a.bolum != "arac":
+            ap.error("--kol otomatik yalnızca --set yeni --bolum arac ile (Faz 9 karşılaştırması)")
     if (a.ollama_model is None) != (a.etiket == "faz7"):
         ap.error("--ollama-model ile --etiket birlikte verilmeli (Faz 7 dosyalarının üstüne yazılmasın)")
     OLLAMA_MODELI, ETIKET = a.ollama_model, a.etiket
@@ -394,7 +428,8 @@ def main() -> None:
     elif not a.yalniz_rapor:
         calistir(sorular, a.model, jsonl_yolu(a.set, a.model), yeniden=a.yeniden)
     r = rapor(a.set, a.model, veri, kumeler, parca_rolleri, bolumler)
-    hedef = KOK / "reports" / f"{ETIKET}_olcum_{a.set}.json" if a.model == "gercek" else CALISMA / f"rapor_{a.set}_{a.model}.json"
+    hedef = (KOK / "reports" / f"{ETIKET}_olcum_{a.set}.json" if a.model == "gercek"
+             else CALISMA / f"rapor_{a.set}_{a.model}{'_oto' if KOL == 'otomatik' else ''}.json")
     hedef.write_text(json.dumps(r, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(json.dumps({"tamamlanan": r["tamamlanan"], "hedefler": [(h["ad"], h["deger"], h["gecti"]) for h in r["hedefler"]]},
                      ensure_ascii=False, indent=1))
