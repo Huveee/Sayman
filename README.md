@@ -1931,7 +1931,7 @@ ister. Gerçek bir kurulumda bu kalemler bordro programından ya da beyanname ta
 Model sözleşmesine dokunmadan, tahmin cevaplarına sabit bir not eklendi. Cevap doğrulandıysa ve `nakit_akis_tahmini`
 bu turda hatasız bir sonuç döndürdüyse, cevabın köşesindeki "i" ipucunda araçlar ve sürenin altında şu not çıkar: "Bu
 tahmin yalnızca bilinen kalemleri içerir; vergi, SGK, maaş ve yeni satışlar dahil değildir; gerçek bakiye farklı
-olur." Reddedilen ya da doğrulanamayan cevaplarda tahmin gösterilmediği için not da çıkmaz.
+olabilir." Reddedilen ya da doğrulanamayan cevaplarda tahmin gösterilmediği için not da çıkmaz.
 - Not modelin cevabına eklenmez, doğrulayıcıdan geçmez ve modele hiç gitmez. Yalnızca `static/app.js` değişti;
   `/api` cevapları aynı.
 - İpucu kutusu artık her açılışta tam genişlikte ölçülüyor. Önceden bir önceki ipucunun yerinde ölçüldüğü için uzun

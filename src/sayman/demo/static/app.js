@@ -7,7 +7,7 @@ const DURUM_ETIKET = { ret: "Yetki yok", uretemedim: "Doğrulanamadı", sure_sin
 // The cash forecast counts only items already on record, so its balance is not the balance to come: answers built
 // on it carry this fixed note in the "i" tooltip
 const TAHMIN_ARACI = "nakit_akis_tahmini";
-const TAHMIN_NOTU = "Bu tahmin yalnızca bilinen kalemleri içerir; vergi, SGK, maaş ve yeni satışlar dahil değildir; gerçek bakiye farklı olur.";
+const TAHMIN_NOTU = "Bu tahmin yalnızca bilinen kalemleri içerir; vergi, SGK, maaş ve yeni satışlar dahil değildir; gerçek bakiye farklı olabilir.";
 
 let durum = null;          // last /api/durum
 let kullanici = null;      // /api/ben
