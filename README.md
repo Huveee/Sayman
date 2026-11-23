@@ -1682,9 +1682,20 @@ model koşusundaki 1.593 taslak, eski (`6f1a970`) ve yeni doğrulayıcıdan geç
 
 **Canlı deneme** (23 Kasım 2026, demo, `sayman-ayarli`, CFO, 1 Eylül 2026): "Nakit politikamıza göre asgari nakit
 eşiği nedir?" sorusu 47 sn'de cevaplandı. Cevap "son 12 ayın ortalama aylık net satışının %10'u" oldu ve alıntı
-[POL-NAKIT#m2] geldi. İlk provada bu soru durdurulmuştu; şimdi örnek sorularda. Bu tek bir deneme. Kayıt numarası
-düzeltmesi canlı denenmedi; dayanağı yalnızca kayıtlı taslaklar. Canlı sorulan son fatura sorusunda model harfle
-başlayan bir iade numarası yazdı ("C564711"; cevap anahtarı bunu kabul ediyor), bu düzeltmeye hiç uğramadı.
+[POL-NAKIT#m2] geldi. İlk provada bu soru durdurulmuştu; şimdi örnek sorularda. Bu tek bir deneme.
+
+Kayıt numarası düzeltmesi için dört soru canlı soruldu; dördü de doğru cevaplandı (26–55 sn). Ama hiçbirinde model
+numarayı düzeltmenin hedeflediği biçimde ("564713'tür (fatura …)", "… no'lu çek") yazmadı:
+
+| Soru (CFO) | Cevap | Süre |
+| --- | --- | --- |
+| Akın Doğa Oyuncak'a kestiğimiz son faturanın numarası | C564711 (aynı günkü iade; cevap anahtarı kabul ediyor) | 55 sn |
+| Bright Gifts Partners Ltd'ye kestiğimiz en son faturanın numarası | 564428 (cümlenin sonunda) | 26 sn |
+| Liman Rüzgar Tasarım'dan tahsil edilmemiş çekler | C031975 ve C033510 (çek kimlikleri) | 40 sn |
+| Aynı müşterinin bekleyen çeklerinin numaraları ve tutarları | C031975: 2.015,72 TL, C033510: 2.483,56 TL | 38 sn |
+
+Bu yazılışları eski doğrulayıcı da geçiriyordu. Yani kayıt numarası düzeltmesinin dayanağı hâlâ kayıtlı taslaklar
+(15 doğru taslak); canlı demoda tetiklendiği görülmedi.
 
 ## Veri kaynakları
 
