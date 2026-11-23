@@ -1584,6 +1584,27 @@ Rakamlar aynı günün raporundaki rakamlarla aynı. Tarayıcıda akış bir kez
   listeyle 86 soruluk sette yeniden ölçülmedi. Demo için Faz 8b'nin 0,93'ü iddia edilmez; yalnızca yukarıdaki prova
   sonuçları var.
 
+## Faz 11: rapor (bütün ölçüm tabloları tek komutla)
+
+```powershell
+.venv\Scripts\python -I scripts\faz11_rapor.py
+```
+
+- `reports/` altındaki ölçüm dosyalarından `reports/faz11_rapor.md` ve `reports/faz11_rapor.json` dosyalarını
+  üretir: Faz 0'dan Faz 9'a her fazın ölçüm tabloları ve sunum için "Sonuçlar ve sınırlamalar" maddeleri. Hiçbir
+  ölçüm yeniden çalıştırılmaz, model çağrılmaz.
+- Hangi tablonun hangi dosyadan ve hangi anahtardan okunduğu betikteki `MANIFEST`'te açıkça yazılı. "En son koşu"
+  dosya tarihine göre değil bu listeye göre belirlenir; bir fazın birden çok rapor sürümü varsa README'nin nihai
+  sonuç diye sunduğu dosya seçildi.
+- Sonuç maddelerindeki sayılar da dosyalardan okunur, elle yazılmaz.
+- Bir dosya ya da anahtar eksikse eksik olanı yazar, çıktı üretmez ve hata koduyla biter. Çıktıda saat damgası yok:
+  aynı girdi birebir aynı dosyayı verir.
+- Testler (`tests/test_faz11_rapor.py`, 8 test): gerçek komut hatasız çalışır ve bilinen değerleri (ör. Faz 9'da
+  65/86, 18/86, 68/86; p = 0,049) içerir. Kaynak dosyadaki bir değer değişince tablo ve ilgili sonuç maddesi de
+  değişir. Eksik dosya ya da anahtar hata koduyla biter. İki çalıştırma birebir aynı çıktıyı verir.
+- README ile dosyalar karşılaştırıldı, sayılar uyuşuyor. Faz 10'un canlı prova sonuçları bir ölçüm dosyası olmadığı
+  için raporda yok; yalnızca yukarıdaki Faz 10 bölümünde.
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
