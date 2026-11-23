@@ -10,7 +10,7 @@ Python 3.11 gerekir.
 
 ```bash
 py -3.11 -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt
+.venv/Scripts/python -I -m pip install -r requirements.txt
 ```
 
 API anahtarları gerektiğinde `.env.example` dosyası `.env` adıyla kopyalanıp doldurulur. `.env` git'e eklenmez.
@@ -18,7 +18,7 @@ API anahtarları gerektiğinde `.env.example` dosyası `.env` adıyla kopyalanı
 ## Testler
 
 ```bash
-.venv/Scripts/python -m pytest
+.venv/Scripts/python -I -m pytest
 ```
 
 Testler internete ve Ollama'ya gitmez; ölçüm betiklerinin kaydettiği dosyaları okur.
@@ -1506,7 +1506,7 @@ yüzden kırıldı (7.986 → 8.102 karakter); sınır 8200'e çıkarıldı.
 ## Faz 10: demo (sahte ERP sayfası ve gömülü Sayman sohbet penceresi)
 
 Kurgusal bir ERP'nin ("Defne ERP", şirket "Örnek Ticaret A.Ş.") ana sayfası ve sağ altta, müşterinin ekranındaki
-bir destek sohbeti gibi açılan Sayman penceresi. Arka uç FastAPI (`src/sayman/demo/uygulama.py`), sayfa
+bir destek sohbeti gibi açılan Sayman penceresi. Arka uç FastAPI (`src/sayman/demo/app.py`), sayfa
 `src/sayman/demo/static/` altında; internete hiçbir istek atmaz.
 
 ```powershell
@@ -1514,13 +1514,13 @@ ollama serve
 ```
 
 ```powershell
-.venv\Scripts\python -I scripts\faz10_demo.py baslat
+.venv\Scripts\python -I scripts\phase10_demo.py baslat
 ```
 
 Tarayıcıda `http://127.0.0.1:8010` açılır. Prova bittikten sonra saati ve uyarıları başa almak için:
 
 ```powershell
-.venv\Scripts\python -I scripts\faz10_demo.py sifirla
+.venv\Scripts\python -I scripts\phase10_demo.py sifirla
 ```
 
 - **Giriş:** üç kurgusal kullanıcıdan biri seçilir (CFO, yurtiçi ve ihracat satış müdürü). Demoda parola yok;
@@ -1593,7 +1593,7 @@ toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 
 ## Faz 11: rapor (bütün ölçüm tabloları tek komutla)
 
 ```powershell
-.venv\Scripts\python -I scripts\faz11_rapor.py
+.venv\Scripts\python -I scripts\phase11_report.py
 ```
 
 - `reports/` altındaki ölçüm dosyalarından `reports/faz11_rapor_guncel.md` ve `reports/faz11_rapor_guncel.json`
@@ -1607,7 +1607,7 @@ toplam ne kadar nakit var?" sorusu da yeni raporla aynı rakamla (79.411.496,06 
 - Sonuç maddelerindeki sayılar da dosyalardan okunur, elle yazılmaz.
 - Bir dosya ya da anahtar eksikse eksik olanı yazar, çıktı üretmez ve hata koduyla biter. Çıktıda saat damgası yok:
   aynı girdi birebir aynı dosyayı verir.
-- Testler (`tests/test_faz11_rapor.py`, 8 test): gerçek komut hatasız çalışır ve bilinen değerleri (ör. Faz 9'da
+- Testler (`tests/test_phase11_report.py`, 8 test): gerçek komut hatasız çalışır ve bilinen değerleri (ör. Faz 9'da
   65/86, 18/86, 68/86; p = 0,049) içerir. Kaynak dosyadaki bir değer değişince tablo ve ilgili sonuç maddesi de
   değişir. Eksik dosya ya da anahtar hata koduyla biter. İki çalıştırma birebir aynı çıktıyı verir.
 - README ile dosyalar karşılaştırıldı, sayılar uyuşuyor. Faz 10'un canlı prova sonuçları bir ölçüm dosyası olmadığı
@@ -1709,6 +1709,202 @@ Demonun öteki beş CFO örnek sorusu da yeni doğrulayıcıyla aynı gün yenid
 provasındakiyle aynı: 75.826.754,65 TL, 7.238.020,42 TL ve 37.800.862,95 TL. Çek politikası soruları alıntılarıyla
 geldi ([POL-CEK#m2], [POL-CEK#m5]). Süreler 31–65 sn.
 
+## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
+
+Kod tabanı uluslararası standartlara göre düzenlendi:
+- Paket, modül, dosya ve klasör adları İngilizce.
+- Koddaki tanımlayıcılar (fonksiyon, sınıf ve değişken adları), yorumlar ve docstring'ler İngilizce.
+- Betikler `scripts/phaseNN_<iş>.py`, testler `tests/test_phaseNN_<konu>.py` düzeninde.
+- Testlerin ve ölçüm betiklerinin ortak verisi `tests/support/` paketinde.
+
+Bilerek Türkçe kalanlar:
+- Modelin gördüğü her şey: sistem istemi, sabit cevap metinleri, araç adları, açıklamaları ve argümanları, JSON çıktı anahtarları. İnce ayarlı model (`sayman-ayarli`) tam bu metinlerle eğitildi; değişirse model bozulur.
+- Arayüz metinleri ve veri: SQL tablo ve sütun adları, komut satırı alt komutları ve seçenekleri.
+- Kayıtlı rapor ve veri dosyalarına yazılan alan adları.
+
+`tests/test_model_contract.py` bu sözleşmeyi dondurur. Modelin her turda gördüğü istem, araç tanımları, her rol için her aracın sonucu, demo API cevapları ve Faz 9 sahte API tanımı birebir aynı kalmalıdır.
+
+`reports/` ve `data/` altındaki dosya adları ölçüm kaydı olduğu için değişmedi. Yukarıdaki faz bölümleri, özellikle ölçümden önce yazılan ön kayıtlar, yazıldıkları günün dosya ve fonksiyon adlarını kullanır; bu bölümler değiştirilmedi. Eski ad → yeni ad:
+
+<details><summary>Betikler (45)</summary>
+
+| Eski ad | Yeni ad |
+| --- | --- |
+| `scripts/faz0_hiz_olcumu.py` | `scripts/phase00_speed_benchmark.py` |
+| `scripts/faz10_demo.py` | `scripts/phase10_demo.py` |
+| `scripts/faz11_rapor.py` | `scripts/phase11_report.py` |
+| `scripts/faz1_ayar.py` | `scripts/phase01_tuning.py` |
+| `scripts/faz1_kalibrasyon_kaynaklari.py` | `scripts/phase01_calibration_sources.py` |
+| `scripts/faz1_kur_indir.py` | `scripts/phase01_download_rates.py` |
+| `scripts/faz1_uci_indir.py` | `scripts/phase01_download_uci.py` |
+| `scripts/faz1_uci_profil.py` | `scripts/phase01_uci_profile.py` |
+| `scripts/faz1_veri_uret.py` | `scripts/phase01_generate_data.py` |
+| `scripts/faz2_ambar_kur.py` | `scripts/phase02_build_warehouse.py` |
+| `scripts/faz3_anahtar_uret.py` | `scripts/phase03_generate_key.py` |
+| `scripts/faz3_araclar_rapor.py` | `scripts/phase03_tools_report.py` |
+| `scripts/faz3_sunucu.py` | `scripts/phase03_server.py` |
+| `scripts/faz4_izle.py` | `scripts/phase04_monitor.py` |
+| `scripts/faz4_izleme_olc.py` | `scripts/phase04_evaluate_monitoring.py` |
+| `scripts/faz4_veri_uret.py` | `scripts/phase04_generate_data.py` |
+| `scripts/faz5_arama_olc.py` | `scripts/phase05_evaluate_search.py` |
+| `scripts/faz5_belge_uret.py` | `scripts/phase05_generate_documents.py` |
+| `scripts/faz5_dizin_kur.py` | `scripts/phase05_build_index.py` |
+| `scripts/faz5_indir.py` | `scripts/phase05_download_legislation.py` |
+| `scripts/faz5_kaynak_olc.py` | `scripts/phase05_evaluate_sources.py` |
+| `scripts/faz6_arac_ornekleri.py` | `scripts/phase06_tool_examples.py` |
+| `scripts/faz6_duman.py` | `scripts/phase06_smoke.py` |
+| `scripts/faz7_olc.py` | `scripts/phase07_evaluate.py` |
+| `scripts/faz7_soru_uret.py` | `scripts/phase07_generate_questions.py` |
+| `scripts/faz8_belebele_indir.py` | `scripts/phase08_download_belebele.py` |
+| `scripts/faz8_duman_ornek.py` | `scripts/phase08_smoke_samples.py` |
+| `scripts/faz8_egitim_sirketi.py` | `scripts/phase08_training_company.py` |
+| `scripts/faz8_egitim_veri.py` | `scripts/phase08_training_data.py` |
+| `scripts/faz8_gguf_karsilastir.py` | `scripts/phase08_compare_gguf.py` |
+| `scripts/faz8_kaggle.py` | `scripts/phase08_kaggle.py` |
+| `scripts/faz8_karsilastir.py` | `scripts/phase08_compare.py` |
+| `scripts/faz8_ollama_model.py` | `scripts/phase08_ollama_model.py` |
+| `scripts/faz8_unutma.py` | `scripts/phase08_forgetting.py` |
+| `scripts/faz8b_analiz.py` | `scripts/phase08b_analysis.py` |
+| `scripts/faz8b_kimlik_analiz.py` | `scripts/phase08b_identifier_analysis.py` |
+| `scripts/faz8b_kimlik_bicim.py` | `scripts/phase08b_identifier_formats.py` |
+| `scripts/faz8b_kimlik_soru_uret.py` | `scripts/phase08b_generate_identifier_questions.py` |
+| `scripts/faz8b_soru_uret.py` | `scripts/phase08b_generate_questions.py` |
+| `scripts/faz8b_tekrar_oynat.py` | `scripts/phase08b_replay.py` |
+| `scripts/faz8b_yeniden_puanla.py` | `scripts/phase08b_rescore.py` |
+| `scripts/faz9_analiz.py` | `scripts/phase09_analysis.py` |
+| `scripts/faz9_boyut.py` | `scripts/phase09_context_size.py` |
+| `scripts/faz9_sinif.py` | `scripts/phase09_classify.py` |
+| `scripts/kor_nokta_olcum.py` | `scripts/verifier_blind_spots.py` |
+
+</details>
+
+<details><summary>Kaggle betikleri (4)</summary>
+
+| Eski ad | Yeni ad |
+| --- | --- |
+| `kaggle/faz8_birlestir.py` | `kaggle/phase08_merge.py` |
+| `kaggle/faz8_egit.py` | `kaggle/phase08_train.py` |
+| `kaggle/faz8_niceleme_denemesi.py` | `kaggle/phase08_quantization_check.py` |
+| `kaggle/faz8_uyum_denemesi.py` | `kaggle/phase08_compatibility_check.py` |
+
+</details>
+
+<details><summary>Testler ve test verisi (42)</summary>
+
+| Eski ad | Yeni ad |
+| --- | --- |
+| `tests/faz3_denemeler.py` | `tests/support/authorization_trials.py` |
+| `tests/faz4_puanlama.py` | `tests/support/phase04_scoring.py` |
+| `tests/faz5_puanlama.py` | `tests/support/phase05_scoring.py` |
+| `tests/faz5_sorular.py` | `tests/support/phase05_questions.py` |
+| `tests/faz6_arac_sonuclari.json` | `tests/support/phase06_tool_results.json` |
+| `tests/faz6_taslaklar.py` | `tests/support/phase06_drafts.py` |
+| `tests/faz7_sorular.py` | `tests/support/phase07_questions.py` |
+| `tests/faz8_egitim_sorular.py` | `tests/support/phase08_training_questions.py` |
+| `tests/faz8b_kimlik_sorular.py` | `tests/support/phase08b_identifier_questions.py` |
+| `tests/faz8b_sorular.py` | `tests/support/phase08b_questions.py` |
+| `tests/pandas_referans.py` | `tests/support/pandas_reference.py` |
+| `tests/test_dogrulayici_kor_nokta.py` | `tests/test_verifier_blind_spots.py` |
+| `tests/test_duman.py` | `tests/test_smoke.py` |
+| `tests/test_faz0_dogrulama.py` | `tests/test_phase00_call_validation.py` |
+| `tests/test_faz0_kabul.py` | `tests/test_phase00_acceptance.py` |
+| `tests/test_faz10_demo.py` | `tests/test_phase10_demo.py` |
+| `tests/test_faz11_rapor.py` | `tests/test_phase11_report.py` |
+| `tests/test_faz1_kabul.py` | `tests/test_phase01_acceptance.py` |
+| `tests/test_faz1_uci.py` | `tests/test_phase01_uci.py` |
+| `tests/test_faz1_uretici.py` | `tests/test_phase01_generator.py` |
+| `tests/test_faz2_ambar.py` | `tests/test_phase02_warehouse.py` |
+| `tests/test_faz2_kabul.py` | `tests/test_phase02_acceptance.py` |
+| `tests/test_faz3_araclar.py` | `tests/test_phase03_tools.py` |
+| `tests/test_faz3_kabul.py` | `tests/test_phase03_acceptance.py` |
+| `tests/test_faz4_izleme.py` | `tests/test_phase04_monitoring.py` |
+| `tests/test_faz4_kabul.py` | `tests/test_phase04_acceptance.py` |
+| `tests/test_faz5_alinti.py` | `tests/test_phase05_citation.py` |
+| `tests/test_faz5_arama.py` | `tests/test_phase05_search.py` |
+| `tests/test_faz5_belge.py` | `tests/test_phase05_documents.py` |
+| `tests/test_faz6_belge_araci.py` | `tests/test_phase06_document_tool.py` |
+| `tests/test_faz6_dogrulayici.py` | `tests/test_phase06_verifier.py` |
+| `tests/test_faz6_orkestrator.py` | `tests/test_phase06_orchestrator.py` |
+| `tests/test_faz7_olcum.py` | `tests/test_phase07_evaluation.py` |
+| `tests/test_faz8_egitim.py` | `tests/test_phase08_training.py` |
+| `tests/test_faz8_eslestirme.py` | `tests/test_phase08_pairing.py` |
+| `tests/test_faz8_gguf.py` | `tests/test_phase08_gguf.py` |
+| `tests/test_faz8_unutma.py` | `tests/test_phase08_forgetting.py` |
+| `tests/test_faz8b_analiz.py` | `tests/test_phase08b_analysis.py` |
+| `tests/test_faz8b_dogrulayici.py` | `tests/test_phase08b_verifier.py` |
+| `tests/test_faz8b_kimlik_analiz.py` | `tests/test_phase08b_identifier_analysis.py` |
+| `tests/test_faz9_deney.py` | `tests/test_phase09_experiment.py` |
+| `tests/test_kor_nokta_demo.py` | `tests/test_blind_spot_demo.py` |
+
+</details>
+
+<details><summary>Kaynak kodu (src/sayman) (60)</summary>
+
+| Eski ad | Yeni ad |
+| --- | --- |
+| `src/sayman/ambar/__init__.py` | `src/sayman/warehouse/__init__.py` |
+| `src/sayman/ambar/kurulum.py` | `src/sayman/warehouse/loader.py` |
+| `src/sayman/ambar/metrikler.py` | `src/sayman/warehouse/metrics.py` |
+| `src/sayman/araclar/__init__.py` | `src/sayman/tools/__init__.py` |
+| `src/sayman/araclar/araclar.py` | `src/sayman/tools/catalog.py` |
+| `src/sayman/araclar/kapsam.py` | `src/sayman/tools/scope.py` |
+| `src/sayman/araclar/kayit.py` | `src/sayman/tools/audit_log.py` |
+| `src/sayman/araclar/kimlik.py` | `src/sayman/tools/identity.py` |
+| `src/sayman/araclar/roller.json` | `src/sayman/tools/roles.json` |
+| `src/sayman/araclar/sunucu.py` | `src/sayman/tools/server.py` |
+| `src/sayman/araclar/yetki.py` | `src/sayman/tools/permissions.py` |
+| `src/sayman/asistan/__init__.py` | `src/sayman/assistant/__init__.py` |
+| `src/sayman/asistan/dogrulayici.py` | `src/sayman/assistant/verifier.py` |
+| `src/sayman/asistan/model.py` | `src/sayman/assistant/model.py` |
+| `src/sayman/asistan/orkestrator.py` | `src/sayman/assistant/orchestrator.py` |
+| `src/sayman/belge/__init__.py` | `src/sayman/documents/__init__.py` |
+| `src/sayman/belge/alinti.py` | `src/sayman/documents/citation.py` |
+| `src/sayman/belge/anlam.py` | `src/sayman/documents/semantic.py` |
+| `src/sayman/belge/arama.py` | `src/sayman/documents/search.py` |
+| `src/sayman/belge/kutuphane.py` | `src/sayman/documents/library.py` |
+| `src/sayman/belge/mevzuat.py` | `src/sayman/documents/legislation.py` |
+| `src/sayman/belge/sentetik.py` | `src/sayman/documents/synthetic.py` |
+| `src/sayman/belge/siralayici.py` | `src/sayman/documents/reranker.py` |
+| `src/sayman/demo/static/stil.css` | `src/sayman/demo/static/style.css` |
+| `src/sayman/demo/uygulama.py` | `src/sayman/demo/app.py` |
+| `src/sayman/deney/__init__.py` | `src/sayman/experiment/__init__.py` |
+| `src/sayman/deney/kahin.py` | `src/sayman/experiment/oracle.py` |
+| `src/sayman/deney/otomatik.py` | `src/sayman/experiment/generated_tools.py` |
+| `src/sayman/deney/sahte_api.py` | `src/sayman/experiment/fake_api.py` |
+| `src/sayman/egitim/__init__.py` | `src/sayman/training/__init__.py` |
+| `src/sayman/egitim/gguf_ozet.py` | `src/sayman/training/gguf_summary.py` |
+| `src/sayman/egitim/istem.py` | `src/sayman/training/prompt.py` |
+| `src/sayman/egitim/ogretmen.py` | `src/sayman/training/teacher.py` |
+| `src/sayman/egitim/sizinti.py` | `src/sayman/training/leakage.py` |
+| `src/sayman/faz0/__init__.py` | `src/sayman/model_selection/__init__.py` |
+| `src/sayman/faz0/arac_taslaklari.py` | `src/sayman/model_selection/tool_drafts.py` |
+| `src/sayman/faz0/dogrulama.py` | `src/sayman/model_selection/call_validation.py` |
+| `src/sayman/faz0/ornek_sorular.py` | `src/sayman/model_selection/sample_questions.py` |
+| `src/sayman/izleme/__init__.py` | `src/sayman/monitoring/__init__.py` |
+| `src/sayman/izleme/kurallar.py` | `src/sayman/monitoring/rules.py` |
+| `src/sayman/izleme/zamanlayici.py` | `src/sayman/monitoring/scheduler.py` |
+| `src/sayman/olcum/__init__.py` | `src/sayman/evaluation/__init__.py` |
+| `src/sayman/olcum/eslestirme.py` | `src/sayman/evaluation/pairing.py` |
+| `src/sayman/olcum/kahin.py` | `src/sayman/evaluation/oracle.py` |
+| `src/sayman/olcum/parmak_izi.py` | `src/sayman/evaluation/fingerprint.py` |
+| `src/sayman/olcum/puanlama.py` | `src/sayman/evaluation/scoring.py` |
+| `src/sayman/olcum/unutma.py` | `src/sayman/evaluation/forgetting.py` |
+| `src/sayman/olcum/yazilis.py` | `src/sayman/evaluation/value_formats.py` |
+| `src/sayman/veri/__init__.py` | `src/sayman/data/__init__.py` |
+| `src/sayman/veri/cikti.py` | `src/sayman/data/table_io.py` |
+| `src/sayman/veri/denetim.py` | `src/sayman/data/invariants.py` |
+| `src/sayman/veri/gorunum.py` | `src/sayman/data/as_of.py` |
+| `src/sayman/veri/kalibrasyon.py` | `src/sayman/data/calibration.py` |
+| `src/sayman/veri/kurlar.py` | `src/sayman/data/exchange_rates.py` |
+| `src/sayman/veri/olaylar.py` | `src/sayman/data/events.py` |
+| `src/sayman/veri/ornek.py` | `src/sayman/data/sample_data.py` |
+| `src/sayman/veri/para.py` | `src/sayman/data/money.py` |
+| `src/sayman/veri/saat.py` | `src/sayman/data/clock.py` |
+| `src/sayman/veri/uci.py` | `src/sayman/data/uci.py` |
+| `src/sayman/veri/uretici.py` | `src/sayman/data/generator.py` |
+
+</details>
+
 ## Veri kaynakları
 
 - Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
@@ -1727,15 +1923,15 @@ geldi ([POL-CEK#m2], [POL-CEK#m5]). Süreler 31–65 sn.
 
 | Klasör | İçerik |
 | --- | --- |
-| `src/sayman` | Projenin kodu (`veri`: Faz 1 üretici, `ambar`: Faz 2 ambar ve metrikler, `araclar`: Faz 3 MCP sunucusu, `izleme`: Faz 4 kurallar ve zamanlayıcı, `belge`: Faz 5 belgeler, arama ve alıntı kontrolü, `asistan`: Faz 6 doğrulayıcı ve orkestratör, `olcum`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi, Faz 8 eşleştirme ve unutma testi, `egitim`: Faz 8 eğitim verisi, öğretmen, sızıntı denetimi ve GGUF özeti, `deney`: Faz 9 sahte API, otomatik araçlar, kapıları ve kâhini, `demo`: Faz 10 demo arka ucu ve ERP sayfası) |
-| `tests` | Yazılım testleri ve kabul testleri |
+| `src/sayman` | Projenin kodu (`data`: Faz 1 üretici ve simülasyon saati, `warehouse`: Faz 2 ambar ve metrikler, `tools`: Faz 3 MCP sunucusu, kimlik, yetki, kapsam ve denetim kaydı, `monitoring`: Faz 4 kurallar ve zamanlayıcı, `documents`: Faz 5 belgeler, arama ve alıntı kontrolü, `assistant`: Faz 6 doğrulayıcı ve orkestratör, `evaluation`: Faz 7 puanlayıcı, kâhin model ve sistem parmak izi, Faz 8 eşleştirme ve unutma testi, `training`: Faz 8 eğitim verisi, öğretmen, sızıntı denetimi ve GGUF özeti, `experiment`: Faz 9 sahte API, otomatik araçlar, kapıları ve kâhini, `model_selection`: Faz 0 araç taslakları ve model seçim kuralı, `demo`: Faz 10 demo arka ucu ve ERP sayfası) |
+| `tests` | Yazılım testleri ve kabul testleri; `tests/support`: soru setleri, taslaklar ve puanlama yardımcıları (ölçüm betikleri de kullanır); `tests/golden`: model sözleşmesinin dondurulmuş hâli |
 | `scripts` | Ölçüm, indirme ve veri üretim betikleri |
 | `kaggle` | Faz 8'de Kaggle'da çalışan eğitim, birleştirme ve uyum betikleri |
 | `reports` | Ölçüm sonuçları |
 | `data/kaynak` | Kaynaklardan indirilen küçük dosyalar (kurlar, kalibrasyon bantları) |
 | `data/denetim` | Araç çağrılarının denetim kaydı (git'e girmez) |
 | `data/izleme` | Zamanlayıcının uyarı deposu (git'e girmez) |
-| `data/demo` | Faz 10 demosunun saati, uyarı deposu ve denetim kayıtları; `faz10_demo.py sifirla` siler (git'e girmez) |
+| `data/demo` | Faz 10 demosunun saati, uyarı deposu ve denetim kayıtları; `phase10_demo.py sifirla` siler (git'e girmez) |
 | `data/izleme_veri` | Faz 4 ölçümü için ek veri setleri (git'e girmez) |
 | `data/olcum` | Kâhin ve kontrol koşularının dosyaları, ölçümlerin denetim kayıtları (git'e girmez) |
 | `data/ham` | İndirilen kanun PDF'leri (`mevzuat`) ve Belebele Türkçe soruları (`belebele`) (git'e girmez) |

@@ -1,11 +1,11 @@
-"""Faz 2 kabul testi: gerçek UCI verisinden üretilmiş tablolar üzerinde.
+"""Phase 2 acceptance test: on tables generated from the real UCI data.
 
-Önce Faz 1 betikleri ve scripts/phase02_build_warehouse.py çalıştırılmış olmalı. Ambar bu testte CSV'lerden
-yeniden kurulur; betiğin kurduğu dosya ayrıca kontrol edilir.
+The Phase 1 scripts and scripts/phase02_build_warehouse.py must have been run first. In this test the warehouse
+is rebuilt from the CSVs; the file built by the script is checked separately.
 
-Kabul ölçütü: her metrik, aynı veri üzerinde bağımsız bir pandas hesabıyla birebir aynı;
-yaşlandırma dilimlerinin toplamı toplam alacağa eşit. Toplam alacak, Faz 1'in ayrı yazılmış hesabıyla
-(kalibrasyon.acik_alacak_try) karşılaştırılır; aynı sayıların toplamı kendisiyle karşılaştırılmaz.
+Acceptance criterion: every metric is identical to an independent pandas computation on the same data;
+the aging buckets sum to the total receivable. The total receivable is compared with Phase 1's separately written
+computation (`calibration.acik_alacak_try`); a sum of the same numbers is never compared with itself.
 """
 
 import datetime as dt
@@ -17,151 +17,153 @@ from support import pandas_reference
 import pytest
 
 from sayman.warehouse import metrics
-from sayman.warehouse.loader import ambar_kur, baglan, satirlar
+from sayman.warehouse.loader import build_warehouse, open_warehouse, query_rows
 from sayman.data import calibration
-from sayman.data.table_io import SEMA, csv_oku, csv_yaz
-from sayman.data.as_of import acik_tutarlar, banka_bakiyeleri, gorunum
-from sayman.data.clock import saat_oku
+from sayman.data.table_io import SCHEMA, read_csv, write_csv
+from sayman.data.as_of import open_amounts, bank_balances, as_of_view
+from sayman.data.clock import read_clock
 
-KOK = Path(__file__).resolve().parents[1]
-URETILEN = KOK / "data" / "uretilen"
-RAPOR1 = KOK / "reports" / "faz1_veri.json"
-ANAHTAR = KOK / "data" / "anahtar" / "olaylar.json"
-AMBAR = KOK / "data" / "ambar" / "sayman.duckdb"
+ROOT = Path(__file__).resolve().parents[1]
+GENERATED = ROOT / "data" / "uretilen"
+PHASE1_REPORT = ROOT / "reports" / "faz1_veri.json"
+ANSWER_KEY = ROOT / "data" / "anahtar" / "olaylar.json"
+WAREHOUSE = ROOT / "data" / "ambar" / "sayman.duckdb"
 
-pytestmark = pytest.mark.skipif(not (URETILEN.exists() and RAPOR1.exists() and ANAHTAR.exists()),
+pytestmark = pytest.mark.skipif(not (GENERATED.exists() and PHASE1_REPORT.exists() and ANSWER_KEY.exists()),
                                 reason="Önce phase01_download_uci.py ve phase01_generate_data.py çalıştırılmalı")
-G = dt.date.fromisoformat
+iso_date = dt.date.fromisoformat
 
 
 @pytest.fixture(scope="module")
-def rapor1():
-    return json.loads(RAPOR1.read_text(encoding="utf-8"))
+def phase1_report():
+    return json.loads(PHASE1_REPORT.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")
-def T():
-    return csv_oku(URETILEN)
+def tables():
+    return read_csv(GENERATED)
 
 
 @pytest.fixture(scope="module")
 def con():
-    return ambar_kur(URETILEN)
+    return build_warehouse(GENERATED)
 
 
 @pytest.fixture(scope="module")
 def P():
-    return pandas_reference.oku(URETILEN)
+    return pandas_reference.read_tables(GENERATED)
 
 
 @pytest.fixture(scope="module")
-def gunler(rapor1):
-    """Her olay türü en az bir günde canlı: olay günleri, sıkışma bitişleri ve bir hafta sonraları; ayrıca ilk
-    gün, bir cumartesi, 2025 yıl sonu, şimdi ve son gün."""
-    anahtar = json.loads(ANAHTAR.read_text(encoding="utf-8"))
-    bitis = G(rapor1["ayarlar"]["veri_bitis"])
-    gunler = {G(rapor1["veri_baslangic"]), G("2025-06-14"), G("2025-12-31"), G(rapor1["ayarlar"]["simdi"]), bitis}
-    for o in anahtar["olaylar"]:
-        for alan in ("tarih", "bitis"):
-            if o.get(alan):
-                gunler |= {G(o[alan]), min(G(o[alan]) + dt.timedelta(days=7), bitis)}
-    assert {o["tur"] for o in anahtar["olaylar"]} == set(dict(rapor1["ayarlar"]["olay_sayilari"]))
-    return sorted(gunler)
+def days(phase1_report):
+    """Every event kind is live on at least one day: event days, squeeze ends and a week after them; also the first
+    day, a Saturday, the end of 2025, now and the last day."""
+    answer_key = json.loads(ANSWER_KEY.read_text(encoding="utf-8"))
+    end = iso_date(phase1_report["ayarlar"]["veri_bitis"])
+    days = {iso_date(phase1_report["veri_baslangic"]), iso_date("2025-06-14"), iso_date("2025-12-31"), iso_date(phase1_report["ayarlar"]["simdi"]), end}
+    for o in answer_key["olaylar"]:
+        for field in ("tarih", "bitis"):
+            if o.get(field):
+                days |= {iso_date(o[field]), min(iso_date(o[field]) + dt.timedelta(days=7), end)}
+    assert {o["tur"] for o in answer_key["olaylar"]} == set(dict(phase1_report["ayarlar"]["olay_sayilari"]))
+    return sorted(days)
 
 
-def test_ambar_dosyasi_faz1_verisinden_kuruldu(rapor1):
-    assert AMBAR.exists(), "Önce scripts/phase02_build_warehouse.py çalıştırılmalı"
-    dosya = baglan(AMBAR)
+def test_warehouse_file_was_built_from_phase1_data(phase1_report):
+    assert WAREHOUSE.exists(), "Önce scripts/phase02_build_warehouse.py çalıştırılmalı"
+    file_con = open_warehouse(WAREHOUSE)
     try:
-        assert dosya.execute("SELECT deger FROM ambar_bilgisi WHERE anahtar = 'veri_hash'").fetchone()[0] == \
-            rapor1["veri_hash"]
-        for ad, sutunlar in SEMA.items():
-            assert dosya.execute(f"SELECT count(*) FROM {ad}").fetchone()[0] == rapor1["tablo_satirlari"][ad], ad
+        assert file_con.execute("SELECT deger FROM ambar_bilgisi WHERE anahtar = 'veri_hash'").fetchone()[0] == \
+            phase1_report["veri_hash"]
+        for name, columns in SCHEMA.items():
+            assert file_con.execute(f"SELECT count(*) FROM {name}").fetchone()[0] == phase1_report["tablo_satirlari"][name], name
     finally:
-        dosya.close()
+        file_con.close()
 
 
-def test_ambar_csv_ile_birebir(con, T):
+def test_warehouse_matches_csv_exactly(con, tables):
     from decimal import Decimal
 
-    for ad, sutunlar in SEMA.items():
-        csv = sorted((dict(s) for s in T[ad]), key=lambda s: s[sutunlar[0]])  # kopya: T'yi değiştirmez
+    for name, columns in SCHEMA.items():
+        csv = sorted((dict(s) for s in tables[name]), key=lambda s: s[columns[0]])  # copy: does not modify the tables
         for s in csv:
             for k in ("kur", "alis"):
                 if s.get(k) is not None:
                     s[k] = Decimal(s[k])
-        assert satirlar(con, f"SELECT * FROM {ad} ORDER BY {sutunlar[0]}") == csv, ad
+        assert query_rows(con, f"SELECT * FROM {name} ORDER BY {columns[0]}") == csv, name
 
 
-PARAMETRELI = (("dso", {"gun": 90}), ("geciken_alacaklar", {"en_az_gun": 31}), ("yaklasan_odemeler", {"gun": 7}),
+PARAMETERIZED = (("dso", {"gun": 90}), ("geciken_alacaklar", {"en_az_gun": 31}), ("yaklasan_odemeler", {"gun": 7}),
                ("nakit_akis_tahmini", {"hafta": 4}))
 
 
-def test_sql_ve_pandas_her_metrikte_birebir_ayni(con, P, gunler):
-    for gun in gunler:
-        for ad, parametre in [(ad, {}) for ad in metrics.METRIKLER] + list(PARAMETRELI):
-            sql = metrics.METRIKLER[ad](con, gun, **parametre)
+def test_sql_and_pandas_are_identical_for_every_metric(con, P, days):
+    for day in days:
+        for name, params in [(name, {}) for name in metrics.METRICS] + list(PARAMETERIZED):
+            sql = metrics.METRICS[name](con, day, **params)
             sql.pop("dahil_olmayanlar", None)
-            assert sql == pandas_reference.METRIKLER[ad](P, gun, **parametre), f"{ad} {parametre} @ {gun}"
+            assert sql == pandas_reference.METRICS[name](P, day, **params), f"{name} {params} @ {day}"
 
 
-def test_faz1_hesaplariyla_ayni(con, T, gunler):
-    son_bakiye = {}
-    for h in sorted(T["banka_hareketleri"], key=lambda h: h["hareket_id"]):
-        son_bakiye.setdefault(h["tarih"], {})[h["hesap_id"]] = h["bakiye_kurus"]
-    for gun in gunler:
-        hesaplar = {h["hesap_id"]: h["bakiye_kurus"] for h in metrics.nakit_pozisyonu(con, gun)["hesaplar"]}
-        assert hesaplar == banka_bakiyeleri(T, gun), gun
-        y = metrics.yaslandirma(con, gun)
-        assert y["toplam"]["toplam_kurus"] == calibration.acik_alacak_try(T, gun), gun
-        dilimler = sum(v for k, v in y["toplam"].items() if k != "toplam_kurus")
-        assert dilimler == y["toplam"]["toplam_kurus"], gun
-        hepsi = metrics.geciken_alacaklar(con, gun, en_az_gun=-10**6)["faturalar"]
-        assert {f["fatura_id"]: f["acik_kurus"] for f in hepsi} == {
-            k: v for k, v in acik_tutarlar(T, gun).items() if v > 0}, gun
-    # Banka satırlarındaki "bakiye" sütunu (Faz 1 defteri) ile son gün sonu bakiyeleri de aynı.
-    son = {}
-    for gun in sorted(son_bakiye):
-        son.update(son_bakiye[gun])
-    bitis = max(son_bakiye)
-    assert {h["hesap_id"]: h["bakiye_kurus"] for h in metrics.nakit_pozisyonu(con, bitis)["hesaplar"]} == son
+def test_matches_the_phase1_computations(con, tables, days):
+    last_balance = {}
+    for h in sorted(tables["banka_hareketleri"], key=lambda h: h["hareket_id"]):
+        last_balance.setdefault(h["tarih"], {})[h["hesap_id"]] = h["bakiye_kurus"]
+    for day in days:
+        accounts = {h["hesap_id"]: h["bakiye_kurus"] for h in metrics.cash_position(con, day)["hesaplar"]}
+        assert accounts == bank_balances(tables, day), day
+        y = metrics.aging(con, day)
+        assert y["toplam"]["toplam_kurus"] == calibration.open_receivable_try(tables, day), day
+        buckets = sum(v for k, v in y["toplam"].items() if k != "toplam_kurus")
+        assert buckets == y["toplam"]["toplam_kurus"], day
+        all_overdue = metrics.overdue_receivables(con, day, en_az_gun=-10**6)["faturalar"]
+        assert {f["fatura_id"]: f["acik_kurus"] for f in all_overdue} == {
+            k: v for k, v in open_amounts(tables, day).items() if v > 0}, day
+    # The "balance" column in the bank rows (Phase 1 ledger) and the end-of-last-day balances are the same too.
+    latest = {}
+    for day in sorted(last_balance):
+        latest.update(last_balance[day])
+    end = max(last_balance)
+    assert {h["hesap_id"]: h["bakiye_kurus"] for h in metrics.cash_position(con, end)["hesaplar"]} == latest
 
 
-def test_dso_2025_faz1_kalibrasyonuyla_ayni(con, T, rapor1):
-    d = metrics.dso(con, G("2025-12-31"))
-    assert d["alacak_kurus"] == calibration.acik_alacak_try(T, G("2025-12-31"))
-    assert d["satis_kurus"] == calibration.net_satis_try(T, G("2025-01-01"), G("2025-12-31"))
-    assert abs(float(d["dso_gun"]) - rapor1["kalibrasyon"]["olcum"]["dso_gun"]) < 0.006
+def test_dso_2025_matches_the_phase1_calibration(con, tables, phase1_report):
+    d = metrics.dso(con, iso_date("2025-12-31"))
+    assert d["alacak_kurus"] == calibration.open_receivable_try(tables, iso_date("2025-12-31"))
+    assert d["satis_kurus"] == calibration.net_sales_try(tables, iso_date("2025-01-01"), iso_date("2025-12-31"))
+    assert abs(float(d["dso_gun"]) - phase1_report["kalibrasyon"]["olcum"]["dso_gun"]) < 0.006
 
 
-def test_gelecek_sizmaz(con, T, rapor1, tmp_path):
-    """D gününde tüm veriyle hesaplanan metrik, yalnızca D'ye kadarki kayıtlarla kurulan ambardakiyle aynı."""
-    anahtar = json.loads(ANAHTAR.read_text(encoding="utf-8"))
-    sikisma = next(G(o["tarih"]) + dt.timedelta(days=3) for o in anahtar["olaylar"] if o["tur"] == "nakit_sikismasi")
-    for gun in (G(rapor1["ayarlar"]["simdi"]), sikisma):
-        kesik = ambar_kur(_yaz(gorunum(T, gun), tmp_path / gun.isoformat()))
-        for ad, fonk in metrics.METRIKLER.items():
-            assert fonk(con, gun) == fonk(kesik, gun), f"{ad} @ {gun}"
+def test_future_does_not_leak(con, tables, phase1_report, tmp_path):
+    """The metric computed on a given day with all the data equals the one from a warehouse built only from the
+    records up to that day."""
+    answer_key = json.loads(ANSWER_KEY.read_text(encoding="utf-8"))
+    squeeze = next(iso_date(o["tarih"]) + dt.timedelta(days=3) for o in answer_key["olaylar"] if o["tur"] == "nakit_sikismasi")
+    for day in (iso_date(phase1_report["ayarlar"]["simdi"]), squeeze):
+        truncated = build_warehouse(_write(as_of_view(tables, day), tmp_path / day.isoformat()))
+        for name, func in metrics.METRICS.items():
+            assert func(con, day) == func(truncated, day), f"{name} @ {day}"
 
 
-def _yaz(tablolar, klasor):
-    csv_yaz(tablolar, klasor)
-    return klasor
+def _write(tables, folder):
+    write_csv(tables, folder)
+    return folder
 
 
-def test_cek_alan_musteriler_tl_calisir(T):
-    pb = {m["musteri_id"]: m["para_birimi"] for m in T["musteriler"]}
-    assert {pb[c["musteri_id"]] for c in T["cekler"]} == {"TRY"}
+def test_customers_with_cheques_all_use_try(tables):
+    currency = {m["musteri_id"]: m["para_birimi"] for m in tables["musteriler"]}
+    assert {currency[c["musteri_id"]] for c in tables["cekler"]} == {"TRY"}
 
 
-def test_metrikler_hizli(rapor1):
-    """Araçlar bu metrikleri soru başına çağıracak. Sınır cömert: model belleği doldururken de geçmeli."""
-    con = baglan(AMBAR)
+def test_metrics_are_fast(phase1_report):
+    """The tools will call these metrics once per question. The limit is generous: it must also pass while the
+    model fills memory."""
+    con = open_warehouse(WAREHOUSE)
     try:
-        simdi = saat_oku(KOK / "data" / "saat.json").simdi
-        for ad, fonk in metrics.METRIKLER.items():
-            bas = time.perf_counter()
-            fonk(con, simdi)
-            assert time.perf_counter() - bas < 5.0, ad
+        now = read_clock(ROOT / "data" / "saat.json").simdi
+        for name, func in metrics.METRICS.items():
+            start = time.perf_counter()
+            func(con, now)
+            assert time.perf_counter() - start < 5.0, name
     finally:
         con.close()

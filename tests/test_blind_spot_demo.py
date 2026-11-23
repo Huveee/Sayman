@@ -1,10 +1,11 @@
-"""Kayıt numarası düzeltmesinin uçtan uca kabul testi: gerçek veri, demo arka ucu, Faz 3 kapısı, orkestratör ve
-doğrulayıcı.
+"""End-to-end acceptance test of the record number fix: real data, the demo back end, the Phase 3 gate, the orchestrator
+and the verifier.
 
-Canlı modelin yazış biçimi denetlenemiyor; canlı denemede model numarayı hiç düzeltmenin hedeflediği biçimde yazmadı
-(README). Burada betikli model /api/sor'dan gelen soruda fatura_ara'yı çağırır ve aracın döndürdüğü kaynak fatura
-numarasını tam o biçimde yazar: "564713'tür (fatura tarihi ...)". Eski doğrulayıcı bu cevabı durduruyordu (sayı
-ardındaki "fatura" yüzünden adet, kaynak numarası tutar sayılıyordu). Numarayı yanlış yazan model yine durdurulur.
+The live model's way of writing cannot be controlled; in the live trial the model never wrote the number in the form the
+fix targets (README). Here a scripted model calls fatura_ara for the question that comes from /api/sor and writes the
+source invoice number returned by the tool in exactly that form: "564713'tür (fatura tarihi ...)". The old verifier stopped
+this answer (because of the "fatura" after the number it was taken as a count, and the source number as an amount).
+A model that writes the number wrong is still stopped.
 """
 
 from __future__ import annotations
@@ -17,70 +18,71 @@ import support.authorization_trials as fd
 import pytest
 from fastapi.testclient import TestClient
 
-from sayman.tools.permissions import yetki_oku
-from sayman.assistant.orchestrator import ModelCevabi
-from sayman.demo.app import Demo, uygulama_kur
-from sayman.data.table_io import csv_oku
-from sayman.data.clock import saat_oku
+from sayman.tools.permissions import read_permissions
+from sayman.assistant.orchestrator import ModelResponse
+from sayman.demo.app import Demo, build_app
+from sayman.data.table_io import read_csv
+from sayman.data.clock import read_clock
 
-KOK = Path(__file__).resolve().parents[1]
-GERCEK_AMBAR, GERCEK_SAAT, URETILEN = (KOK / "data" / "ambar" / "sayman.duckdb", KOK / "data" / "saat.json",
-                                       KOK / "data" / "uretilen")
-MUSTERI = "Akın Doğa Oyuncak San. ve Tic. Ltd. Şti."
-SORU = f"{MUSTERI} firmasına kestiğimiz son açık faturanın numarası ne?"
+ROOT = Path(__file__).resolve().parents[1]
+REAL_WAREHOUSE, REAL_CLOCK, GENERATED = (ROOT / "data" / "ambar" / "sayman.duckdb", ROOT / "data" / "saat.json",
+                                       ROOT / "data" / "uretilen")
+CUSTOMER = "Akın Doğa Oyuncak San. ve Tic. Ltd. Şti."
+QUESTION = f"{CUSTOMER} firmasına kestiğimiz son açık faturanın numarası ne?"
 
-pytestmark = pytest.mark.skipif(not (GERCEK_AMBAR.exists() and GERCEK_SAAT.exists() and URETILEN.exists()),
+pytestmark = pytest.mark.skipif(not (REAL_WAREHOUSE.exists() and REAL_CLOCK.exists() and GENERATED.exists()),
                                 reason="Önce Faz 1-2 betikleri çalıştırılmalı")
 
 
-class NumaraYazanModel:
-    """İlk turda fatura_ara'yı çağırır; sonra son araç sonucundaki ilk faturanın kaynak numarasını (kaydir kadar
-    kaydırarak) "…'tür (fatura tarihi …)" biçiminde yazar. Düzeltme istense de aynı cevabı yazar."""
+class RecordNumberWriterModel:
+    """On the first turn it calls fatura_ara; then it writes the source number of the first invoice in the last tool result
+    (shifted by `offset`) in the form "…'tür (fatura tarihi …)". Even if a correction is requested it writes the same
+    answer."""
 
-    def __init__(self, kaydir: int = 0):
-        self.kaydir = kaydir
-        self.yazilan: list[str] = []
+    def __init__(self, offset: int = 0):
+        self.kaydir = offset
+        self.written: list[str] = []
 
-    def __call__(self, mesajlar, araclar, zaman_asimi):
-        sonuclar = [m for m in mesajlar if m["role"] == "tool"]
-        if not sonuclar:
-            return ModelCevabi(arac_cagrilari=[("fatura_ara", {"musteri_adi": MUSTERI, "durum": "acik"})],
-                               istem_token=100, uretim_token=10)
-        f = json.loads(sonuclar[-1]["content"])["sonuc"]["faturalar"][0]
-        metin = f"Son açık faturanın numarası {int(f['kaynak_fatura_no']) + self.kaydir}'tür (fatura tarihi " \
+    def __call__(self, messages, tools, timeout):
+        tool_messages = [m for m in messages if m["role"] == "tool"]
+        if not tool_messages:
+            return ModelResponse(tool_calls=[("fatura_ara", {"musteri_adi": CUSTOMER, "durum": "acik"})],
+                               prompt_tokens=100, generated_tokens=10)
+        f = json.loads(tool_messages[-1]["content"])["sonuc"]["faturalar"][0]
+        text = f"Son açık faturanın numarası {int(f['kaynak_fatura_no']) + self.kaydir}'tür (fatura tarihi " \
                 f"{f['fatura_tarihi']})."
-        self.yazilan.append(metin)
-        return ModelCevabi(icerik=metin, istem_token=100, uretim_token=10)
+        self.written.append(text)
+        return ModelResponse(content=text, prompt_tokens=100, generated_tokens=10)
 
 
-def _sor(tmp_path: Path, model: NumaraYazanModel) -> dict:
-    demo = Demo(ambar=GERCEK_AMBAR, durum_klasoru=tmp_path / "demo", baslangic=saat_oku(GERCEK_SAAT),
-                anahtar=bytes(range(32)), yetki=yetki_oku(), tablolar=csv_oku(URETILEN), model=model,
-                zaman=lambda: 1_750_000_000.0)
+def _ask(tmp_path: Path, model: RecordNumberWriterModel) -> dict:
+    demo = Demo(warehouse=REAL_WAREHOUSE, state_dir=tmp_path / "demo", initial_clock=read_clock(REAL_CLOCK),
+                key=bytes(range(32)), permissions=read_permissions(), tables=read_csv(GENERATED), model=model,
+                time_fn=lambda: 1_750_000_000.0)
     try:
-        c = TestClient(uygulama_kur(demo))
-        assert c.post("/api/giris", json={"kullanici": fd.KULLANICILAR["cfo"]}).status_code == 200
-        r = c.post("/api/sor", json={"soru": SORU})
+        c = TestClient(build_app(demo))
+        assert c.post("/api/giris", json={"kullanici": fd.USERS["cfo"]}).status_code == 200
+        r = c.post("/api/sor", json={"soru": QUESTION})
         assert r.status_code == 200
         return r.json()
     finally:
-        demo.kapat()
+        demo.close()
 
 
-def test_kayit_numarasi_dogru_yazilinca_cevap_gosterilir(tmp_path):
-    model = NumaraYazanModel()
-    j = _sor(tmp_path, model)
+def test_answer_is_shown_when_record_number_is_written_correctly(tmp_path):
+    model = RecordNumberWriterModel()
+    j = _ask(tmp_path, model)
     assert [a["arac"] for a in j["araclar"]] == ["fatura_ara"]
     assert j["durum"] == "tamam", j
     m = re.search(r"(\d{6})'tür \(fatura tarihi (\d{4}-\d{2}-\d{2})\)", j["cevap"])
     assert m, j["cevap"]
-    assert model.yazilan[0] in j["cevap"]   # ilk taslak durdurulmadan gösterildi
-    assert len(model.yazilan) == 1
+    assert model.written[0] in j["cevap"]   # the first draft was shown without being stopped
+    assert len(model.written) == 1
 
 
-def test_kayit_numarasi_yanlis_yazilinca_durdurulur(tmp_path):
-    model = NumaraYazanModel(kaydir=2)
-    j = _sor(tmp_path, model)
+def test_answer_is_stopped_when_record_number_is_written_wrong(tmp_path):
+    model = RecordNumberWriterModel(offset=2)
+    j = _ask(tmp_path, model)
     assert j["durum"] != "tamam", j
-    yanlis = re.search(r"\d{6}", model.yazilan[0]).group(0)
-    assert yanlis not in j["cevap"]
+    wrong_number = re.search(r"\d{6}", model.written[0]).group(0)
+    assert wrong_number not in j["cevap"]

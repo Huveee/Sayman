@@ -1,7 +1,7 @@
-"""Faz 1 kabul testi: gerçek UCI verisinden üretilmiş tablolar üzerinde.
+"""Phase 1 acceptance test: on tables generated from the real UCI data.
 
-Önce scripts/phase01_download_uci.py ve scripts/phase01_generate_data.py çalıştırılmış olmalı; yoksa testler atlanır.
-Tablolar diskteki CSV'lerden okunur; rapordaki sayılara güvenilmez, her şey yeniden hesaplanır.
+scripts/phase01_download_uci.py and scripts/phase01_generate_data.py must have been run first; otherwise the tests are skipped.
+Tables are read from the CSVs on disk; the numbers in the report are not trusted, everything is recomputed.
 """
 
 import json
@@ -12,69 +12,69 @@ from pathlib import Path
 import pytest
 
 from sayman.data import invariants, calibration
-from sayman.data.table_io import csv_oku, dosya_hash, veri_hash
-from sayman.data.clock import saat_oku
-from sayman.data.generator import Ayarlar
+from sayman.data.table_io import read_csv, file_digest, data_digest
+from sayman.data.clock import read_clock
+from sayman.data.generator import GeneratorSettings
 
-KOK = Path(__file__).resolve().parents[1]
-URETILEN = KOK / "data" / "uretilen"
-RAPOR = KOK / "reports" / "faz1_veri.json"
-ANAHTAR = KOK / "data" / "anahtar" / "olaylar.json"
+ROOT = Path(__file__).resolve().parents[1]
+GENERATED = ROOT / "data" / "uretilen"
+REPORT = ROOT / "reports" / "faz1_veri.json"
+ANSWER_KEY = ROOT / "data" / "anahtar" / "olaylar.json"
 
-pytestmark = pytest.mark.skipif(not (URETILEN.exists() and RAPOR.exists() and ANAHTAR.exists()),
+pytestmark = pytest.mark.skipif(not (GENERATED.exists() and REPORT.exists() and ANSWER_KEY.exists()),
                                 reason="Önce phase01_download_uci.py ve phase01_generate_data.py çalıştırılmalı")
 
 
 @pytest.fixture(scope="module")
-def rapor():
-    return json.loads(RAPOR.read_text(encoding="utf-8"))
+def report():
+    return json.loads(REPORT.read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")
-def T():
-    return csv_oku(URETILEN)
+def tables():
+    return read_csv(GENERATED)
 
 
 @pytest.fixture(scope="module")
-def anahtar():
-    return json.loads(ANAHTAR.read_text(encoding="utf-8"))
+def answer_key():
+    return json.loads(ANSWER_KEY.read_text(encoding="utf-8"))
 
 
-def test_diskteki_tablolarin_hashi_raporla_ayni(T, rapor):
-    assert veri_hash(T)[0] == rapor["veri_hash"]
+def test_hash_of_tables_on_disk_matches_the_report(tables, report):
+    assert data_digest(tables)[0] == report["veri_hash"]
 
 
-def test_girdi_dosyalari_degismemis(rapor):
-    for ad, yol in (("uci_ham", "data/ara/uci_ham.csv.gz"), ("tcmb_kurlar", "data/kaynak/tcmb_kurlar.csv"),
+def test_input_files_are_unchanged(report):
+    for name, path in (("uci_ham", "data/ara/uci_ham.csv.gz"), ("tcmb_kurlar", "data/kaynak/tcmb_kurlar.csv"),
                     ("kalibrasyon", "data/kaynak/kalibrasyon.json")):
-        assert dosya_hash(KOK / yol, metin=not yol.endswith(".gz")) == rapor["girdi_sha256"][ad], ad
+        assert file_digest(ROOT / path, as_text=not path.endswith(".gz")) == report["girdi_sha256"][name], name
 
 
-def test_ayni_tohum_ayri_surecte_ayni_hash(rapor):
-    cikti = subprocess.run([sys.executable, "-I", str(KOK / "scripts" / "phase01_generate_data.py"), "--yalniz-hash"],
+def test_same_seed_in_a_separate_process_gives_same_hash(report):
+    output = subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "phase01_generate_data.py"), "--yalniz-hash"],
                            capture_output=True, text=True, check=True, timeout=900)
-    assert cikti.stdout.strip() == rapor["veri_hash"]
+    assert output.stdout.strip() == report["veri_hash"]
 
 
-def test_temizleme_mutabakati(rapor):
-    t = rapor["temizleme"]
+def test_cleaning_reconciliation(report):
+    t = report["temizleme"]
     assert t["mutabakat"] and t["girdi"] == sum(t["tutulan"].values()) + sum(t["atilan"].values())
     assert t["tutulan"]["iade"] > 0 and t["tutulan"]["perakende"] > 0
 
 
-def test_butun_denetimler_gecer(T, anahtar):
-    ayar = Ayarlar()
-    sonuc = invariants.hepsi(T, anahtar, ayar.olay_sayilari, ayar.simdi, ayar.veri_bitis)
-    assert {ad: h for ad, h in sonuc.items() if h} == {}
+def test_all_checks_pass(tables, answer_key):
+    settings = GeneratorSettings()
+    result = invariants.run_all(tables, answer_key, settings.olay_sayilari, settings.simdi, settings.veri_bitis)
+    assert {name: h for name, h in result.items() if h} == {}
 
 
-def test_kalibrasyon_bantlari_icinde(T):
-    kaynak = json.loads((KOK / "data" / "kaynak" / "kalibrasyon.json").read_text(encoding="utf-8"))
-    satirlar = calibration.bantlarla_karsilastir(calibration.olc(T, Ayarlar().veri_bitis, 2025), kaynak)
-    assert [s for s in satirlar if not s["tamam"]] == []
+def test_within_calibration_bands(tables):
+    source = json.loads((ROOT / "data" / "kaynak" / "kalibrasyon.json").read_text(encoding="utf-8"))
+    rows = calibration.compare_with_bands(calibration.measure(tables, GeneratorSettings().veri_bitis, 2025), source)
+    assert [s for s in rows if not s["tamam"]] == []
 
 
-def test_saat_ve_anahtar_araclarin_okudugu_klasorde_degil():
-    assert saat_oku(KOK / "data" / "saat.json").simdi == Ayarlar().simdi
-    assert not any(p.suffix == ".json" for p in URETILEN.iterdir())
-    assert ANAHTAR.parent != URETILEN
+def test_clock_and_answer_key_are_not_in_the_folder_tools_read():
+    assert read_clock(ROOT / "data" / "saat.json").simdi == GeneratorSettings().simdi
+    assert not any(p.suffix == ".json" for p in GENERATED.iterdir())
+    assert ANSWER_KEY.parent != GENERATED

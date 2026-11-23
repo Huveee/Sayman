@@ -1,12 +1,12 @@
-"""Faz 10 kabul testleri: demo arka ucu (FastAPI) betikli bir modelle.
+"""Phase 10 acceptance tests: the demo back end (FastAPI) with a scripted model.
 
-Kabul ölçütleri (FAZLAR.md): CFO ve satış müdürü aynı soruya farklı cevap alır; zamanı ileri sarmak raporu ve
-uyarıyı tetikler. Ayrıca: kimlik yalnızca sunucu oturumundan gelir (gövdedeki kullanıcı yok sayılır, oturumsuz
-istek 401), uyarılar rol kapsamına göre süzülür, rapor yalnızca rolün araçlarından kurulur, ambar ve data/saat.json
-demo boyunca değişmez.
+Acceptance criteria (FAZLAR.md): the CFO and a sales manager get different answers to the same question; fast-forwarding
+time triggers the report and the alert. Also: identity comes only from the server session (the user in the body is ignored,
+a request without a session gets 401), alerts are filtered by the role's scope, the report is built only from the role's
+tools, and the warehouse and data/saat.json do not change during the demo.
 
-İki ortam: Faz 2'nin elle hesaplanmış küçük şirketi (hızlı API testleri) ve gerçek veri (zaman ve uyarı testleri;
-veri yoksa atlanır).
+Two environments: Phase 2's small hand-computed company (fast API tests) and the real data (time and alert tests;
+skipped if the data is missing).
 """
 
 import datetime as dt
@@ -18,267 +18,268 @@ from pathlib import Path
 import support.authorization_trials as fd
 import pytest
 from fastapi.testclient import TestClient
-from test_phase02_warehouse import D, _elle_tablolar
+from test_phase02_warehouse import AS_OF, _hand_built_tables
 
-from sayman.warehouse.loader import ambar_kur
-from sayman.tools.permissions import yetki_oku
-from sayman.assistant.orchestrator import ModelCevabi
-from sayman.demo.app import CEREZ, Demo, tl, uygulama_kur
-from sayman.data.table_io import csv_oku, csv_yaz
-from sayman.data.clock import Saat, saat_oku, saat_yaz
+from sayman.warehouse.loader import build_warehouse
+from sayman.tools.permissions import read_permissions
+from sayman.assistant.orchestrator import ModelResponse
+from sayman.demo.app import COOKIE_NAME, Demo, format_lira, build_app
+from sayman.data.table_io import read_csv, write_csv
+from sayman.data.clock import Clock, read_clock, write_clock
 
-KOK = Path(__file__).resolve().parents[1]
-ANAHTAR = bytes(range(32))
-CFO, YURTICI, IHRACAT = fd.KULLANICILAR["cfo"], fd.KULLANICILAR["yurtici"], fd.KULLANICILAR["ihracat"]
-SORU = "Vadesi geçmiş alacaklarımızın toplamı ne kadar?"
-GERCEK_AMBAR, GERCEK_SAAT, URETILEN = (KOK / "data" / "ambar" / "sayman.duckdb", KOK / "data" / "saat.json",
-                                       KOK / "data" / "uretilen")
+ROOT = Path(__file__).resolve().parents[1]
+SIGNING_KEY = bytes(range(32))
+CFO, DOMESTIC, EXPORT = fd.USERS["cfo"], fd.USERS["yurtici"], fd.USERS["ihracat"]
+QUESTION = "Vadesi geçmiş alacaklarımızın toplamı ne kadar?"
+REAL_WAREHOUSE, REAL_CLOCK, GENERATED = (ROOT / "data" / "ambar" / "sayman.duckdb", ROOT / "data" / "saat.json",
+                                       ROOT / "data" / "uretilen")
 
 
-class BetikliModel:
-    """Soruda "nakit" geçiyorsa nakit_pozisyonu, yoksa alacak_yaslandirma çağırır; araç sonucundaki rakamı yazar."""
+class ScriptedModel:
+    """If the question contains "nakit" it calls nakit_pozisyonu, otherwise alacak_yaslandirma; it writes the figure from
+    the tool result."""
 
     def __init__(self):
-        self.cagri = 0
+        self.call_count = 0
 
-    def __call__(self, mesajlar, araclar, zaman_asimi):
-        self.cagri += 1
-        if mesajlar[-1]["role"] != "tool":
-            ad = "nakit_pozisyonu" if "nakit" in mesajlar[1]["content"].lower() else "alacak_yaslandirma"
-            return ModelCevabi(arac_cagrilari=[(ad, {})], istem_token=100, uretim_token=10)
-        yanit = json.loads(mesajlar[-1]["content"])
-        sonuc, kapsam = yanit["sonuc"], yanit["kapsam"]
-        if "hesaplar" in sonuc:
-            return ModelCevabi(icerik=f"Bankalardaki toplam nakit {tl(sonuc['toplam_tl'])}.")
-        return ModelCevabi(icerik=f"Vadesi geçmiş alacaklarınızın toplamı {tl(sonuc['vadesi_gecmis_tl'])} "
-                                  f"({kapsam}).")
-
-
-def _demo(klasor, ambar, baslangic, tablolar, **ek):
-    return Demo(ambar=ambar, durum_klasoru=klasor / "demo", baslangic=baslangic, anahtar=ANAHTAR, yetki=yetki_oku(),
-                tablolar=tablolar, model=BetikliModel(), zaman=lambda: 1_750_000_000.0, **ek)
+    def __call__(self, messages, tools, timeout):
+        self.call_count += 1
+        if messages[-1]["role"] != "tool":
+            name = "nakit_pozisyonu" if "nakit" in messages[1]["content"].lower() else "alacak_yaslandirma"
+            return ModelResponse(tool_calls=[(name, {})], prompt_tokens=100, generated_tokens=10)
+        yanit = json.loads(messages[-1]["content"])
+        result, scope = yanit["sonuc"], yanit["kapsam"]
+        if "hesaplar" in result:
+            return ModelResponse(content=f"Bankalardaki toplam nakit {format_lira(result['toplam_tl'])}.")
+        return ModelResponse(content=f"Vadesi geçmiş alacaklarınızın toplamı {format_lira(result['vadesi_gecmis_tl'])} "
+                                  f"({scope}).")
 
 
-def _giris(app, kullanici) -> TestClient:
+def _make_demo(folder, warehouse, start, tables, **extra):
+    return Demo(warehouse=warehouse, state_dir=folder / "demo", initial_clock=start, key=SIGNING_KEY, permissions=read_permissions(),
+                tables=tables, model=ScriptedModel(), time_fn=lambda: 1_750_000_000.0, **extra)
+
+
+def _login(app, user) -> TestClient:
     c = TestClient(app)
-    r = c.post("/api/giris", json={"kullanici": kullanici})
-    assert r.status_code == 200 and r.json()["kullanici"] == kullanici
+    r = c.post("/api/giris", json={"kullanici": user})
+    assert r.status_code == 200 and r.json()["kullanici"] == user
     return c
 
 
 @pytest.fixture(scope="module")
-def elle(tmp_path_factory):
-    klasor = tmp_path_factory.mktemp("faz10_elle")
-    tablolar = _elle_tablolar()
-    csv_yaz(tablolar, klasor / "csv")
-    ambar_kur(klasor / "csv", klasor / "sayman.duckdb").close()
-    demo = _demo(klasor, klasor / "sayman.duckdb", Saat(D, dt.date(2025, 6, 30)), tablolar)
-    yield demo, uygulama_kur(demo)
-    demo.kapat()
+def manual_demo(tmp_path_factory):
+    folder = tmp_path_factory.mktemp("faz10_elle")
+    tables = _hand_built_tables()
+    write_csv(tables, folder / "csv")
+    build_warehouse(folder / "csv", folder / "sayman.duckdb").close()
+    demo = _make_demo(folder, folder / "sayman.duckdb", Clock(AS_OF, dt.date(2025, 6, 30)), tables)
+    yield demo, build_app(demo)
+    demo.close()
 
 
-# ------------------------------------------------------------------ kimlik ve oturum
+# ------------------------------------------------------------------ identity and session
 
 
-@pytest.mark.parametrize("yol,yontem", [("/api/ben", "get"), ("/api/rapor", "get"), ("/api/uyarilar", "get"),
+@pytest.mark.parametrize("path,method", [("/api/ben", "get"), ("/api/rapor", "get"), ("/api/uyarilar", "get"),
                                         ("/api/ornek_sorular", "get"), ("/api/sor", "post"),
                                         ("/api/ileri_sar", "post")])
-def test_oturumsuz_istek_401(elle, yol, yontem):
-    c = TestClient(elle[1])
-    r = c.post(yol, json={"soru": SORU}) if yontem == "post" else c.get(yol)
+def test_request_without_session_401(manual_demo, path, method):
+    c = TestClient(manual_demo[1])
+    r = c.post(path, json={"soru": QUESTION}) if method == "post" else c.get(path)
     assert r.status_code == 401
-    c.cookies.set(CEREZ, "uydurma-oturum")
-    r = c.post(yol, json={"soru": SORU}) if yontem == "post" else c.get(yol)
+    c.cookies.set(COOKIE_NAME, "uydurma-oturum")
+    r = c.post(path, json={"soru": QUESTION}) if method == "post" else c.get(path)
     assert r.status_code == 401
 
 
-def test_giris_bilinmeyen_kullanici_ve_httponly_cerez(elle):
-    c = TestClient(elle[1])
+def test_login_unknown_user_and_httponly_cookie(manual_demo):
+    c = TestClient(manual_demo[1])
     assert c.post("/api/giris", json={"kullanici": "kimse"}).status_code == 400
     r = c.post("/api/giris", json={"kullanici": CFO})
-    cerez = r.headers["set-cookie"]
-    assert "httponly" in cerez.lower() and "samesite=strict" in cerez.lower()
-    # Tarayıcıya ne anahtar ne kart gider
-    assert ANAHTAR.hex() not in r.text and "kart" not in r.json()
+    cookie = r.headers["set-cookie"]
+    assert "httponly" in cookie.lower() and "samesite=strict" in cookie.lower()
+    # neither the key nor the card goes to the browser
+    assert SIGNING_KEY.hex() not in r.text and "kart" not in r.json()
     assert c.post("/api/cikis").json() == {"tamam": True}
     assert c.get("/api/ben").status_code == 401
 
 
-def test_kullanici_listesi_ve_sayfa(elle):
-    c = TestClient(elle[1])
-    kisiler = c.get("/api/kullanicilar").json()["kullanicilar"]
-    assert {k["kullanici"] for k in kisiler} == {CFO, YURTICI, IHRACAT}
+def test_user_list_and_page(manual_demo):
+    c = TestClient(manual_demo[1])
+    people = c.get("/api/kullanicilar").json()["kullanicilar"]
+    assert {k["kullanici"] for k in people} == {CFO, DOMESTIC, EXPORT}
     assert "Sayman" in c.get("/").text and c.get("/static/app.js").status_code == 200
 
 
-# ------------------------------------------------------------------ kabul: aynı soru, farklı cevap
+# ------------------------------------------------------------------ acceptance: same question, different answer
 
 
-def test_cfo_ve_satis_muduru_ayni_soruya_farkli_cevap_alir(elle):
-    demo, app = elle
-    cevaplar = {}
-    for k in (CFO, YURTICI, IHRACAT):
-        r = _giris(app, k).post("/api/sor", json={"soru": SORU})
+def test_cfo_and_sales_manager_get_different_answers_to_same_question(manual_demo):
+    demo, app = manual_demo
+    answers = {}
+    for k in (CFO, DOMESTIC, EXPORT):
+        r = _login(app, k).post("/api/sor", json={"soru": QUESTION})
         assert r.status_code == 200
         j = r.json()
         assert j["durum"] == "tamam" and j["araclar"] == [{"arac": "alacak_yaslandirma", "hata": None}]
-        beklenen, hata = demo.sunucu.kapi("alacak_yaslandirma", {}, demo.kart(k))
-        assert not hata and tl(beklenen["sonuc"]["vadesi_gecmis_tl"]) in j["cevap"]
-        cevaplar[k] = j["cevap"]
-    assert len(set(cevaplar.values())) == 3
+        expected, error = demo.server.gate("alacak_yaslandirma", {}, demo.card(k))
+        assert not error and format_lira(expected["sonuc"]["vadesi_gecmis_tl"]) in j["cevap"]
+        answers[k] = j["cevap"]
+    assert len(set(answers.values())) == 3
 
 
-def test_govdedeki_kullanici_yok_sayilir(elle):
-    app = elle[1]
-    yurtici = _giris(app, YURTICI).post("/api/sor", json={"soru": SORU}).json()["cevap"]
-    sahte = _giris(app, YURTICI).post("/api/sor", json={"soru": SORU, "kullanici": CFO, "rol": "cfo"}).json()
-    cfo = _giris(app, CFO).post("/api/sor", json={"soru": SORU}).json()["cevap"]
-    assert sahte["cevap"] == yurtici != cfo
+def test_user_in_body_is_ignored(manual_demo):
+    app = manual_demo[1]
+    domestic = _login(app, DOMESTIC).post("/api/sor", json={"soru": QUESTION}).json()["cevap"]
+    spoofed = _login(app, DOMESTIC).post("/api/sor", json={"soru": QUESTION, "kullanici": CFO, "rol": "cfo"}).json()
+    cfo = _login(app, CFO).post("/api/sor", json={"soru": QUESTION}).json()["cevap"]
+    assert spoofed["cevap"] == domestic != cfo
 
 
-def test_satis_muduru_nakit_sorusunda_yetki_yok(elle):
-    app = elle[1]
-    j = _giris(app, YURTICI).post("/api/sor", json={"soru": "Bankalarda ne kadar nakit var?"}).json()
+def test_sales_manager_has_no_permission_for_cash_question(manual_demo):
+    app = manual_demo[1]
+    j = _login(app, DOMESTIC).post("/api/sor", json={"soru": "Bankalarda ne kadar nakit var?"}).json()
     assert j["durum"] == "ret" and j["araclar"] == [{"arac": "nakit_pozisyonu", "hata": "yetki_yok"}]
-    assert _giris(app, CFO).post("/api/sor", json={"soru": "Bankalarda ne kadar nakit var?"}).json()["durum"] == "tamam"
+    assert _login(app, CFO).post("/api/sor", json={"soru": "Bankalarda ne kadar nakit var?"}).json()["durum"] == "tamam"
 
 
-def test_soru_dogrulama_ve_mesgulken_409(elle):
-    demo, app = elle
-    c = _giris(app, CFO)
+def test_question_validation_and_409_when_busy(manual_demo):
+    demo, app = manual_demo
+    c = _login(app, CFO)
     assert c.post("/api/sor", json={"soru": "  "}).status_code == 422
     assert c.post("/api/sor", json={"soru": "x" * 501}).status_code == 422
-    assert demo.kilit.acquire(blocking=False)
+    assert demo.lock.acquire(blocking=False)
     try:
-        r = c.post("/api/sor", json={"soru": SORU})
+        r = c.post("/api/sor", json={"soru": QUESTION})
         assert r.status_code == 409 and c.get("/api/durum").json()["mesgul"] is True
     finally:
-        demo.kilit.release()
+        demo.lock.release()
 
 
-# ------------------------------------------------------------------ rapor ve uyarı kapsamı
+# ------------------------------------------------------------------ report and alert scope
 
 
-def test_rapor_yalniz_rolun_araclarindan(elle):
-    app = elle[1]
-    cfo = _giris(app, CFO).get("/api/rapor").json()
-    satis = _giris(app, YURTICI).get("/api/rapor").json()
+def test_report_is_built_only_from_roles_tools(manual_demo):
+    app = manual_demo[1]
+    cfo = _login(app, CFO).get("/api/rapor").json()
+    sales_report = _login(app, DOMESTIC).get("/api/rapor").json()
     assert [b["baslik"] for b in cfo["bolumler"]] == ["Nakit pozisyonu", "Önümüzdeki 7 günün ödemeleri",
                                                       "Açık alacaklar", "7 gün içinde vadesi gelen çekler"]
-    assert [b["baslik"] for b in satis["bolumler"]] == ["Açık alacaklar", "7 gün içinde vadesi gelen çekler"]
-    assert cfo["tarih"] == satis["tarih"] == D.isoformat() and satis["kapsam_adi"] == "yalnızca yurtiçi müşteriler"
-    assert all(b["ozet"] != "—" for b in cfo["bolumler"] + satis["bolumler"])  # hiçbir bölüm kapıda reddedilmedi
-    assert cfo["bolumler"][2]["ozet"] != satis["bolumler"][0]["ozet"]
+    assert [b["baslik"] for b in sales_report["bolumler"]] == ["Açık alacaklar", "7 gün içinde vadesi gelen çekler"]
+    assert cfo["tarih"] == sales_report["tarih"] == AS_OF.isoformat() and sales_report["kapsam_adi"] == "yalnızca yurtiçi müşteriler"
+    assert all(b["ozet"] != "—" for b in cfo["bolumler"] + sales_report["bolumler"])  # no section was rejected at the gate
+    assert cfo["bolumler"][2]["ozet"] != sales_report["bolumler"][0]["ozet"]
 
 
-def test_uyarilar_kapsama_gore_suzulur(elle):
-    demo = elle[0]
-    musteriler = _elle_tablolar()["musteriler"]  # süzgecin kaynağından (ambar) bağımsız
-    yurtici = next(m["musteri_id"] for m in musteriler if m["yurtici"])
-    ihracat = next(m["musteri_id"] for m in musteriler if not m["yurtici"])
-    uyarilar = [{"uyari_id": "U1", "gun": "2025-03-01", "onem": "uyari", "baslik": "a", "aciklama": "a",
-                 "musteri_id": yurtici, "kaynak": {"x": [1]}},
+def test_alerts_are_filtered_by_scope(manual_demo):
+    demo = manual_demo[0]
+    customers = _hand_built_tables()["musteriler"]  # independent of the filter's source (the warehouse)
+    domestic = next(m["musteri_id"] for m in customers if m["yurtici"])
+    export = next(m["musteri_id"] for m in customers if not m["yurtici"])
+    alerts = [{"uyari_id": "U1", "gun": "2025-03-01", "onem": "uyari", "baslik": "a", "aciklama": "a",
+                 "musteri_id": domestic, "kaynak": {"x": [1]}},
                 {"uyari_id": "U2", "gun": "2025-03-02", "onem": "uyari", "baslik": "b", "aciklama": "b",
-                 "musteri_id": ihracat},
+                 "musteri_id": export},
                 {"uyari_id": "U3", "gun": "2025-03-03", "onem": "bilgi", "baslik": "c", "aciklama": "c",
                  "musteri_id": None},
                 {"uyari_id": "U4", "gun": "2025-03-04", "onem": "bilgi", "baslik": "d", "aciklama": "d",
                  "musteri_id": "M_BILINMEYEN"}]
-    assert [u["uyari_id"] for u in demo.suz(CFO, uyarilar)] == ["U1", "U2", "U3", "U4"]
-    assert [u["uyari_id"] for u in demo.suz(YURTICI, uyarilar)] == ["U1"]
-    assert [u["uyari_id"] for u in demo.suz(IHRACAT, uyarilar)] == ["U2"]
-    assert "kaynak" not in demo.suz(CFO, uyarilar)[0] and "kural" not in demo.suz(CFO, uyarilar)[0]
+    assert [u["uyari_id"] for u in demo.filter_alerts(CFO, alerts)] == ["U1", "U2", "U3", "U4"]
+    assert [u["uyari_id"] for u in demo.filter_alerts(DOMESTIC, alerts)] == ["U1"]
+    assert [u["uyari_id"] for u in demo.filter_alerts(EXPORT, alerts)] == ["U2"]
+    assert "kaynak" not in demo.filter_alerts(CFO, alerts)[0] and "kural" not in demo.filter_alerts(CFO, alerts)[0]
 
 
-def test_satis_aciklamasinda_sirket_geneli_rakam_yok():
-    from sayman.demo.app import kapsamli_aciklama
-    cek = ("Ada Ltd. müşterisinin Banka G çeki (41.931,43 TL, vade 2026-09-03) karşılıksız çıktı; son 12 ayın "
+def test_sales_description_has_no_company_wide_figure():
+    from sayman.demo.app import scoped_description
+    cheque_text = ("Ada Ltd. müşterisinin Banka G çeki (41.931,43 TL, vade 2026-09-03) karşılıksız çıktı; son 12 ayın "
            "çeklerinin üst çeyreği 27.203,60 TL'den başlıyor.")
-    assert kapsamli_aciklama("karsiliksiz_cek", cek, "b") == ("Ada Ltd. müşterisinin Banka G çeki (41.931,43 TL, "
+    assert scoped_description("karsiliksiz_cek", cheque_text, "b") == ("Ada Ltd. müşterisinin Banka G çeki (41.931,43 TL, "
                                                              "vade 2026-09-03) karşılıksız çıktı.")
-    gec = "Ada Ltd. son 12 ayın en büyük 50 müşterisinden biri. Vadesi son 30 günde dolan 4 faturasından 3 tanesi açık."
-    assert kapsamli_aciklama("musteri_gecikmesi", gec, "b") == "Vadesi son 30 günde dolan 4 faturasından 3 tanesi açık."
-    assert kapsamli_aciklama("yeni_kural", "şirket geneli 1.000 TL", "Başlık") == "Başlık."
+    late_text = "Ada Ltd. son 12 ayın en büyük 50 müşterisinden biri. Vadesi son 30 günde dolan 4 faturasından 3 tanesi açık."
+    assert scoped_description("musteri_gecikmesi", late_text, "b") == "Vadesi son 30 günde dolan 4 faturasından 3 tanesi açık."
+    assert scoped_description("yeni_kural", "şirket geneli 1.000 TL", "Başlık") == "Başlık."
 
 
-def test_baska_adla_gelen_istek_reddedilir(elle):
-    assert TestClient(elle[1], base_url="http://saldirgan.example").get("/api/kullanicilar").status_code == 400
-    assert TestClient(elle[1], base_url="http://127.0.0.1:8010").get("/api/kullanicilar").status_code == 200
+def test_request_with_other_host_name_is_rejected(manual_demo):
+    assert TestClient(manual_demo[1], base_url="http://saldirgan.example").get("/api/kullanicilar").status_code == 400
+    assert TestClient(manual_demo[1], base_url="http://127.0.0.1:8010").get("/api/kullanicilar").status_code == 200
 
 
-# ------------------------------------------------------------------ kabul: zamanı ileri sar (gerçek veri)
+# ------------------------------------------------------------------ acceptance: fast-forward time (real data)
 
-gercek_var = pytest.mark.skipif(not (GERCEK_AMBAR.exists() and GERCEK_SAAT.exists() and URETILEN.exists()),
+real_data_available = pytest.mark.skipif(not (REAL_WAREHOUSE.exists() and REAL_CLOCK.exists() and GENERATED.exists()),
                                 reason="Önce Faz 1-2 betikleri çalıştırılmalı")
 
 
-def _ozet(yol: Path) -> str:
-    return hashlib.sha256(yol.read_bytes()).hexdigest()
+def _digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 @pytest.fixture(scope="module")
-def gercek(tmp_path_factory):
-    klasor = tmp_path_factory.mktemp("faz10_gercek")
-    once = (_ozet(GERCEK_AMBAR), _ozet(GERCEK_SAAT))
-    demo = _demo(klasor, GERCEK_AMBAR, saat_oku(GERCEK_SAAT), csv_oku(URETILEN))
-    yield demo, uygulama_kur(demo), once, klasor
-    demo.kapat()
+def real_demo(tmp_path_factory):
+    folder = tmp_path_factory.mktemp("faz10_gercek")
+    before = (_digest(REAL_WAREHOUSE), _digest(REAL_CLOCK))
+    demo = _make_demo(folder, REAL_WAREHOUSE, read_clock(REAL_CLOCK), read_csv(GENERATED))
+    yield demo, build_app(demo), before, folder
+    demo.close()
 
 
-@gercek_var
-def test_zamani_ileri_sarmak_rapor_ve_uyari_uretir(gercek):
-    demo, app, once, klasor = gercek
-    bas = demo.saat.simdi
-    c = _giris(app, CFO)
-    rapor_once = c.get("/api/rapor").json()
-    depodaki = len(demo.depo.uyarilar())
+@real_data_available
+def test_fast_forwarding_time_produces_report_and_alert(real_demo):
+    demo, app, before, folder = real_demo
+    start_date = demo.clock.simdi
+    c = _login(app, CFO)
+    report_before = c.get("/api/rapor").json()
+    stored_count = len(demo.store.alerts())
     r = c.post("/api/ileri_sar", json={})
     assert r.status_code == 200
     j = r.json()
-    assert j["onceki"] == bas.isoformat() and j["bugun"] == (bas + dt.timedelta(days=7)).isoformat()
-    # Yeni uyarı: yalnızca ilerlenen günlerden (depo açılışta bugüne kadar dolduruldu)
-    assert j["yeni_uyarilar"] and all(bas.isoformat() < u["gun"] <= j["bugun"] for u in j["yeni_uyarilar"])
-    assert len(demo.depo.uyarilar()) == depodaki + len(j["yeni_uyarilar"])
-    # Rapor yeni günün raporu
-    assert j["rapor"]["tarih"] == j["bugun"] != rapor_once["tarih"]
-    assert j["rapor"]["bolumler"] != rapor_once["bolumler"]
+    assert j["onceki"] == start_date.isoformat() and j["bugun"] == (start_date + dt.timedelta(days=7)).isoformat()
+    # New alerts: only from the days advanced (the store is filled up to today on startup)
+    assert j["yeni_uyarilar"] and all(start_date.isoformat() < u["gun"] <= j["bugun"] for u in j["yeni_uyarilar"])
+    assert len(demo.store.alerts()) == stored_count + len(j["yeni_uyarilar"])
+    # The report is the report of the new day
+    assert j["rapor"]["tarih"] == j["bugun"] != report_before["tarih"]
+    assert j["rapor"]["bolumler"] != report_before["bolumler"]
     assert c.get("/api/durum").json()["bugun"] == j["bugun"]
-    yeni_idler = {u["uyari_id"] for u in j["yeni_uyarilar"]}
-    assert yeni_idler <= {u["uyari_id"] for u in c.get("/api/uyarilar").json()["uyarilar"]}
-    # Satış müdürleri yalnızca kendi müşterilerinin uyarılarını görür; şirket düzeyindeki uyarıları ve şirket
-    # geneli eşikleri görmez. Doğruluk ölçütü süzgecin kaynağından (ambar) bağımsız: üretilen CSV tabloları.
-    csv_yurtici = {m["musteri_id"]: m["yurtici"] for m in demo.tablolar["musteriler"]}
-    yurtici_uyarilari = _giris(app, YURTICI).get("/api/uyarilar").json()["uyarilar"]
-    assert yurtici_uyarilari
-    for k, yurtici_mi, liste in ((YURTICI, True, yurtici_uyarilari),
-                                 (IHRACAT, False, _giris(app, IHRACAT).get("/api/uyarilar").json()["uyarilar"])):
-        for u in liste:
-            assert u["musteri_id"] is not None and csv_yurtici[u["musteri_id"]] is yurtici_mi
+    new_ids = {u["uyari_id"] for u in j["yeni_uyarilar"]}
+    assert new_ids <= {u["uyari_id"] for u in c.get("/api/uyarilar").json()["uyarilar"]}
+    # Sales managers see only the alerts of their own customers; they do not see company-level alerts or company-wide
+    # thresholds. The correctness criterion is independent of the filter's source (the warehouse): the generated CSV tables.
+    csv_domestic = {m["musteri_id"]: m["yurtici"] for m in demo.tables["musteriler"]}
+    domestic_alerts = _login(app, DOMESTIC).get("/api/uyarilar").json()["uyarilar"]
+    assert domestic_alerts
+    for k, is_domestic, rows in ((DOMESTIC, True, domestic_alerts),
+                                 (EXPORT, False, _login(app, EXPORT).get("/api/uyarilar").json()["uyarilar"])):
+        for u in rows:
+            assert u["musteri_id"] is not None and csv_domestic[u["musteri_id"]] is is_domestic
             assert "üst çeyreği" not in u["aciklama"] and "en büyük" not in u["aciklama"]
-    # Satış müdürü de zamanı ileri sarabilir; ona dönen yeni uyarılar ve rapor kendi kapsamında
-    j2 = _giris(app, YURTICI).post("/api/ileri_sar", json={}).json()
-    assert all(csv_yurtici[u["musteri_id"]] is True for u in j2["yeni_uyarilar"])
+    # The sales manager can fast-forward time too; the new alerts and the report returned to them are in their own scope
+    j2 = _login(app, DOMESTIC).post("/api/ileri_sar", json={}).json()
+    assert all(csv_domestic[u["musteri_id"]] is True for u in j2["yeni_uyarilar"])
     assert [b["baslik"] for b in j2["rapor"]["bolumler"]] == ["Açık alacaklar", "7 gün içinde vadesi gelen çekler"]
-    # Ambar ve proje saati değişmedi; demo saati kendi klasöründe
-    assert (_ozet(GERCEK_AMBAR), _ozet(GERCEK_SAAT)) == once
-    assert saat_oku(klasor / "demo" / "saat.json").simdi.isoformat() == j2["bugun"]
+    # The warehouse and the project clock did not change; the demo clock is in its own folder
+    assert (_digest(REAL_WAREHOUSE), _digest(REAL_CLOCK)) == before
+    assert read_clock(folder / "demo" / "saat.json").simdi.isoformat() == j2["bugun"]
 
 
-@gercek_var
-def test_saat_veri_sonunda_durur_ve_yeniden_acilista_korunur(gercek):
-    demo, app, _, klasor = gercek
-    c = _giris(app, CFO)
+@real_data_available
+def test_clock_stops_at_end_of_data_and_survives_reopening(real_demo):
+    demo, app, _, folder = real_demo
+    c = _login(app, CFO)
     assert c.post("/api/ileri_sar", json={"gun": 0}).status_code == 422
-    while demo.saat.simdi < demo.saat.veri_bitis:
+    while demo.clock.simdi < demo.clock.veri_bitis:
         assert c.post("/api/ileri_sar", json={"gun": 31}).status_code == 200
     r = c.post("/api/ileri_sar", json={})
     assert r.status_code == 409 and "sıfırla" in r.json()["detail"]
-    # Yeniden açılan demo kaldığı günden devam eder, eski uyarıları yeni diye getirmez. Saat dosyası depodan geride
-    # kalsa bile (depo yazıldı, saat yazılamadan kesildi) saat depoya yetişir.
-    demo.kapat()
-    saat_yaz(saat_oku(GERCEK_SAAT), klasor / "demo" / "saat.json")
-    ikinci = _demo(klasor, GERCEK_AMBAR, saat_oku(GERCEK_SAAT), demo.tablolar)
+    # A reopened demo continues from the day it stopped and does not present old alerts as new. Even if the clock file lags
+    # behind the store (the store was written, the clock write was interrupted), the clock catches up with the store.
+    demo.close()
+    write_clock(read_clock(REAL_CLOCK), folder / "demo" / "saat.json")
+    second = _make_demo(folder, REAL_WAREHOUSE, read_clock(REAL_CLOCK), demo.tables)
     try:
-        assert ikinci.saat == demo.saat and len(ikinci.depo.uyarilar()) == len(demo.depo.uyarilar())
+        assert second.clock == demo.clock and len(second.store.alerts()) == len(demo.store.alerts())
     finally:
-        ikinci.kapat()
+        second.close()

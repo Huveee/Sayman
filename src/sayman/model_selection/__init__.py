@@ -1,1 +1,1 @@
-"""Faz 0: kurulum ve model hız ölçümü için yardımcılar."""
+"""Phase 0: helpers for setup and the model speed measurement."""

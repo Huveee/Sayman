@@ -1,17 +1,17 @@
-"""Belge araması: kelime araması (BM25), anlam araması ile birleştirme ve yeniden sıralama.
+"""Document search: keyword search (BM25), fusion with semantic search, and reranking.
 
-Kelime araması (BM25):
-- Metin Türkçe kurala göre küçültülür (I→ı, İ→i), harf ve rakam dizilerine bölünür.
-- Kelimeler ilk 5 harfine indirilir ("faturalarını" → "fatur"). Türkçe ekler kelimenin sonuna geldiği için bu basit
-  kesme, aynı kökten gelen biçimleri çoğu zaman birleştirir. Rakamlar olduğu gibi kalır.
+Keyword search (BM25):
+- The text is lowercased by the Turkish rule (I→ı, İ→i) and split into runs of letters and digits.
+- Words are cut down to their first 5 letters ("faturalarını" → "fatur"). Turkish suffixes come at the end of the
+  word, so this simple cut usually merges forms of the same root. Digits stay as they are.
 
-Birleştirme (karma): kelime ve anlam aramasının ilk N sonucu sıra numaralarıyla birleştirilir (reciprocal rank
-fusion): bir parçanın skoru, her listedeki sırası r için 1/(k + r) toplamıdır. Skorların ölçeği farklı olduğu için
-skor yerine sıra kullanılır.
+Fusion (hybrid): the top N results of keyword search and semantic search are merged by rank (reciprocal rank fusion):
+the score of a chunk is the sum of 1/(k + r) over every list, where r is its rank in that list. The scores have
+different scales, so rank is used instead of score.
 
-Yeniden sıralama (karma_sirala): birleşik listenin ilk adayları sıralayıcı modelle yeniden puanlanır.
+Reranking ("karma_sirala"): the first candidates of the fused list are rescored with the reranker model.
 
-Rol süzmesi her aşamada skorlamadan önce yapılır: rolün göremediği parça hiçbir listeye girmez.
+Role filtering is done before scoring at every stage: a chunk the role cannot see enters no list.
 """
 
 from __future__ import annotations
@@ -20,125 +20,126 @@ import math
 import re
 from collections import Counter
 
-from sayman.documents.library import Parca, gorebilir
+from sayman.documents.library import Chunk, can_see
 
-KOK_UZUNLUGU = 5
-DURAK = frozenset("""
+STEM_LENGTH = 5
+STOPWORDS = frozenset("""
 ve ile bir bu şu o için ne mi mı mu mü da de ki ya veya gibi kadar en çok daha her hangi kaç nasıl neden olarak
 olan ise değil var yok biz bize bizi bizim ona onu onun sonra önce
 """.split())
-_KELIME = re.compile(r"\w+")
+_WORD = re.compile(r"\w+")
 
 
-def kucult(metin: str) -> str:
-    return metin.replace("I", "ı").replace("İ", "i").lower()
+def lower_tr(text: str) -> str:
+    return text.replace("I", "ı").replace("İ", "i").lower()
 
 
-def terimler(metin: str) -> list[str]:
-    sonuc = []
-    for k in _KELIME.findall(kucult(metin)):
-        if k in DURAK or k == "_":
+def terms(text: str) -> list[str]:
+    result = []
+    for k in _WORD.findall(lower_tr(text)):
+        if k in STOPWORDS or k == "_":
             continue
-        sonuc.append(k if any(c.isdigit() for c in k) else k[:KOK_UZUNLUGU])
-    return sonuc
+        result.append(k if any(c.isdigit() for c in k) else k[:STEM_LENGTH])
+    return result
 
 
 class BM25:
-    def __init__(self, parcalar: list[Parca], k1: float = 1.5, b: float = 0.75):
-        self.parcalar = parcalar
+    def __init__(self, chunks: list[Chunk], k1: float = 1.5, b: float = 0.75):
+        self.chunks = chunks
         self.k1, self.b = k1, b
-        self.tf = [Counter(terimler(p.arama_metni)) for p in parcalar]
-        self.uzunluk = [sum(t.values()) for t in self.tf]
-        self.ort_uzunluk = sum(self.uzunluk) / len(self.uzunluk)
+        self.tf = [Counter(terms(p.arama_metni)) for p in chunks]
+        self.lengths = [sum(t.values()) for t in self.tf]
+        self.avg_length = sum(self.lengths) / len(self.lengths)
         df = Counter(t for tf in self.tf for t in tf)
-        n = len(parcalar)
+        n = len(chunks)
         self.idf = {t: math.log(1 + (n - d + 0.5) / (d + 0.5)) for t, d in df.items()}
 
-    def skorlar(self, sorgu: str, rol: str) -> list[tuple[str, float]]:
-        """Rolün görebildiği her parça için (parca_id, skor); skoru 0 olanlar dahil değildir."""
-        sorgu_t = [t for t in dict.fromkeys(terimler(sorgu)) if t in self.idf]
-        sonuc = []
-        for p, tf, u in zip(self.parcalar, self.tf, self.uzunluk):
-            if not gorebilir(rol, p.roller):
+    def scores(self, query: str, role: str) -> list[tuple[str, float]]:
+        """For every chunk the role can see: (chunk_id, score); chunks with a score of 0 are not included."""
+        query_terms = [t for t in dict.fromkeys(terms(query)) if t in self.idf]
+        result = []
+        for p, tf, u in zip(self.chunks, self.tf, self.lengths):
+            if not can_see(role, p.roller):
                 continue
             s = 0.0
-            for t in sorgu_t:
+            for t in query_terms:
                 f = tf.get(t)
                 if f:
-                    s += self.idf[t] * f * (self.k1 + 1) / (f + self.k1 * (1 - self.b + self.b * u / self.ort_uzunluk))
+                    s += self.idf[t] * f * (self.k1 + 1) / (f + self.k1 * (1 - self.b + self.b * u / self.avg_length))
             if s > 0:
-                sonuc.append((p.parca_id, s))
-        return sonuc
+                result.append((p.parca_id, s))
+        return result
 
 
-def ilk(sonuclar: list[tuple[str, float]], k: int) -> list[tuple[str, float]]:
-    """Skora göre ilk k sonuç; eşit skorlar parça kimliğine göre sıralanır."""
-    return sorted(sonuclar, key=lambda x: (-x[1], x[0]))[:k]
+def top_k(results: list[tuple[str, float]], k: int) -> list[tuple[str, float]]:
+    """Top k results by score; equal scores are ordered by chunk identifier."""
+    return sorted(results, key=lambda x: (-x[1], x[0]))[:k]
 
 
-def rrf(listeler: list[list[tuple[str, float]]], k: int = 60, derinlik: int = 50) -> list[tuple[str, float]]:
-    """Sıra birleştirme: her listenin ilk `derinlik` sonucu, sıra r (1'den) için 1/(k + r) katkı verir."""
-    skor: dict[str, float] = {}
-    for liste in listeler:
-        for r, (pid, _) in enumerate(ilk(liste, derinlik), start=1):
-            skor[pid] = skor.get(pid, 0.0) + 1.0 / (k + r)
-    return list(skor.items())
+def rrf(rankings: list[list[tuple[str, float]]], k: int = 60, derinlik: int = 50) -> list[tuple[str, float]]:
+    """Rank fusion: the first `derinlik` (depth) results of every list contribute 1/(k + r) for rank r (starting from 1)."""
+    fused: dict[str, float] = {}
+    for ranking in rankings:
+        for r, (chunk_id, _) in enumerate(top_k(ranking, derinlik), start=1):
+            fused[chunk_id] = fused.get(chunk_id, 0.0) + 1.0 / (k + r)
+    return list(fused.items())
 
 
-YONTEMLER = ("bm25", "anlam", "karma", "karma_sirala")
+METHODS = ("bm25", "anlam", "karma", "karma_sirala")
 
 
-class Arayici:
-    """Bütün aşamaları bir araya getirir. anlam ve siralayici verilmezse yalnızca bm25 kullanılabilir."""
+class Searcher:
+    """Brings all the stages together. If `semantic` and `reranker` are not given, only bm25 can be used."""
 
-    def __init__(self, parcalar: list[Parca], anlam=None, siralayici=None, rrf_k: int = 60, derinlik: int = 50,
+    def __init__(self, chunks: list[Chunk], semantic=None, reranker=None, rrf_k: int = 60, derinlik: int = 50,
                  aday: int = 20):
-        self.parca = {p.parca_id: p for p in parcalar}
-        self.bm25 = BM25(parcalar)
-        self.anlam, self.siralayici = anlam, siralayici
-        self.rrf_k, self.derinlik, self.aday = rrf_k, derinlik, aday
+        self.chunk_by_id = {p.parca_id: p for p in chunks}
+        self.bm25 = BM25(chunks)
+        self.semantic, self.reranker = semantic, reranker
+        self.rrf_k, self.depth, self.candidate_count = rrf_k, derinlik, aday
 
-    def skorlar(self, sorgu: str, rol: str, yontem: str = "karma_sirala") -> list[tuple[str, float]]:
-        if yontem not in YONTEMLER:
-            raise ValueError(f"bilinmeyen yöntem: {yontem}")
-        kelime = self.bm25.skorlar(sorgu, rol)
-        if yontem == "bm25":
-            return kelime
-        anlam = self.anlam.skorlar(sorgu, rol, self.derinlik)
-        if yontem == "anlam":
-            return anlam
-        karma = rrf([kelime, anlam], self.rrf_k, self.derinlik)
-        if yontem == "karma":
-            return karma
-        adaylar = ilk(karma, self.aday)
-        s = self.siralayici.skorla(sorgu, [(pid, self.parca[pid].arama_metni) for pid, _ in adaylar])
-        return list(zip([pid for pid, _ in adaylar], s))
+    def scores(self, query: str, role: str, method: str = "karma_sirala") -> list[tuple[str, float]]:
+        if method not in METHODS:
+            raise ValueError(f"bilinmeyen yöntem: {method}")
+        lexical = self.bm25.scores(query, role)
+        if method == "bm25":
+            return lexical
+        semantic = self.semantic.scores(query, role, self.depth)
+        if method == "anlam":
+            return semantic
+        hybrid = rrf([lexical, semantic], self.rrf_k, self.depth)
+        if method == "karma":
+            return hybrid
+        candidates = top_k(hybrid, self.candidate_count)
+        s = self.reranker.score(query, [(chunk_id, self.chunk_by_id[chunk_id].arama_metni) for chunk_id, _ in candidates])
+        return list(zip([chunk_id for chunk_id, _ in candidates], s))
 
-    def ara(self, sorgu: str, rol: str, k: int = 5, yontem: str = "karma_sirala") -> list[tuple[Parca, float]]:
-        return [(self.parca[pid], s) for pid, s in ilk(self.skorlar(sorgu, rol, yontem), k)]
+    def search(self, query: str, role: str, k: int = 5, method: str = "karma_sirala") -> list[tuple[Chunk, float]]:
+        return [(self.chunk_by_id[chunk_id], s) for chunk_id, s in top_k(self.scores(query, role, method), k)]
 
 
-def arayici_kur(belge_klasoru, yontem: str = "anlam", model_klasoru=None) -> Arayici:
-    """Diskteki kütüphaneden bir arayıcı kurar (asistan ve MCP sunucusu için).
+def build_searcher(document_directory, method: str = "anlam", model_directory=None) -> Searcher:
+    """Builds a searcher from the library on disk (for the assistant and the MCP server).
 
-    - Anlam dizini önbellekteki parça vektörlerinden bellekte kurulur (Qdrant yerel mod); yeni sorular Ollama'daki
-      bge-m3 ile vektöre çevrilir.
-    - Sıralayıcı model yalnızca yöntem "karma_sirala" ise yüklenir. Faz 5 ölçümünde sürecin belleğini 2,7 GB'a
-      çıkardı ve soru başına aramayı medyan 9,6 saniyeye uzattı; daha güçlü bir bilgisayar için bir ayardır."""
+    - The semantic index is built in memory from the cached chunk vectors (Qdrant local mode); new questions are
+      turned into vectors with bge-m3 in Ollama.
+    - The reranker model is loaded only if the method is "karma_sirala". In the Phase 5 measurement it raised the
+      memory of the process to 2.7 GB and the median search time per question to 9.6 seconds; it is a setting for a
+      more powerful computer."""
     from pathlib import Path
 
     from sayman.documents import library
 
-    if yontem not in YONTEMLER:
-        raise ValueError(f"bilinmeyen yöntem: {yontem}")
-    klasor = Path(belge_klasoru)
-    parcalar = library.parcalar(library.oku(klasor / "belgeler.jsonl"))
-    anlam = siralayici = None
-    if yontem != "bm25":
-        from sayman.documents.semantic import AnlamDizini, GommeOnbellegi
-        anlam = AnlamDizini(parcalar, GommeOnbellegi(klasor / "onbellek" / "gomme_bge-m3.npz"))
-    if yontem == "karma_sirala":
-        from sayman.documents.reranker import Siralayici
-        siralayici = Siralayici(Path(model_klasoru) if model_klasoru else None,
-                                klasor / "onbellek" / "sirala_bge-reranker-v2-m3.json")
-    return Arayici(parcalar, anlam, siralayici)
+    if method not in METHODS:
+        raise ValueError(f"bilinmeyen yöntem: {method}")
+    directory = Path(document_directory)
+    chunks = library.to_chunks(library.read_documents(directory / "belgeler.jsonl"))
+    semantic = reranker = None
+    if method != "bm25":
+        from sayman.documents.semantic import SemanticIndex, EmbeddingCache
+        semantic = SemanticIndex(chunks, EmbeddingCache(directory / "onbellek" / "gomme_bge-m3.npz"))
+    if method == "karma_sirala":
+        from sayman.documents.reranker import Reranker
+        reranker = Reranker(Path(model_directory) if model_directory else None,
+                                directory / "onbellek" / "sirala_bge-reranker-v2-m3.json")
+    return Searcher(chunks, semantic, reranker)

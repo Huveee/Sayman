@@ -1,1 +1,1 @@
-"""Faz 3: modelin çağırdığı salt okunur araçlar, kimlik, yetki ve denetim kaydı."""
+"""Phase 3: the read-only tools the model calls, identity, permissions and the audit log."""

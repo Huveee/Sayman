@@ -1,12 +1,13 @@
-"""İmzalı kimlik kartı: kim soruyor?
+"""Signed identity card: who is asking?
 
-Kartı güvenilen arka uç (Faz 6 orkestratörü, Faz 10 demo sunucusu) üretir ve her araç çağrısının MCP
-üst bilgisine (_meta) koyar. Model kartı görmez, araç argümanlarında kimlik alanı yoktur; bu yüzden model
-kendini başka biri gibi gösteremez.
+The trusted back end (the Phase 6 orchestrator, the Phase 10 demo server) produces the card and puts it in the
+MCP request header (_meta) of every tool call. The model does not see the card and the tool arguments have no
+identity field, so the model cannot pass itself off as someone else.
 
-Kart = base64url(yük) + "." + base64url(HMAC-SHA256(anahtar, yük)). Yükte yalnızca kullanıcı adı ve son
-geçerlilik zamanı vardır. Rol karttan değil, sunucudaki kullanıcı listesinden okunur: kartta rol yazsa bile
-dikkate alınmaz. İmza sabit sürede karşılaştırılır (hmac.compare_digest). Anahtar yoksa sunucu açılmaz.
+Card = base64url(payload) + "." + base64url(HMAC-SHA256(key, payload)). The payload holds only the user name and
+the expiry time. The role is read from the server's user list, not from the card: a role written in the card is
+ignored. The signature is compared in constant time (hmac.compare_digest). Without a key the server does not
+start.
 """
 
 from __future__ import annotations
@@ -19,97 +20,98 @@ import os
 import time
 from dataclasses import dataclass
 
-META_ANAHTARI = "sayman_kimlik"
-ANAHTAR_DEGISKENI = "SAYMAN_KIMLIK_ANAHTARI"
-SURUM = 1
-EN_UZUN_SURE_S = 12 * 3600  # bir kart en çok 12 saat geçerli
+META_KEY = "sayman_kimlik"
+KEY_ENV_VAR = "SAYMAN_KIMLIK_ANAHTARI"
+VERSION = 1
+MAX_DURATION_S = 12 * 3600  # a card is valid for at most 12 hours
 
 
-class KimlikHatasi(Exception):
-    """Kart reddedildi. `neden` denetim kaydına yazılır; kullanıcıya hep aynı mesaj gider."""
+class IdentityError(Exception):
+    """Card rejected. `reason` is written to the audit log; the user always gets the same message."""
 
-    def __init__(self, neden: str):
-        super().__init__(neden)
-        self.neden = neden
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
 
 
 @dataclass(frozen=True)
-class Kimlik:
-    kullanici: str
-    rol: str
+class Identity:
+    user: str
+    role: str
 
 
-def _b64(veri: bytes) -> str:
-    return base64.urlsafe_b64encode(veri).rstrip(b"=").decode("ascii")
+def _b64(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
-def _b64_coz(metin: str) -> bytes:
-    return base64.urlsafe_b64decode(metin + "=" * (-len(metin) % 4))
+def _b64_decode(text: str) -> bytes:
+    return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
 
 
-def anahtar_oku(ortam: dict | None = None) -> bytes:
-    """İmza anahtarını ortam değişkeninden okur (onaltılık, en az 32 bayt). Yoksa hata: sunucu açılmaz."""
-    deger = (ortam if ortam is not None else os.environ).get(ANAHTAR_DEGISKENI, "").strip()
-    if not deger:
-        raise RuntimeError(f"{ANAHTAR_DEGISKENI} tanımlı değil; scripts/phase03_generate_key.py ile üretin")
+def read_key(env: dict | None = None) -> bytes:
+    """Reads the signing key from the environment variable (hexadecimal, at least 32 bytes). Raises if it is
+    missing: the server does not start."""
+    value = (env if env is not None else os.environ).get(KEY_ENV_VAR, "").strip()
+    if not value:
+        raise RuntimeError(f"{KEY_ENV_VAR} tanımlı değil; scripts/phase03_generate_key.py ile üretin")
     try:
-        anahtar = bytes.fromhex(deger)
+        key = bytes.fromhex(value)
     except ValueError as e:
-        raise RuntimeError(f"{ANAHTAR_DEGISKENI} onaltılık değil") from e
-    if len(anahtar) < 32:
-        raise RuntimeError(f"{ANAHTAR_DEGISKENI} en az 32 bayt olmalı")
-    return anahtar
+        raise RuntimeError(f"{KEY_ENV_VAR} onaltılık değil") from e
+    if len(key) < 32:
+        raise RuntimeError(f"{KEY_ENV_VAR} en az 32 bayt olmalı")
+    return key
 
 
-def _imza(anahtar: bytes, yuk: str) -> str:
-    return _b64(hmac.new(anahtar, yuk.encode("ascii"), hashlib.sha256).digest())
+def _signature(key: bytes, payload: str) -> str:
+    return _b64(hmac.new(key, payload.encode("ascii"), hashlib.sha256).digest())
 
 
-def kart_uret(kullanici: str, anahtar: bytes, sure_s: int = 3600, simdi: float | None = None) -> str:
-    if not 0 < sure_s <= EN_UZUN_SURE_S:
+def generate_card(user: str, key: bytes, duration_s: int = 3600, now: float | None = None) -> str:
+    if not 0 < duration_s <= MAX_DURATION_S:
         raise ValueError("kart süresi 0 ile 12 saat arasında olmalı")
-    an = time.time() if simdi is None else simdi
-    yuk = _b64(json.dumps({"v": SURUM, "k": kullanici, "son": int(an) + sure_s},
+    moment = time.time() if now is None else now
+    payload = _b64(json.dumps({"v": VERSION, "k": user, "son": int(moment) + duration_s},
                           separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
-    return f"{yuk}.{_imza(anahtar, yuk)}"
+    return f"{payload}.{_signature(key, payload)}"
 
 
-def karti_dogrula(kart, anahtar: bytes, kullanicilar: dict[str, str], simdi: float | None = None) -> Kimlik:
-    """Kartı doğrular ve kimliği döner; geçersizse KimlikHatasi. kullanicilar: kullanıcı adı -> rol."""
-    if kart is None:
-        raise KimlikHatasi("kart_yok")
-    if not isinstance(kart, str) or kart.count(".") != 1 or len(kart) > 2048:
-        raise KimlikHatasi("kart_bicimi")
-    yuk, imza = kart.split(".")
+def verify_card(card, key: bytes, users: dict[str, str], now: float | None = None) -> Identity:
+    """Verifies the card and returns the identity; raises IdentityError if it is invalid. users: user name -> role."""
+    if card is None:
+        raise IdentityError("kart_yok")
+    if not isinstance(card, str) or card.count(".") != 1 or len(card) > 2048:
+        raise IdentityError("kart_bicimi")
+    payload, signature = card.split(".")
     try:
-        yuk.encode("ascii")
-        imza.encode("ascii")
+        payload.encode("ascii")
+        signature.encode("ascii")
     except UnicodeEncodeError:
-        raise KimlikHatasi("kart_bicimi") from None
-    if not hmac.compare_digest(_imza(anahtar, yuk), imza):
-        raise KimlikHatasi("imza_gecersiz")
+        raise IdentityError("kart_bicimi") from None
+    if not hmac.compare_digest(_signature(key, payload), signature):
+        raise IdentityError("imza_gecersiz")
     try:
-        icerik = json.loads(_b64_coz(yuk).decode("utf-8"))
+        content = json.loads(_b64_decode(payload).decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
-        raise KimlikHatasi("kart_bicimi") from None
-    if not isinstance(icerik, dict) or icerik.get("v") != SURUM or not isinstance(icerik.get("son"), int) \
-            or not isinstance(icerik.get("k"), str):
-        raise KimlikHatasi("kart_bicimi")
-    an = time.time() if simdi is None else simdi
-    if icerik["son"] <= an:
-        raise KimlikHatasi("kart_suresi_dolmus")
-    if icerik["son"] - an > EN_UZUN_SURE_S + 60:
-        raise KimlikHatasi("kart_suresi_cok_uzun")
-    rol = kullanicilar.get(icerik["k"])
-    if rol is None:
-        raise KimlikHatasi("kullanici_bilinmiyor")
-    return Kimlik(kullanici=icerik["k"], rol=rol)
+        raise IdentityError("kart_bicimi") from None
+    if not isinstance(content, dict) or content.get("v") != VERSION or not isinstance(content.get("son"), int) \
+            or not isinstance(content.get("k"), str):
+        raise IdentityError("kart_bicimi")
+    moment = time.time() if now is None else now
+    if content["son"] <= moment:
+        raise IdentityError("kart_suresi_dolmus")
+    if content["son"] - moment > MAX_DURATION_S + 60:
+        raise IdentityError("kart_suresi_cok_uzun")
+    role = users.get(content["k"])
+    if role is None:
+        raise IdentityError("kullanici_bilinmiyor")
+    return Identity(user=content["k"], role=role)
 
 
-def metadan_kart(meta) -> object:
-    """MCP isteğinin üst bilgisinden kartı çıkarır (yoksa None)."""
+def card_from_meta(meta) -> object:
+    """Extracts the card from the MCP request header (None if there is none)."""
     if meta is None:
         return None
     if isinstance(meta, dict):
-        return meta.get(META_ANAHTARI)
-    return (meta.model_dump() if hasattr(meta, "model_dump") else {}).get(META_ANAHTARI)
+        return meta.get(META_KEY)
+    return (meta.model_dump() if hasattr(meta, "model_dump") else {}).get(META_KEY)

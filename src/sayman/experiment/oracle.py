@@ -1,60 +1,63 @@
-"""Faz 9: otomatik kolun kâhini (her cevabı bilen sahte model).
+"""Phase 9: the oracle of the generated arm (a fake model that knows every answer).
 
-Elle araçların kâhini (sayman.olcum.kahin.Kahin) yalnızca ilk turda tek bir çağrı yapar. Otomatik kolda bazı
-cevaplar zincir ister (ör. müşteri adı -> müşteri kimliği -> müşteri kartı) ya da iki çağrının karşılaştırılmasını
-(portföydeki ve tahsildeki çeklerin ilk vadelisi). Bu kâhin, dondurulmuş sınıflandırma dosyasındaki
-(reports/faz9_siniflar.json) planı adım adım yürütür: her model çağrısında bir araç çağırır; bir adımın argümanı
-önceki bir sonuçtan gelebilir ({"$": [çağrı sırası, yol...]}). Plan bitince cevabı araç sonuçlarından okur (soru
-setindeki beklenen değerden değil) ve elle kâhinle aynı biçimde yazar.
+The oracle of the hand-written tools (`sayman.evaluation.oracle.Oracle`) makes only a single call in the first turn.
+In the generated arm some answers need a chain (e.g. customer name -> customer identifier -> customer card) or the
+comparison of two calls (the first due of the cheques in portfolio and in collection). This oracle walks the plan in
+the frozen classification file (reports/faz9_siniflar.json) step by step: it calls one tool on every model call; the
+argument of a step may come from an earlier result ({"$": [call index, path...]}). When the plan is finished it reads
+the answer from the tool results (not from the expected value in the question set) and writes it in the same format as
+the hand-written oracle.
 
-Sınıfı "toplama" ya da "yok" olan sorularda (cevap için kayıtları toplamak ya da API'de olmayan bir tanım gerekir)
-kâhin araç çağırmaz, cevap veremeyeceğini söyler: otomatik kolun bu düzenekte ulaşabileceği tavan budur.
+In the questions whose class is "toplama" or "yok" (the answer needs collecting records, or a definition that is not
+in the API) the oracle calls no tool and says it cannot answer: this is the ceiling the generated arm can reach in
+this setup.
 """
 
 from __future__ import annotations
 
 import json
 
-from sayman.assistant.orchestrator import ModelCevabi
-from sayman.evaluation.oracle import deger_yaz
-from sayman.evaluation.scoring import yol_al
+from sayman.assistant.orchestrator import ModelResponse
+from sayman.evaluation.oracle import write_value
+from sayman.evaluation.scoring import get_path
 
-DOGRUDAN = ("tek_cagri", "zincir")
-CEVAPSIZ = ("Bu soru, kayıtları toplamayı ya da kendim hesaplama yapmayı gerektiriyor; araç sonuçlarında hazır bir "
+DIRECT = ("tek_cagri", "zincir")
+NO_ANSWER = ("Bu soru, kayıtları toplamayı ya da kendim hesaplama yapmayı gerektiriyor; araç sonuçlarında hazır bir "
             "değer olmadığı için cevap veremiyorum.")
 
 
-def cozumle(deger, sonuclar: list[dict]):
-    """{"$": [i, yol...]} yer tutucularını i. araç sonucunun "sonuc" alanındaki değerle değiştirir."""
-    if isinstance(deger, dict):
-        if set(deger) == {"$"}:
-            i, *yol = deger["$"]
-            return yol_al(sonuclar[i]["sonuc"], yol)
-        return {k: cozumle(v, sonuclar) for k, v in deger.items()}
-    return deger
+def resolve(value, results: list[dict]):
+    """Replaces the {"$": [i, path...]} placeholders with the value in the "sonuc" field of the i-th tool result."""
+    if isinstance(value, dict):
+        if set(value) == {"$"}:
+            i, *path = value["$"]
+            return get_path(results[i]["sonuc"], path)
+        return {k: resolve(v, results) for k, v in value.items()}
+    return value
 
 
-class OtomatikKahin:
-    """Asistan'a model olarak verilir. Çalıştırıcı her sorudan önce `soru` alanını soru setindeki kayıtla doldurur."""
+class GeneratedOracle:
+    """Given to the Assistant as its model. Before every question the runner fills the `soru` field with the record in
+    the question set."""
 
-    def __init__(self, planlar: dict[str, dict]):
-        self.planlar = planlar
+    def __init__(self, plans: dict[str, dict]):
+        self.plans = plans
         self.soru: dict | None = None
 
-    def __call__(self, mesajlar: list[dict], araclar: list[dict], zaman_asimi: float) -> ModelCevabi:
+    def __call__(self, messages: list[dict], tools: list[dict], timeout: float) -> ModelResponse:
         s = self.soru
-        p = self.planlar[s["soru_id"]]
-        if p["sinif"] not in DOGRUDAN:
-            return ModelCevabi(icerik=CEVAPSIZ)
-        sonuclar = [json.loads(m["content"]) for m in mesajlar if m["role"] == "tool"]
-        if any("sonuc" not in r for r in sonuclar):
-            return ModelCevabi(icerik="Sonuç alınamadı.")
-        if len(sonuclar) < len(p["plan"]):
-            adim = p["plan"][len(sonuclar)]
-            return ModelCevabi(arac_cagrilari=[(adim["arac"], cozumle(adim["argumanlar"], sonuclar))])
-        anahtarlar = s["alternatifler"][p["alternatif"]]["anahtarlar"]
-        satirlar = []
+        p = self.plans[s["soru_id"]]
+        if p["sinif"] not in DIRECT:
+            return ModelResponse(content=NO_ANSWER)
+        results = [json.loads(m["content"]) for m in messages if m["role"] == "tool"]
+        if any("sonuc" not in r for r in results):
+            return ModelResponse(content="Sonuç alınamadı.")
+        if len(results) < len(p["plan"]):
+            step = p["plan"][len(results)]
+            return ModelResponse(tool_calls=[(step["arac"], resolve(step["argumanlar"], results))])
+        keys = s["alternatifler"][p["alternatif"]]["anahtarlar"]
+        lines = []
         for c in p["cevap"]:
-            a = anahtarlar[c["anahtar"]]
-            satirlar.append(f"{a['etiket']}: {deger_yaz({**a, 'deger': yol_al(sonuclar[c['cagri']]['sonuc'], c['yol'])})}")
-        return ModelCevabi(icerik="\n".join(satirlar))
+            a = keys[c["anahtar"]]
+            lines.append(f"{a['etiket']}: {write_value({**a, 'deger': get_path(results[c['cagri']]['sonuc'], c['yol'])})}")
+        return ModelResponse(content="\n".join(lines))

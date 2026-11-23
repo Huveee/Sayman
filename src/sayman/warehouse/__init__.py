@@ -1,1 +1,1 @@
-"""Faz 2: DuckDB veri ambarı ve finans metrikleri."""
+"""Phase 2: DuckDB data warehouse and financial metrics."""

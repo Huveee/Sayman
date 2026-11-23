@@ -1,13 +1,14 @@
-"""Sentetik şirketin kalibrasyon bantlarını gerçek kaynaklardan türetir: data/kaynak/kalibrasyon.json
+"""Derives the calibration bands of the synthetic company from real sources: data/kaynak/kalibrasyon.json
 
-Bantlar üretici ayarlanmadan önce yazılır; kabul testi üretilen tablolardan hesaplanan
-değerleri bu bantlarla karşılaştırır.
+The bands are written before the generator is tuned; the acceptance test compares the values computed from the
+generated tables with these bands.
 
-Kaynaklar:
-1. TCMB Sektör Bilançoları (EVDS, kategori 500403 "Oranlar"), "Alacak Devir Hızı",
-   seriler TP.SEKBILAC02A.46 (Toptan Ticaret), .G, .GENEL. EVDS'den indirilir (anahtar gerekir).
-2. Atradius Payment Practices Barometer, Türkiye 2026 (210 görüşme, 2026 1. ve 2. çeyrek).
-   Rakamlar rapordan elle aktarılmıştır (sayfa 4, "Key insights"):
+Sources:
+1. CBRT (TCMB) Sector Balance Sheets (EVDS, category 500403 "Oranlar" = ratios), "Alacak Devir Hızı"
+   (receivables turnover), series TP.SEKBILAC02A.46 (Wholesale Trade), .G, .GENEL. Downloaded from EVDS
+   (an API key is required).
+2. Atradius Payment Practices Barometer, Turkey 2026 (210 interviews, 2026 Q1 and Q2).
+   The figures were transcribed from the report by hand (page 4, "Key insights"):
    https://atradius.de/dam/jcr:b1f513aa-5b1e-4ed0-bb09-b1d3fe4eece2/payment-practices-barometer-central-and-eastern-europe-2026-turkiye-en.pdf
 """
 
@@ -19,12 +20,12 @@ import sys
 import urllib.request
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 
 from dotenv import dotenv_values  # noqa: E402
 
-SERILER = ["TP.SEKBILAC02A.46", "TP.SEKBILAC02A.G", "TP.SEKBILAC02A.GENEL"]
-ADRES = (
+SERIES = ["TP.SEKBILAC02A.46", "TP.SEKBILAC02A.G", "TP.SEKBILAC02A.GENEL"]
+EVDS_URL_TEMPLATE = (
     "https://evds3.tcmb.gov.tr/igmevdsms-dis/series={s}&startDate=01-01-2023&endDate=31-12-2025"
     "&type=json&frequency=8"
 )
@@ -33,54 +34,54 @@ ATRADIUS_URL = (
     "payment-practices-barometer-central-and-eastern-europe-2026-turkiye-en.pdf"
 )
 
-# Atradius Türkiye 2026, sayfa 4: "Payment behaviour of B2B customers (12 months)".
-# Katılımcıların, geç ödenen B2B fatura payını hangi aralıkta bildirdiği.
-GEC_ODEME_KATILIMCI_DAGILIMI = [  # (alt sınır, üst sınır, katılımcı payı)
+# Atradius Turkey 2026, page 4: "Payment behaviour of B2B customers (12 months)".
+# The range in which respondents reported their share of late-paid B2B invoices.
+LATE_PAYMENT_RESPONDENT_DISTRIBUTION = [  # (lower bound, upper bound, respondent share)
     (0.00, 0.00, 0.14),
     (0.01, 0.30, 0.32),
     (0.31, 0.60, 0.35),
     (0.61, 1.00, 0.19),
 ]
-# Aynı sayfa: "Breakdown of past due payments", vadesi geçen faturaların gecikme süresine göre dağılımı.
-GECIKME_DAGILIMI = {"1-30": 0.53, "31-60": 0.24, "61-90": 0.12, "90+": 0.11}
-GECIKME_DAGILIMI_TOLERANS = 0.10
+# Same page: "Breakdown of past due payments", overdue invoices by length of delay.
+DELAY_DISTRIBUTION = {"1-30": 0.53, "31-60": 0.24, "61-90": 0.12, "90+": 0.11}
+DELAY_DISTRIBUTION_TOLERANCE = 0.10
 
 
 def main() -> int:
-    for akis in (sys.stdout, sys.stderr):
-        akis.reconfigure(encoding="utf-8", errors="replace")
-    anahtar = (dotenv_values(KOK / ".env").get("EVDS_API_KEY") or "").strip()
-    if not anahtar:
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+    api_key = (dotenv_values(ROOT / ".env").get("EVDS_API_KEY") or "").strip()
+    if not api_key:
         print("EVDS_API_KEY .env dosyasında boş.", file=sys.stderr)
         return 2
-    url = ADRES.format(s="-".join(SERILER))
-    istek = urllib.request.Request(url, headers={"key": anahtar, "User-Agent": "sayman-faz1"})
-    with urllib.request.urlopen(istek, timeout=60) as yanit:
-        veri = json.loads(yanit.read().decode("utf-8"))
-    devir = {}
-    for kayit in veri["items"]:
-        yil = str(kayit["Tarih"])
-        for seri in SERILER:
-            deger = kayit.get(seri.replace(".", "_"))
-            if deger not in (None, ""):
-                devir.setdefault(seri, {})[yil] = float(deger)
+    url = EVDS_URL_TEMPLATE.format(s="-".join(SERIES))
+    request = urllib.request.Request(url, headers={"key": api_key, "User-Agent": "sayman-faz1"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    turnover = {}
+    for record in data["items"]:
+        year = str(record["Tarih"])
+        for series in SERIES:
+            value = record.get(series.replace(".", "_"))
+            if value not in (None, ""):
+                turnover.setdefault(series, {})[year] = float(value)
 
-    toptan = devir["TP.SEKBILAC02A.46"]
-    dso_yillik = {yil: round(365 / v, 2) for yil, v in sorted(toptan.items())}
-    dso_alt = round(min(dso_yillik.values()) * 0.8, 1)
-    dso_ust = round(max(dso_yillik.values()) * 1.2, 1)
+    wholesale = turnover["TP.SEKBILAC02A.46"]
+    dso_by_year = {year: round(365 / v, 2) for year, v in sorted(wholesale.items())}
+    dso_lower = round(min(dso_by_year.values()) * 0.8, 1)
+    dso_upper = round(max(dso_by_year.values()) * 1.2, 1)
 
-    gec_alt = round(sum(a * p for a, _, p in GEC_ODEME_KATILIMCI_DAGILIMI), 3)
-    gec_ust = round(sum(u * p for _, u, p in GEC_ODEME_KATILIMCI_DAGILIMI), 3)
-    gec_orta = round(sum((a + u) / 2 * p for a, u, p in GEC_ODEME_KATILIMCI_DAGILIMI), 3)
+    late_lower = round(sum(a * p for a, _, p in LATE_PAYMENT_RESPONDENT_DISTRIBUTION), 3)
+    late_upper = round(sum(u * p for _, u, p in LATE_PAYMENT_RESPONDENT_DISTRIBUTION), 3)
+    late_mid = round(sum((a + u) / 2 * p for a, u, p in LATE_PAYMENT_RESPONDENT_DISTRIBUTION), 3)
 
-    sonuc = {
+    result = {
         "olusturulma": dt.date.today().isoformat(),
         "dso_gun": {
             "kaynak": "TCMB Sektör Bilançoları, Alacak Devir Hızı, NACE 46 Toptan Ticaret (EVDS)",
-            "seriler": devir,
-            "toptan_ticaret_dso_gun": dso_yillik,
-            "bant": [dso_alt, dso_ust],
+            "seriler": turnover,
+            "toptan_ticaret_dso_gun": dso_by_year,
+            "bant": [dso_lower, dso_upper],
             "turetme": (
                 "DSO = 365 / alacak devir hızı. Bant, 2024-2025 toptan ticaret değerlerinin en küçüğünün %80'i "
                 "ile en büyüğünün %120'si arası. Pay, tek bir şirketin sektör ortalamasından sapabilmesi için "
@@ -92,11 +93,11 @@ def main() -> int:
             "kaynak": "Atradius Payment Practices Barometer Türkiye 2026, sayfa 4",
             "url": ATRADIUS_URL,
             "katilimci_dagilimi": [
-                {"aralik": [a, u], "katilimci_payi": p} for a, u, p in GEC_ODEME_KATILIMCI_DAGILIMI
+                {"aralik": [a, u], "katilimci_payi": p} for a, u, p in LATE_PAYMENT_RESPONDENT_DISTRIBUTION
             ],
             "metindeki_ifade": "over one third of invoices overdue",
-            "bant": [gec_alt, gec_ust],
-            "nokta_tahmini": gec_orta,
+            "bant": [late_lower, late_upper],
+            "nokta_tahmini": late_mid,
             "turetme": (
                 "Katılımcı payıyla ağırlıklı ortalama, aralıkların alt sınırları kullanılınca en az, "
                 "üst sınırları kullanılınca en çok bu değeri alır; bant bu iki değerdir."
@@ -106,8 +107,8 @@ def main() -> int:
         "gecikme_dagilimi": {
             "kaynak": "Atradius Payment Practices Barometer Türkiye 2026, sayfa 4, Breakdown of past due payments",
             "url": ATRADIUS_URL,
-            "paylar": GECIKME_DAGILIMI,
-            "tolerans": GECIKME_DAGILIMI_TOLERANS,
+            "paylar": DELAY_DISTRIBUTION,
+            "tolerans": DELAY_DISTRIBUTION_TOLERANCE,
             "turetme": "Her gecikme diliminin payı kaynaktaki paydan en çok 10 puan sapabilir (tasarım kararı).",
             "hesap": "Geç kapanan faturaların, son tahsilatın vadeden kaç gün sonra geldiğine göre dağılımı",
         },
@@ -116,12 +117,12 @@ def main() -> int:
             "not": "EVDS3'te karşılıksız çek serisi bulunamadı (yalnızca tahsile alınan senetler var). Oran sentetik varsayımdır.",
         },
     }
-    cikti = KOK / "data" / "kaynak" / "kalibrasyon.json"
-    cikti.parent.mkdir(parents=True, exist_ok=True)
-    cikti.write_text(json.dumps(sonuc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"DSO bandı: {dso_alt}-{dso_ust} gün (toptan ticaret DSO: {dso_yillik})")
-    print(f"Geç ödenen fatura bandı: {gec_alt}-{gec_ust} (nokta {gec_orta})")
-    print(f"Yazıldı: {cikti}")
+    output = ROOT / "data" / "kaynak" / "kalibrasyon.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"DSO bandı: {dso_lower}-{dso_upper} gün (toptan ticaret DSO: {dso_by_year})")
+    print(f"Geç ödenen fatura bandı: {late_lower}-{late_upper} (nokta {late_mid})")
+    print(f"Yazıldı: {output}")
     return 0
 
 

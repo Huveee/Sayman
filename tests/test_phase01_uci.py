@@ -1,4 +1,4 @@
-"""Faz 1: UCI temizleme kuralları, para birimi yardımcıları ve simülasyon saati (örnek veriyle, indirme gerekmez)."""
+"""Phase 1: UCI cleaning rules, money helpers and the simulation clock (with sample data, no download needed)."""
 
 import datetime as dt
 from collections import Counter
@@ -6,110 +6,110 @@ from decimal import Decimal
 
 import pytest
 
-from sayman.data.sample_data import OZEL_SATIRLAR, SAYFA_1_SON, SAYFA_2, ornek_ham_satirlar
-from sayman.data.money import kurusa, kurustan, ondalik, oran_uygula
-from sayman.data.clock import Saat, saat_oku, saat_yaz
-from sayman.data.uci import ATILMA_KURALLARI, TUTULMA_KATEGORILERI, ham_csv_oku, ham_csv_yaz, temizle
+from sayman.data.sample_data import SPECIAL_ROWS, SHEET_1_LAST, SHEET_2, sample_raw_rows
+from sayman.data.money import to_cents, from_cents, to_decimal, apply_rate
+from sayman.data.clock import Clock, read_clock, write_clock
+from sayman.data.uci import DROP_RULES, KEPT_CATEGORIES, read_raw_csv, write_raw_csv, clean
 
 
 @pytest.fixture(scope="module")
-def ham():
-    return ornek_ham_satirlar()
+def raw_rows():
+    return sample_raw_rows()
 
 
 @pytest.fixture(scope="module")
-def sonuc(ham):
-    return temizle(ham)
+def cleaned(raw_rows):
+    return clean(raw_rows)
 
 
-def test_her_satir_ya_tutulur_ya_adi_konmus_kuralla_atilir(sonuc):
-    assert sonuc.mutabakat_tutuyor_mu()
-    assert set(sonuc.atilan) <= set(ATILMA_KURALLARI)
-    assert set(sonuc.tutulan) <= set(TUTULMA_KATEGORILERI)
-    assert len(sonuc.kalemler) == sum(sonuc.tutulan.values())
+def test_every_row_is_kept_or_dropped_by_a_named_rule(cleaned):
+    assert cleaned.reconciles()
+    assert set(cleaned.dropped) <= set(DROP_RULES)
+    assert set(cleaned.kept) <= set(KEPT_CATEGORIES)
+    assert len(cleaned.line_items) == sum(cleaned.kept.values())
 
 
-def test_ozel_satirlar_dogru_kuralla_atilir(sonuc):
-    for kural, adet in OZEL_SATIRLAR.items():
-        assert sonuc.atilan[kural] == adet, kural
+def test_special_rows_are_dropped_by_the_right_rule(cleaned):
+    for rule, count in SPECIAL_ROWS.items():
+        assert cleaned.dropped[rule] == count, rule
 
 
-def test_sayfa_tekrarlari_atilir(ham, sonuc):
-    beklenen = sum(1 for s in ham if s["sayfa"] == SAYFA_2 and s["InvoiceDate"] <= SAYFA_1_SON.isoformat(sep=" ")
+def test_sheet_repeats_are_dropped(raw_rows, cleaned):
+    expected = sum(1 for s in raw_rows if s["sayfa"] == SHEET_2 and s["InvoiceDate"] <= SHEET_1_LAST.isoformat(sep=" ")
                    and s["InvoiceDate"][:4].isdigit())
-    assert beklenen > 0
-    assert sonuc.atilan["sayfa_tekrari"] == beklenen
+    assert expected > 0
+    assert cleaned.dropped["sayfa_tekrari"] == expected
 
 
-def test_sayfa_tekrari_coklu_kume_gibi_eslesir():
-    satir = {"Invoice": "500000", "StockCode": "85123A", "Description": "X", "Quantity": "1",
+def test_sheet_repeats_match_like_a_multiset():
+    row = {"Invoice": "500000", "StockCode": "85123A", "Description": "X", "Quantity": "1",
              "InvoiceDate": "2010-12-02 10:00:00", "Price": "2.55", "Customer ID": "12346", "Country": "United Kingdom"}
-    ham = [dict(satir, sayfa="Year 2009-2010"), dict(satir, sayfa="Year 2009-2010"),
-           dict(satir, sayfa="Year 2010-2011"), dict(satir, sayfa="Year 2010-2011"), dict(satir, sayfa="Year 2010-2011")]
-    s = temizle(ham)
-    assert s.atilan["sayfa_tekrari"] == 2  # ikinci sayfadaki üç kopyadan ikisinin ilk sayfada karşılığı var
-    assert s.tutulan["satis"] == 3
+    raw_rows = [dict(row, sayfa="Year 2009-2010"), dict(row, sayfa="Year 2009-2010"),
+           dict(row, sayfa="Year 2010-2011"), dict(row, sayfa="Year 2010-2011"), dict(row, sayfa="Year 2010-2011")]
+    s = clean(raw_rows)
+    assert s.dropped["sayfa_tekrari"] == 2  # two of the three copies on the second sheet have a counterpart on the first sheet
+    assert s.kept["satis"] == 3
 
 
-def test_c_faturalari_iade_ve_miktar_eksi(sonuc):
-    for k in sonuc.kalemler:
-        iptal = k.fatura_no.startswith("C")
-        assert (k.kategori in ("iade", "perakende_iade")) == iptal
-        assert (k.miktar < 0) == iptal
-        assert k.fiyat > 0
-        assert isinstance(k.tutar, Decimal)
-        assert (k.musteri_no is None) == k.kategori.startswith("perakende")
+def test_c_invoices_are_returns_with_negative_quantity(cleaned):
+    for k in cleaned.line_items:
+        cancelled = k.invoice_no.startswith("C")
+        assert (k.category in ("iade", "perakende_iade")) == cancelled
+        assert (k.quantity < 0) == cancelled
+        assert k.price > 0
+        assert isinstance(k.amount, Decimal)
+        assert (k.customer_no is None) == k.category.startswith("perakende")
 
 
-def test_eksi_miktarli_c_olmayan_ve_arti_miktarli_c_atilir():
-    taban = {"sayfa": "S", "StockCode": "1", "Description": "", "InvoiceDate": "2011-01-03 10:00:00",
+def test_negative_non_c_and_positive_c_rows_are_dropped():
+    base = {"sayfa": "S", "StockCode": "1", "Description": "", "InvoiceDate": "2011-01-03 10:00:00",
              "Price": "1.00", "Customer ID": "12346", "Country": "United Kingdom"}
-    s = temizle([dict(taban, Invoice="1", Quantity="-5"), dict(taban, Invoice="C2", Quantity="5"),
-                 dict(taban, Invoice="C3", Quantity="-5"), dict(taban, Invoice="4", Quantity="5")])
-    assert s.atilan == Counter({"stok_duzeltmesi": 1, "tutarsiz_iade": 1})
-    assert s.tutulan == Counter({"iade": 1, "satis": 1})
+    s = clean([dict(base, Invoice="1", Quantity="-5"), dict(base, Invoice="C2", Quantity="5"),
+                 dict(base, Invoice="C3", Quantity="-5"), dict(base, Invoice="4", Quantity="5")])
+    assert s.dropped == Counter({"stok_duzeltmesi": 1, "tutarsiz_iade": 1})
+    assert s.kept == Counter({"iade": 1, "satis": 1})
 
 
-def test_musteri_numarasi_ondalik_bicimden_temizlenir():
-    taban = {"sayfa": "S", "Invoice": "1", "StockCode": "1", "Description": "", "Quantity": "1",
+def test_customer_number_is_cleaned_of_decimal_format():
+    base = {"sayfa": "S", "Invoice": "1", "StockCode": "1", "Description": "", "Quantity": "1",
              "InvoiceDate": "2011-01-03 10:00:00", "Price": "1.00", "Country": "United Kingdom"}
-    s = temizle([dict(taban, **{"Customer ID": "12346.0"}), dict(taban, **{"Customer ID": "nan"})])
-    assert [k.musteri_no for k in s.kalemler] == ["12346", None]
+    s = clean([dict(base, **{"Customer ID": "12346.0"}), dict(base, **{"Customer ID": "nan"})])
+    assert [k.customer_no for k in s.line_items] == ["12346", None]
 
 
-def test_ham_csv_gz_gidis_donus(ham, tmp_path):
-    yol = tmp_path / "ham.csv.gz"
-    assert ham_csv_yaz(ham, yol) == len(ham)
-    geri = list(ham_csv_oku(yol))
-    assert geri == ham
-    assert temizle(geri).kalemler == temizle(ham).kalemler
+def test_raw_csv_gz_round_trip(raw_rows, tmp_path):
+    path = tmp_path / "ham.csv.gz"
+    assert write_raw_csv(raw_rows, path) == len(raw_rows)
+    read_back = list(read_raw_csv(path))
+    assert read_back == raw_rows
+    assert clean(read_back).line_items == clean(raw_rows).line_items
 
 
-def test_para_float_kabul_etmez_ve_kurusa_yuvarlar():
+def test_money_rejects_float_and_rounds_to_cents():
     with pytest.raises(TypeError):
-        ondalik(1.5)
-    assert kurusa(Decimal("1.005")) == 100  # eşitlikte çift tarafa
-    assert kurusa(Decimal("1.015")) == 102
-    assert kurustan(12345) == Decimal("123.45")
-    assert oran_uygula(10_000, Decimal("0.02")) == 200
+        to_decimal(1.5)
+    assert to_cents(Decimal("1.005")) == 100  # ties round to even
+    assert to_cents(Decimal("1.015")) == 102
+    assert from_cents(12345) == Decimal("123.45")
+    assert apply_rate(10_000, Decimal("0.02")) == 200
 
 
-def test_saat_ileri_sarilir_ama_veri_bitisini_gecmez(tmp_path):
-    saat = Saat(dt.date(2026, 9, 1), dt.date(2026, 11, 6))
-    assert saat.ileri_sar(30).simdi == dt.date(2026, 10, 1)
-    assert saat.ileri_sar(365).simdi == dt.date(2026, 11, 6)
+def test_clock_advances_but_not_past_the_data_end(tmp_path):
+    clock = Clock(dt.date(2026, 9, 1), dt.date(2026, 11, 6))
+    assert clock.advance(30).simdi == dt.date(2026, 10, 1)
+    assert clock.advance(365).simdi == dt.date(2026, 11, 6)
     with pytest.raises(ValueError):
-        saat.ileri_sar(-1)
+        clock.advance(-1)
     with pytest.raises(ValueError):
-        Saat(dt.date(2026, 12, 1), dt.date(2026, 11, 6))
-    saat_yaz(saat, tmp_path / "saat.json")
-    assert saat_oku(tmp_path / "saat.json") == saat
+        Clock(dt.date(2026, 12, 1), dt.date(2026, 11, 6))
+    write_clock(clock, tmp_path / "saat.json")
+    assert read_clock(tmp_path / "saat.json") == clock
 
 
-def test_metin_dosyasi_ozeti_satir_sonundan_bagimsiz(tmp_path):
-    from sayman.data.table_io import dosya_hash
+def test_text_file_digest_is_independent_of_line_endings(tmp_path):
+    from sayman.data.table_io import file_digest
 
     (tmp_path / "lf.csv").write_bytes(b"a,b\n1,2\n")
     (tmp_path / "crlf.csv").write_bytes(b"a,b\r\n1,2\r\n")
-    assert dosya_hash(tmp_path / "lf.csv", metin=True) == dosya_hash(tmp_path / "crlf.csv", metin=True)
-    assert dosya_hash(tmp_path / "lf.csv") != dosya_hash(tmp_path / "crlf.csv")
+    assert file_digest(tmp_path / "lf.csv", as_text=True) == file_digest(tmp_path / "crlf.csv", as_text=True)
+    assert file_digest(tmp_path / "lf.csv") != file_digest(tmp_path / "crlf.csv")

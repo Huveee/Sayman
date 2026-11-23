@@ -1,16 +1,16 @@
-"""Sayman Faz 8 tanı betiği: Ollama'daki qwen3.5:9b dosyası hangi dönüştürme ve sıkıştırma yoluyla yapılmış? (Kaggle, CPU)
+"""Sayman Phase 8 diagnostic script: with which conversion and compression path was the qwen3.5:9b file in Ollama made? (Kaggle, CPU)
 
-Bizim yolumuzla (llama.cpp b12138, bf16 ara tür, llama-quantize) üretilen temel modelde sıkıştırılmamış F32 tensörlerin
-hepsi Ollama'nın dosyasıyla aynı çıktı (aynı kaynak ağırlıklar); ama sıkıştırılmış tensörlerin hemen hepsi ve hesaplanan
-ssm_a tensörü farklı çıktı. Bu betik adayları dener ve her adayın tensör özetlerini Ollama'nın dosyasınınkilerle
-(HEDEF, bu bilgisayarda çıkarıldı) karşılaştırır:
+In the base model produced our way (llama.cpp b12138, bf16 intermediate type, llama-quantize), all the uncompressed
+F32 tensors come out the same as Ollama's file (same source weights); but almost all the compressed tensors and the
+computed ssm_a tensor come out different. This script tries candidates and compares each candidate's tensor digests
+with those of Ollama's file (HEDEF, extracted on this computer):
 
-  ssm_a          ssm_a = -exp(A_log) farklı hassasiyetlerle hesaplanır; 0. katmanda değerler Ollama'nınkilerle yan yana.
-  (1. sürüm)     f16_llama: f16 ara tür + llama-quantize -> bf16 ile aynı sonuç (154/427).
-                 f16_ollama / bf16_ollama: Ollama GGUF'tan sıkıştırmıyor (yalnızca safetensors içe aktarırken).
-  st_ollama      (2. sürüm) Ollama'nın kendi yolu: safetensors klasöründen içe aktarma + --quantize q4_K_M.
+  ssm_a          ssm_a = -exp(A_log) is computed at different precisions; layer 0 values side by side with Ollama's.
+  (1st version)  f16_llama: f16 intermediate type + llama-quantize -> same result as bf16 (154/427).
+                 f16_ollama / bf16_ollama: Ollama does not compress from GGUF (only when importing safetensors).
+  st_ollama      (2nd version) Ollama's own path: import from a safetensors folder + --quantize q4_K_M.
 
-Sonuç rapor.json'da: her aday için tür türüne aynı / toplam tensör sayısı.
+The result is in rapor.json: for each candidate, same by tensor type / total tensor count.
 """
 
 from __future__ import annotations
@@ -26,246 +26,246 @@ import time
 import traceback
 import urllib.request
 
-CIKTI = "/kaggle/working"
-IS = "/tmp/is"
+OUTPUT = "/kaggle/working"
+WORK_DIR = "/tmp/is"
 MODEL = "Qwen/Qwen3.5-9B"
-SURUM = "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
+REVISION = "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
 LLAMA_CPP = "b12138"
-OLLAMA_SURUM = "v0.40.11"
-PAKETLER = ["transformers==5.17.0", "zstandard==0.23.0"]
+OLLAMA_VERSION = "v0.40.11"
+PACKAGES = ["transformers==5.17.0", "zstandard==0.23.0"]
 
 HEDEF: dict = {}  # <<hedef>> faz8_kaggle.py doldurur: {tensör: {"tur", "ozet"}}
 OLLAMA_SSM_A0: list = []  # <<ssm_a0>> faz8_kaggle.py doldurur: Ollama dosyasındaki blk.0.ssm_a değerleri
 
 # <<gguf_ozet>>
 
-rapor: dict = {"basla": time.strftime("%Y-%m-%d %H:%M:%S"), "asamalar": {}, "adaylar": {}}
+report: dict = {"basla": time.strftime("%Y-%m-%d %H:%M:%S"), "asamalar": {}, "adaylar": {}}
 
 
-def kaydet() -> None:
-    with open(f"{CIKTI}/rapor.json", "w", encoding="utf-8") as f:
-        json.dump(rapor, f, ensure_ascii=False, indent=1)
+def save() -> None:
+    with open(f"{OUTPUT}/rapor.json", "w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=1)
 
 
-def asama(ad):
-    def sar(fn):
-        def calis(*a, **k):
-            bas = time.time()
+def stage(name):
+    def decorate(fn):
+        def wrapper(*a, **k):
+            start = time.time()
             try:
-                sonuc = fn(*a, **k)
-                rapor["asamalar"][ad] = {"durum": "tamam", "sure_s": round(time.time() - bas, 1)}
-                return sonuc
+                result = fn(*a, **k)
+                report["asamalar"][name] = {"durum": "tamam", "sure_s": round(time.time() - start, 1)}
+                return result
             except BaseException as e:
-                rapor["asamalar"][ad] = {"durum": "hata", "sure_s": round(time.time() - bas, 1),
+                report["asamalar"][name] = {"durum": "hata", "sure_s": round(time.time() - start, 1),
                                          "hata": f"{type(e).__name__}: {e}"[:2000], "iz": traceback.format_exc()[-3000:]}
                 raise
             finally:
-                kaydet()
-                print(f"[{ad}] {rapor['asamalar'].get(ad)}", flush=True)
-        return calis
-    return sar
+                save()
+                print(f"[{name}] {report['asamalar'].get(name)}", flush=True)
+        return wrapper
+    return decorate
 
 
-def calistir(*arg, **k) -> str:
-    r = subprocess.run(list(arg), capture_output=True, text=True, **k)
+def run(*args, **k) -> str:
+    r = subprocess.run(list(args), capture_output=True, text=True, **k)
     if r.returncode != 0:
-        raise RuntimeError(f"{arg[0]} başarısız ({r.returncode}):\n{(r.stdout + r.stderr)[-3000:]}")
+        raise RuntimeError(f"{args[0]} başarısız ({r.returncode}):\n{(r.stdout + r.stderr)[-3000:]}")
     return (r.stdout + r.stderr)[-1500:]
 
 
-@asama("kurulum")
-def kurulum() -> None:
-    calistir(sys.executable, "-m", "pip", "install", "-q", *PAKETLER)
-    calistir("git", "clone", "-q", "--depth", "1", "--branch", LLAMA_CPP, "https://github.com/ggml-org/llama.cpp",
+@stage("kurulum")
+def build_llama_cpp() -> None:
+    run(sys.executable, "-m", "pip", "install", "-q", *PACKAGES)
+    run("git", "clone", "-q", "--depth", "1", "--branch", LLAMA_CPP, "https://github.com/ggml-org/llama.cpp",
              "/tmp/llama.cpp")
     if shutil.which("cmake") is None:
-        calistir(sys.executable, "-m", "pip", "install", "-q", "cmake==3.31.6")
-    calistir("cmake", "-S", "/tmp/llama.cpp", "-B", "/tmp/llama.cpp/build", "-DGGML_CUDA=OFF", "-DLLAMA_CURL=OFF",
+        run(sys.executable, "-m", "pip", "install", "-q", "cmake==3.31.6")
+    run("cmake", "-S", "/tmp/llama.cpp", "-B", "/tmp/llama.cpp/build", "-DGGML_CUDA=OFF", "-DLLAMA_CURL=OFF",
              "-DLLAMA_BUILD_TESTS=OFF", "-DLLAMA_BUILD_SERVER=OFF", "-DCMAKE_BUILD_TYPE=Release")
-    calistir("cmake", "--build", "/tmp/llama.cpp/build", "--target", "llama-quantize", "-j", str(os.cpu_count() or 4))
+    run("cmake", "--build", "/tmp/llama.cpp/build", "--target", "llama-quantize", "-j", str(os.cpu_count() or 4))
 
 
-@asama("ollama_kur")
-def ollama_kur() -> str:
-    """Ollama'nın resmî Linux sürümünü indirir, açar ve sunucuyu başlatır (modeller /tmp/is/ollama altında)."""
+@stage("ollama_kur")
+def setup_ollama() -> str:
+    """Downloads the official Linux release of Ollama, unpacks it and starts the server (models under /tmp/is/ollama)."""
     os.makedirs("/tmp/ollama", exist_ok=True)
-    taban = f"https://github.com/ollama/ollama/releases/download/{OLLAMA_SURUM}"
-    hatalar = []
-    for ad in ("ollama-linux-amd64.tar.zst", "ollama-linux-amd64.tgz"):
+    base = f"https://github.com/ollama/ollama/releases/download/{OLLAMA_VERSION}"
+    errors = []
+    for name in ("ollama-linux-amd64.tar.zst", "ollama-linux-amd64.tgz"):
         try:
-            urllib.request.urlretrieve(f"{taban}/{ad}", f"/tmp/{ad}")
+            urllib.request.urlretrieve(f"{base}/{name}", f"/tmp/{name}")
         except Exception as e:
-            hatalar.append(f"{ad}: {e}")
+            errors.append(f"{name}: {e}")
             continue
-        if ad.endswith(".zst"):
+        if name.endswith(".zst"):
             import zstandard
-            with open(f"/tmp/{ad}", "rb") as g, open("/tmp/ollama.tar", "wb") as c:
+            with open(f"/tmp/{name}", "rb") as g, open("/tmp/ollama.tar", "wb") as c:
                 zstandard.ZstdDecompressor().copy_stream(g, c)
-            calistir("tar", "-xf", "/tmp/ollama.tar", "-C", "/tmp/ollama")
+            run("tar", "-xf", "/tmp/ollama.tar", "-C", "/tmp/ollama")
         else:
-            calistir("tar", "-xzf", f"/tmp/{ad}", "-C", "/tmp/ollama")
+            run("tar", "-xzf", f"/tmp/{name}", "-C", "/tmp/ollama")
         break
     else:
-        raise RuntimeError(f"Ollama indirilemedi: {hatalar}")
-    ikili = "/tmp/ollama/bin/ollama"
-    ortam = {**os.environ, "OLLAMA_MODELS": f"{IS}/ollama", "OLLAMA_HOST": "127.0.0.1:11434"}
-    subprocess.Popen([ikili, "serve"], env=ortam, stdout=open("/tmp/ollama.log", "w"), stderr=subprocess.STDOUT)
+        raise RuntimeError(f"Ollama indirilemedi: {errors}")
+    binary = "/tmp/ollama/bin/ollama"
+    env = {**os.environ, "OLLAMA_MODELS": f"{WORK_DIR}/ollama", "OLLAMA_HOST": "127.0.0.1:11434"}
+    subprocess.Popen([binary, "serve"], env=env, stdout=open("/tmp/ollama.log", "w"), stderr=subprocess.STDOUT)
     for _ in range(60):
         try:
             urllib.request.urlopen("http://127.0.0.1:11434/api/version", timeout=2)
             break
         except Exception:
             time.sleep(1)
-    rapor["ollama"] = {"surum": calistir(ikili, "--version", env=ortam).strip()[-200:]}
-    return ikili
+    report["ollama"] = {"surum": run(binary, "--version", env=env).strip()[-200:]}
+    return binary
 
 
-@asama("indir")
-def indir() -> str:
+@stage("indir")
+def download() -> str:
     from huggingface_hub import snapshot_download
 
-    return snapshot_download(MODEL, revision=SURUM, local_dir=f"{IS}/taban")
+    return snapshot_download(MODEL, revision=REVISION, local_dir=f"{WORK_DIR}/taban")
 
 
-def karsilastir_hedef(o: dict) -> dict:
-    sayim: dict = {}
-    for ad, h in HEDEF.items():
-        t = o["tensorler"].get(ad)
-        s = sayim.setdefault(h["tur"], [0, 0])
+def compare_with_target(o: dict) -> dict:
+    counts: dict = {}
+    for name, h in HEDEF.items():
+        t = o["tensorler"].get(name)
+        s = counts.setdefault(h["tur"], [0, 0])
         s[1] += 1
         if t and t["tur"] == h["tur"] and t.get("ozet") == h["ozet"]:
             s[0] += 1
-    toplam = [sum(v[0] for v in sayim.values()), sum(v[1] for v in sayim.values())]
-    return {"ture_gore_ayni_toplam": sayim, "ayni": toplam[0], "toplam": toplam[1],
+    totals = [sum(v[0] for v in counts.values()), sum(v[1] for v in counts.values())]
+    return {"ture_gore_ayni_toplam": counts, "ayni": totals[0], "toplam": totals[1],
             "fazla_tensor": sorted(set(o["tensorler"]) - set(HEDEF))[:20]}
 
 
-@asama("ssm_a")
-def ssm_a(taban: str) -> None:
+@stage("ssm_a")
+def ssm_a(base: str) -> None:
     import torch
     from safetensors import safe_open
 
     import numpy as np
 
-    dizin = json.load(open(f"{taban}/model.safetensors.index.json"))["weight_map"]
-    adaylar = {"bf16": lambda t: (-torch.exp(t)).float(), "f32": lambda t: -torch.exp(t.float()),
+    weight_map = json.load(open(f"{base}/model.safetensors.index.json"))["weight_map"]
+    candidates = {"bf16": lambda t: (-torch.exp(t)).float(), "f32": lambda t: -torch.exp(t.float()),
                "f64": lambda t: (-torch.exp(t.double())).float(),
                "bf16_girdi": lambda t: -torch.exp(t.bfloat16().float()),
                "f16_girdi": lambda t: -torch.exp(t.half().float()),
                "bf16_cikti": lambda t: (-torch.exp(t.float())).bfloat16().float(),
                "f16_cikti": lambda t: (-torch.exp(t.float())).half().float(),
                "np_f32": lambda t: torch.from_numpy(-np.exp(t.float().numpy()))}
-    sayim = {k: 0 for k in adaylar}
+    counts = {k: 0 for k in candidates}
     n = 0
-    if OLLAMA_SSM_A0:  # 0. katmanda değerler yan yana: fark biçimden mi, hassasiyetten mi?
-        anahtar0 = next(k for k in dizin if k.endswith(".A_log") and ".layers.0." in k and "mtp" not in k)
-        with safe_open(f"{taban}/{dizin[anahtar0]}", "pt") as f:
-            t0 = f.get_tensor(anahtar0)
-        hedef0 = torch.tensor(OLLAMA_SSM_A0)
-        rapor["ssm_a_yan_yana"] = {
-            "A_log": [float(x) for x in t0[:6]], "ollama": [float(x) for x in hedef0[:6]],
-            **{ad: {"ilk": [float(x) for x in fn(t0)[:6]],
-                    "en_cok_fark": float((fn(t0).float() - hedef0).abs().max()),
-                    "en_cok_goreli_fark": float(((fn(t0).float() - hedef0).abs() / hedef0.abs()).max())}
-               for ad, fn in adaylar.items()}}
-        kaydet()
-    for anahtar, parca in dizin.items():
-        if not anahtar.endswith(".A_log") or ".mtp." in anahtar or anahtar.startswith("mtp."):
+    if OLLAMA_SSM_A0:  # values for layer 0 side by side: is the difference from the form or from the precision?
+        key0 = next(k for k in weight_map if k.endswith(".A_log") and ".layers.0." in k and "mtp" not in k)
+        with safe_open(f"{base}/{weight_map[key0]}", "pt") as f:
+            t0 = f.get_tensor(key0)
+        target0 = torch.tensor(OLLAMA_SSM_A0)
+        report["ssm_a_yan_yana"] = {
+            "A_log": [float(x) for x in t0[:6]], "ollama": [float(x) for x in target0[:6]],
+            **{name: {"ilk": [float(x) for x in fn(t0)[:6]],
+                    "en_cok_fark": float((fn(t0).float() - target0).abs().max()),
+                    "en_cok_goreli_fark": float(((fn(t0).float() - target0).abs() / target0.abs()).max())}
+               for name, fn in candidates.items()}}
+        save()
+    for key, shard in weight_map.items():
+        if not key.endswith(".A_log") or ".mtp." in key or key.startswith("mtp."):
             continue
-        i = anahtar.split(".layers.")[1].split(".")[0]
-        hedef = HEDEF.get(f"blk.{i}.ssm_a")
-        if not hedef:
+        i = key.split(".layers.")[1].split(".")[0]
+        target = HEDEF.get(f"blk.{i}.ssm_a")
+        if not target:
             continue
-        with safe_open(f"{taban}/{parca}", "pt") as f:
-            t = f.get_tensor(anahtar)
+        with safe_open(f"{base}/{shard}", "pt") as f:
+            t = f.get_tensor(key)
         n += 1
-        for ad, fn in adaylar.items():
+        for name, fn in candidates.items():
             b = fn(t).contiguous().numpy().astype("<f4").tobytes()
-            sayim[ad] += hashlib.sha256(b).hexdigest()[:24] == hedef["ozet"]
-        rapor["adaylar"]["ssm_a"] = {"tensor": n, "ayni": dict(sayim), "kaynak_turu": str(t.dtype)}
-    kaydet()
+            counts[name] += hashlib.sha256(b).hexdigest()[:24] == target["ozet"]
+        report["adaylar"]["ssm_a"] = {"tensor": n, "ayni": dict(counts), "kaynak_turu": str(t.dtype)}
+    save()
 
 
-def donustur(taban: str, tur: str) -> str:
-    ara = f"{IS}/ara-{tur}.gguf"
-    calistir(sys.executable, "/tmp/llama.cpp/convert_hf_to_gguf.py", taban, "--outtype", tur, "--no-mtp",
-             "--outfile", ara, env={**os.environ, "PYTHONPATH": "/tmp/llama.cpp/gguf-py"})
-    return ara
+def convert(base: str, out_type: str) -> str:
+    intermediate = f"{WORK_DIR}/ara-{out_type}.gguf"
+    run(sys.executable, "/tmp/llama.cpp/convert_hf_to_gguf.py", base, "--outtype", out_type, "--no-mtp",
+             "--outfile", intermediate, env={**os.environ, "PYTHONPATH": "/tmp/llama.cpp/gguf-py"})
+    return intermediate
 
 
-def llama_q4(ara: str, ad: str) -> None:
-    cikis = f"{IS}/{ad}.gguf"
-    calistir("/tmp/llama.cpp/build/bin/llama-quantize", ara, cikis, "Q4_K_M", str(os.cpu_count() or 4))
-    rapor["adaylar"][ad] = karsilastir_hedef(ozet(cikis))
-    os.remove(cikis)
-    kaydet()
+def quantize_with_llama(intermediate: str, name: str) -> None:
+    output_path = f"{WORK_DIR}/{name}.gguf"
+    run("/tmp/llama.cpp/build/bin/llama-quantize", intermediate, output_path, "Q4_K_M", str(os.cpu_count() or 4))
+    report["adaylar"][name] = compare_with_target(summarize(output_path))
+    os.remove(output_path)
+    save()
 
 
-def ollama_q4(ikili: str, ara: str, ad: str) -> None:
-    ortam = {**os.environ, "OLLAMA_MODELS": f"{IS}/ollama", "OLLAMA_HOST": "127.0.0.1:11434"}
-    mf = f"{IS}/Modelfile-{ad}"
+def quantize_with_ollama(binary: str, intermediate: str, name: str) -> None:
+    env = {**os.environ, "OLLAMA_MODELS": f"{WORK_DIR}/ollama", "OLLAMA_HOST": "127.0.0.1:11434"}
+    mf = f"{WORK_DIR}/Modelfile-{name}"
     with open(mf, "w") as f:
-        f.write(f"FROM {ara}\n")
-    once = set(glob.glob(f"{IS}/ollama/blobs/*"))
-    cikti = calistir(ikili, "create", ad, "-f", mf, "--quantize", "q4_K_M", env=ortam)
-    yeni = sorted(set(glob.glob(f"{IS}/ollama/blobs/*")) - once, key=os.path.getsize)
-    if not yeni:
-        raise RuntimeError(f"ollama create yeni dosya üretmedi: {cikti}")
-    rapor["adaylar"][ad] = karsilastir_hedef(ozet(yeni[-1]))
-    calistir(ikili, "rm", ad, env=ortam)
-    kaydet()
+        f.write(f"FROM {intermediate}\n")
+    before = set(glob.glob(f"{WORK_DIR}/ollama/blobs/*"))
+    command_output = run(binary, "create", name, "-f", mf, "--quantize", "q4_K_M", env=env)
+    new_blobs = sorted(set(glob.glob(f"{WORK_DIR}/ollama/blobs/*")) - before, key=os.path.getsize)
+    if not new_blobs:
+        raise RuntimeError(f"ollama create yeni dosya üretmedi: {command_output}")
+    report["adaylar"][name] = compare_with_target(summarize(new_blobs[-1]))
+    run(binary, "rm", name, env=env)
+    save()
 
 
-def ollama_st(ikili: str, taban: str, ad: str) -> None:
-    """Ollama'nın kendi yolu: safetensors klasöründen içe aktarma ve aynı anda Q4_K_M'ye sıkıştırma."""
-    ortam = {**os.environ, "OLLAMA_MODELS": f"{IS}/ollama", "OLLAMA_HOST": "127.0.0.1:11434"}
-    mf = f"{IS}/Modelfile-{ad}"
+def import_safetensors_with_ollama(binary: str, base: str, name: str) -> None:
+    """Ollama's own path: import from a safetensors folder and compress to Q4_K_M at the same time."""
+    env = {**os.environ, "OLLAMA_MODELS": f"{WORK_DIR}/ollama", "OLLAMA_HOST": "127.0.0.1:11434"}
+    mf = f"{WORK_DIR}/Modelfile-{name}"
     with open(mf, "w") as f:
-        f.write(f"FROM {taban}\n")
-    once = set(glob.glob(f"{IS}/ollama/blobs/*"))
-    cikti = calistir(ikili, "create", ad, "-f", mf, "--quantize", "q4_K_M", env=ortam)
-    yeni = sorted(set(glob.glob(f"{IS}/ollama/blobs/*")) - once, key=os.path.getsize)
-    if not yeni:
-        raise RuntimeError(f"ollama create yeni dosya üretmedi: {cikti}")
-    sonuc = {"dosyalar": [[os.path.basename(p)[:20], round(os.path.getsize(p) / 2**30, 3)] for p in yeni]}
-    for p in yeni[::-1]:  # büyükten küçüğe; GGUF olanların hepsi
+        f.write(f"FROM {base}\n")
+    before = set(glob.glob(f"{WORK_DIR}/ollama/blobs/*"))
+    command_output = run(binary, "create", name, "-f", mf, "--quantize", "q4_K_M", env=env)
+    new_blobs = sorted(set(glob.glob(f"{WORK_DIR}/ollama/blobs/*")) - before, key=os.path.getsize)
+    if not new_blobs:
+        raise RuntimeError(f"ollama create yeni dosya üretmedi: {command_output}")
+    result = {"dosyalar": [[os.path.basename(p)[:20], round(os.path.getsize(p) / 2**30, 3)] for p in new_blobs]}
+    for p in new_blobs[::-1]:  # largest to smallest; all of those that are GGUF
         try:
-            o = ozet(p)
+            o = summarize(p)
         except ValueError:
             continue
-        sonuc[os.path.basename(p)[:20]] = {**karsilastir_hedef(o), "mimari": o["kv"].get("general.architecture"),
+        result[os.path.basename(p)[:20]] = {**compare_with_target(o), "mimari": o["kv"].get("general.architecture"),
                                            "ad": o["kv"].get("general.name"), "tensor": len(o["tensorler"])}
-    rapor["adaylar"][ad] = sonuc
-    kaydet()
+    report["adaylar"][name] = result
+    save()
 
 
-def dene(ad: str, fn, *a) -> None:
-    bas = time.time()
+def attempt(name: str, fn, *a) -> None:
+    start = time.time()
     try:
         fn(*a)
     except Exception as e:
-        rapor["adaylar"][ad] = {"hata": f"{type(e).__name__}: {e}"[:1500]}
-    rapor["adaylar"].setdefault(ad, {})["sure_s"] = round(time.time() - bas, 1)
-    kaydet()
+        report["adaylar"][name] = {"hata": f"{type(e).__name__}: {e}"[:1500]}
+    report["adaylar"].setdefault(name, {})["sure_s"] = round(time.time() - start, 1)
+    save()
 
 
 def main() -> None:
-    os.makedirs(IS, exist_ok=True)
-    rapor["hedef_tensor"] = len(HEDEF)
-    kaydet()
-    kurulum()
+    os.makedirs(WORK_DIR, exist_ok=True)
+    report["hedef_tensor"] = len(HEDEF)
+    save()
+    build_llama_cpp()
     try:
-        ikili = ollama_kur()
+        binary = setup_ollama()
     except Exception:
-        ikili = None
-    taban = indir()
-    dene("ssm_a", ssm_a, taban)
-    # 1. sürümde denendi: f16 ara türle llama-quantize bf16 ile aynı sonucu verdi (154/427); Ollama GGUF'tan
-    # sıkıştırmıyor ("create-time quantization is only supported for safetensors imports").
-    if ikili:
-        dene("st_ollama", ollama_st, ikili, taban, "st_ollama")
-    rapor["bitis"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    kaydet()
+        binary = None
+    base = download()
+    attempt("ssm_a", ssm_a, base)
+    # Tried in the 1st version: with an f16 intermediate type llama-quantize gave the same result as bf16 (154/427);
+    # Ollama does not compress from GGUF ("create-time quantization is only supported for safetensors imports").
+    if binary:
+        attempt("st_ollama", import_safetensors_with_ollama, binary, base, "st_ollama")
+    report["bitis"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    save()
 
 
 if __name__ == "__main__":

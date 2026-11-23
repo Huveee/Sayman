@@ -1,13 +1,13 @@
-"""Faz 5 puanlaması: bir aramanın sıraladığı parçalarda doğru parça kaçıncı?
+"""Phase 5 scoring: at what rank is the correct chunk among the chunks a search ranked?
 
-Bu dosya arama kodundan önce yazıldı ve ayar sırasında değiştirilmedi.
+This file was written before the search code and was not changed during tuning.
 
-- Arama (parca_id, skor) listesi verir. Sıra skora göre büyükten küçüğe; eşit skorlar parça kimliğine göre sıralanır
-  (aramanın kendi sırası kullanılmaz, böylece eşitlikler şansa bırakılmaz).
-- isabet@k: doğru parça ilk k sonuç içinde mi. Kabul ölçütü isabet@5 ≥ 0,85 (tek doğru parça olduğu için bu,
-  recall@5 ile aynıdır).
-- MRR@10: doğru parçanın sırasının tersi (ilk 10'da değilse 0); rapor içindir.
-- Sonuçlar ayrıca soru türüne ve soru stiline (yakın/uzak kalıp) göre ayrı verilir.
+- The search returns a list of (parca_id, skor). Order is by score descending; equal scores are ordered by chunk
+  identifier (the search's own order is not used, so ties are not left to chance).
+- hit@k (`isabet@k`): whether the correct chunk is within the first k results. The acceptance criterion is hit@5 >= 0.85
+  (since there is a single correct chunk this equals recall@5).
+- MRR@10: the reciprocal of the correct chunk's rank (0 if not within the first 10); for the report.
+- Results are also given separately by question kind and question style (close/far pattern).
 """
 
 from __future__ import annotations
@@ -15,32 +15,32 @@ from __future__ import annotations
 from collections import defaultdict
 
 
-def sirala(sonuclar: list[tuple[str, float]]) -> list[str]:
-    return [p for p, _ in sorted(sonuclar, key=lambda x: (-x[1], x[0]))]
+def order_chunks(results: list[tuple[str, float]]) -> list[str]:
+    return [p for p, _ in sorted(results, key=lambda x: (-x[1], x[0]))]
 
 
-def sira(sonuclar: list[tuple[str, float]], dogru: str) -> int | None:
-    """Doğru parçanın 1'den başlayan sırası; listede yoksa None."""
-    s = sirala(sonuclar)
-    return s.index(dogru) + 1 if dogru in s else None
+def rank_of(results: list[tuple[str, float]], correct_chunk: str) -> int | None:
+    """1-based rank of the correct chunk; None if it is not in the list."""
+    s = order_chunks(results)
+    return s.index(correct_chunk) + 1 if correct_chunk in s else None
 
 
-def puanla(sorular: list[dict], sonuclar: dict[str, list[tuple[str, float]]], k: int = 5) -> dict:
-    """sonuclar: soru_id -> (parca_id, skor) listesi."""
-    satirlar, gruplar, stiller = [], defaultdict(list), defaultdict(list)
-    for s in sorular:
-        r = sira(sonuclar[s["soru_id"]], s["dogru_parca"])
-        satirlar.append({"soru_id": s["soru_id"], "sira": r})
-        gruplar[s["tur"]].append(r)
-        stiller[s.get("stil", "-")].append(r)
-    hepsi = [x["sira"] for x in satirlar]
+def score(questions: list[dict], results: dict[str, list[tuple[str, float]]], k: int = 5) -> dict:
+    """results: `soru_id` -> list of (parca_id, skor)."""
+    rows, groups, styles = [], defaultdict(list), defaultdict(list)
+    for s in questions:
+        r = rank_of(results[s["soru_id"]], s["dogru_parca"])
+        rows.append({"soru_id": s["soru_id"], "sira": r})
+        groups[s["tur"]].append(r)
+        styles[s.get("stil", "-")].append(r)
+    all_ranks = [x["sira"] for x in rows]
 
-    def ozet(sirlar):
-        n = len(sirlar)
-        return {"soru": n, f"isabet@{k}": round(sum(1 for r in sirlar if r and r <= k) / n, 4) if n else None,
-                "isabet@1": round(sum(1 for r in sirlar if r == 1) / n, 4) if n else None,
-                "mrr@10": round(sum(1 / r for r in sirlar if r and r <= 10) / n, 4) if n else None}
+    def summarize(ranks):
+        n = len(ranks)
+        return {"soru": n, f"isabet@{k}": round(sum(1 for r in ranks if r and r <= k) / n, 4) if n else None,
+                "isabet@1": round(sum(1 for r in ranks if r == 1) / n, 4) if n else None,
+                "mrr@10": round(sum(1 / r for r in ranks if r and r <= 10) / n, 4) if n else None}
 
-    return {**ozet(hepsi), "ture_gore": {t: ozet(v) for t, v in sorted(gruplar.items())},
-            "stile_gore": {t: ozet(v) for t, v in sorted(stiller.items())},
-            "kacanlar": [x["soru_id"] for x in satirlar if not (x["sira"] and x["sira"] <= k)]}
+    return {**summarize(all_ranks), "ture_gore": {t: summarize(v) for t, v in sorted(groups.items())},
+            "stile_gore": {t: summarize(v) for t, v in sorted(styles.items())},
+            "kacanlar": [x["soru_id"] for x in rows if not (x["sira"] and x["sira"] <= k)]}

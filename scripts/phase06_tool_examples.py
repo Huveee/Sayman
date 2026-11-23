@@ -1,16 +1,16 @@
-"""Faz 6: doğrulayıcının taslak testleri için gerçek araç sonuçlarını kaydeder.
+"""Phase 6: records real tool results for the verifier's draft tests.
 
-Doğrulayıcı yazılmadan önce, gerçek araçlar gerçek ambar üzerinde bir kez çağrılır ve sonuçları
-tests/support/phase06_tool_results.json dosyasına yazılır. Taslak cevaplar (tests/faz6_taslaklar.py) bu sonuçlardaki
-sayılara göre elle yazılır; testler ambarı açmadan bu dosyayı okur.
+Before the verifier was written, the real tools are called once on the real warehouse and the results are written to
+tests/support/phase06_tool_results.json. Draft answers (tests/support/phase06_drafts.py) are written by hand from the
+numbers in these results; the tests read this file without opening the warehouse.
 
-Kimlik kartları bu çalıştırmaya özel rastgele bir anahtarla imzalanır; .env'deki anahtar kullanılmaz.
+Identity cards are signed with a random key specific to this run; the key in .env is not used.
 
-Girdi:  data/ambar/sayman.duckdb (faz2_ambar_kur.py), data/saat.json
-Çıktı:  tests/support/phase06_tool_results.json
+Input:  data/ambar/sayman.duckdb (phase02_build_warehouse.py), data/saat.json
+Output: tests/support/phase06_tool_results.json
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz6_arac_ornekleri.py
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase06_tool_examples.py
 """
 
 from __future__ import annotations
@@ -22,56 +22,56 @@ import sys
 import tempfile
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-from sayman.tools.audit_log import DenetimKaydi  # noqa: E402
-from sayman.tools.identity import kart_uret  # noqa: E402
-from sayman.tools.server import SaymanSunucusu  # noqa: E402
-from sayman.tools.permissions import yetki_oku  # noqa: E402
-from sayman.data.clock import saat_oku  # noqa: E402
+from sayman.tools.audit_log import AuditLog  # noqa: E402
+from sayman.tools.identity import generate_card  # noqa: E402
+from sayman.tools.server import SaymanServer  # noqa: E402
+from sayman.tools.permissions import read_permissions  # noqa: E402
+from sayman.data.clock import read_clock  # noqa: E402
 
-CIKTI = KOK / "tests" / "support/phase06_tool_results.json"
-CFO, SATIS = "selin.aydin", "murat.kaya"
+OUTPUT = ROOT / "tests" / "support/phase06_tool_results.json"
+CFO, SALES = "selin.aydin", "murat.kaya"
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    saat = saat_oku(KOK / "data" / "saat.json")
-    anahtar = secrets.token_bytes(32)
-    with tempfile.TemporaryDirectory() as gecici:
-        sunucu = SaymanSunucusu(ambar=KOK / "data" / "ambar" / "sayman.duckdb", saat=lambda: saat, anahtar=anahtar,
-                                yetki=yetki_oku(), kayit=DenetimKaydi(Path(gecici) / "kayit.jsonl"),
-                                kapsam_klasoru=Path(gecici) / "kapsam")
+    clock = read_clock(ROOT / "data" / "saat.json")
+    key = secrets.token_bytes(32)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        server = SaymanServer(warehouse=ROOT / "data" / "ambar" / "sayman.duckdb", clock=lambda: clock, key=key,
+                                permissions=read_permissions(), audit_log=AuditLog(Path(temp_dir) / "kayit.jsonl"),
+                                scope_dir=Path(temp_dir) / "kapsam")
         try:
-            def cagir(kullanici, arac, **argumanlar):
-                yanit, hata = sunucu.kapi(arac, argumanlar, kart_uret(kullanici, anahtar))
-                return {"kullanici": kullanici, "arac": arac, "argumanlar": argumanlar, "hata_mi": hata,
-                        "yanit": yanit}
+            def call_tool(user, tool, **arguments):
+                response, error = server.gate(tool, arguments, generate_card(user, key))
+                return {"kullanici": user, "arac": tool, "argumanlar": arguments, "hata_mi": error,
+                        "yanit": response}
 
-            yas = cagir(CFO, "alacak_yaslandirma", en_fazla=5)
-            a, b = (m["musteri"] for m in yas["yanit"]["sonuc"]["en_buyuk_alacaklar"][:2])
-            bugun = saat.simdi
-            cagrilar = {
-                "yaslandirma": yas,
-                "nakit": cagir(CFO, "nakit_pozisyonu"),
-                "musteri_a": cagir(CFO, "musteri_ozeti", musteri_adi=a),
-                "musteri_b": cagir(CFO, "musteri_ozeti", musteri_adi=b),
-                "geciken": cagir(CFO, "geciken_alacaklar", min_gun=30, en_fazla=5),
-                "kur_riski": cagir(CFO, "kur_riski"),
-                "dso": cagir(CFO, "dso_hesapla", donem="son_90_gun"),
-                "yaklasan": cagir(CFO, "yaklasan_odemeler", gun_sayisi=30, en_fazla=5),
-                "cikislar": cagir(CFO, "banka_hareketleri", baslangic=(bugun - dt.timedelta(days=7)).isoformat(),
-                                  bitis=bugun.isoformat(), yon="cikis", en_fazla=5),
-                "usd": cagir(CFO, "doviz_kuru", para_birimi="USD"),
-                "satis_nakit_ret": cagir(SATIS, "nakit_pozisyonu"),
+            aging = call_tool(CFO, "alacak_yaslandirma", en_fazla=5)
+            a, b = (m["musteri"] for m in aging["yanit"]["sonuc"]["en_buyuk_alacaklar"][:2])
+            today = clock.simdi
+            calls = {
+                "yaslandirma": aging,
+                "nakit": call_tool(CFO, "nakit_pozisyonu"),
+                "musteri_a": call_tool(CFO, "musteri_ozeti", musteri_adi=a),
+                "musteri_b": call_tool(CFO, "musteri_ozeti", musteri_adi=b),
+                "geciken": call_tool(CFO, "geciken_alacaklar", min_gun=30, en_fazla=5),
+                "kur_riski": call_tool(CFO, "kur_riski"),
+                "dso": call_tool(CFO, "dso_hesapla", donem="son_90_gun"),
+                "yaklasan": call_tool(CFO, "yaklasan_odemeler", gun_sayisi=30, en_fazla=5),
+                "cikislar": call_tool(CFO, "banka_hareketleri", baslangic=(today - dt.timedelta(days=7)).isoformat(),
+                                  bitis=today.isoformat(), yon="cikis", en_fazla=5),
+                "usd": call_tool(CFO, "doviz_kuru", para_birimi="USD"),
+                "satis_nakit_ret": call_tool(SALES, "nakit_pozisyonu"),
             }
         finally:
-            sunucu.kapat()
-    veri = {"aciklama": "Gerçek araçların gerçek ambardaki sonuçları; doğrulayıcı taslak testleri bunlara dayanır.",
-            "bugun": saat.simdi.isoformat(), "cagrilar": cagrilar}
-    CIKTI.write_text(json.dumps(veri, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"{CIKTI.name}: {len(cagrilar)} çağrı, {CIKTI.stat().st_size:,} bayt")
+            server.close()
+    data = {"aciklama": "Gerçek araçların gerçek ambardaki sonuçları; doğrulayıcı taslak testleri bunlara dayanır.",
+            "bugun": clock.simdi.isoformat(), "cagrilar": calls}
+    OUTPUT.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"{OUTPUT.name}: {len(calls)} çağrı, {OUTPUT.stat().st_size:,} bayt")
 
 
 if __name__ == "__main__":

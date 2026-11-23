@@ -1,12 +1,14 @@
-"""GGUF dosyasının özeti: üst bilgiler (anahtar-değer) ve her tensörün adı, türü, boyutu ve verisinin özeti.
+"""Summary of a GGUF file: the header (key-value) and, for every tensor, its name, type, size and a digest of its
+data.
 
-Faz 8'de iki denetim için kullanılır:
-- Adillik: Kaggle'da kendi yolumuzla (dönüştürme + Q4_K_M) ürettiğimiz temel model, Ollama'daki temel modelle tensör
-  tensör aynı mı? Aynıysa temel ↔ ince ayarlı fark yalnızca eğitimden gelir.
-- Birleştirme: ince ayarlı modelde yalnızca LoRA'nın dokunduğu tensörler mi değişti?
+It is used in Phase 8 for two checks:
+- Fairness: is the base model we produced on Kaggle in our own way (conversion + Q4_K_M) the same, tensor by tensor,
+  as the base model in Ollama? If it is, the base ↔ fine-tuned difference comes only from training.
+- Merge: did only the tensors that LoRA touched change in the fine-tuned model?
 
-Aynı kod hem bu bilgisayarda hem Kaggle'da çalışır (scripts/faz8_kaggle.py Kaggle betiğine bu dosyayı ekler); bu yüzden
-yalnızca standart kütüphane kullanır. Dosya baştan sona okunmaz: üst bilgi okunur, sonra her tensörün kendi baytları.
+The same code runs both on this computer and on Kaggle (scripts/phase08_kaggle.py inlines this file into the Kaggle
+script); so it uses only the standard library. The file is not read from start to end: the header is read, then the
+own bytes of every tensor.
 """
 
 from __future__ import annotations
@@ -14,8 +16,8 @@ from __future__ import annotations
 import hashlib
 import struct
 
-# ggml türü -> (ad, blok boyu, blok bayt) (ggml/include/ggml.h, ggml/src/ggml.c)
-TURLER = {
+# ggml type -> (name, block size, block bytes) (ggml/include/ggml.h, ggml/src/ggml.c)
+GGML_TYPES = {
     0: ("F32", 1, 4), 1: ("F16", 1, 2), 2: ("Q4_0", 32, 18), 3: ("Q4_1", 32, 20), 6: ("Q5_0", 32, 22),
     7: ("Q5_1", 32, 24), 8: ("Q8_0", 32, 34), 9: ("Q8_1", 32, 36), 10: ("Q2_K", 256, 84), 11: ("Q3_K", 256, 110),
     12: ("Q4_K", 256, 144), 13: ("Q5_K", 256, 176), 14: ("Q6_K", 256, 210), 15: ("Q8_K", 256, 292),
@@ -25,105 +27,106 @@ TURLER = {
     29: ("IQ1_M", 256, 56), 30: ("BF16", 1, 2), 34: ("TQ1_0", 256, 54), 35: ("TQ2_0", 256, 66),
     39: ("MXFP4", 32, 17),
 }
-_SAYI = {0: "<B", 1: "<b", 2: "<H", 3: "<h", 4: "<I", 5: "<i", 6: "<f", 7: "<?", 10: "<Q", 11: "<q", 12: "<d"}
-_DIZE, _DIZI = 8, 9
+_SCALARS = {0: "<B", 1: "<b", 2: "<H", 3: "<h", 4: "<I", 5: "<i", 6: "<f", 7: "<?", 10: "<Q", 11: "<q", 12: "<d"}
+_STRING_TYPE, _ARRAY_TYPE = 8, 9
 
 
-class _Okuyucu:
+class _Reader:
     def __init__(self, f):
         self.f = f
 
-    def al(self, bicim: str):
-        n = struct.calcsize(bicim)
+    def fetch(self, fmt: str):
+        n = struct.calcsize(fmt)
         b = self.f.read(n)
         if len(b) != n:
             raise ValueError("dosya beklenenden kısa")
-        return struct.unpack(bicim, b)[0]
+        return struct.unpack(fmt, b)[0]
 
-    def dize(self) -> str:
-        return self.f.read(self.al("<Q")).decode("utf-8", errors="replace")
+    def string(self) -> str:
+        return self.f.read(self.fetch("<Q")).decode("utf-8", errors="replace")
 
-    def deger(self, tur: int):
-        if tur in _SAYI:
-            return self.al(_SAYI[tur])
-        if tur == _DIZE:
-            return self.dize()
-        if tur == _DIZI:
-            ic, n = self.al("<I"), self.al("<Q")
-            return [self.deger(ic) for _ in range(n)]
-        raise ValueError(f"bilinmeyen GGUF değer türü {tur}")
-
-
-def _kisa(deger):
-    """Uzun diziler (sözlük, birleştirmeler) yerine uzunluk ve özet: karşılaştırma için yeter, rapor şişmez."""
-    if isinstance(deger, list) and len(deger) > 16:
-        return {"uzunluk": len(deger), "ozet": hashlib.sha256(repr(deger).encode()).hexdigest()[:16]}
-    return deger
+    def deger(self, type_id: int):
+        if type_id in _SCALARS:
+            return self.fetch(_SCALARS[type_id])
+        if type_id == _STRING_TYPE:
+            return self.string()
+        if type_id == _ARRAY_TYPE:
+            inner_type, n = self.fetch("<I"), self.fetch("<Q")
+            return [self.deger(inner_type) for _ in range(n)]
+        raise ValueError(f"bilinmeyen GGUF değer türü {type_id}")
 
 
-def ozet(yol: str, veri_ozeti: bool = True) -> dict:
-    """{"surum", "kv": {anahtar: değer}, "tensorler": {ad: {"tur", "boyut", "bayt", "ozet"}}}"""
-    with open(yol, "rb") as f:
-        o = _Okuyucu(f)
+def _shorten(value):
+    """Length and digest instead of long arrays (vocabulary, merges): enough for comparison, and the report does not
+    bloat."""
+    if isinstance(value, list) and len(value) > 16:
+        return {"uzunluk": len(value), "ozet": hashlib.sha256(repr(value).encode()).hexdigest()[:16]}
+    return value
+
+
+def summarize(path: str, with_digest: bool = True) -> dict:
+    """{"surum", "kv": {key: value}, "tensorler": {name: {"tur", "boyut", "bayt", "ozet"}}}"""
+    with open(path, "rb") as f:
+        o = _Reader(f)
         if f.read(4) != b"GGUF":
             raise ValueError("GGUF dosyası değil")
-        surum, n_tensor, n_kv = o.al("<I"), o.al("<Q"), o.al("<Q")
+        version, n_tensor, n_kv = o.fetch("<I"), o.fetch("<Q"), o.fetch("<Q")
         kv = {}
         for _ in range(n_kv):
-            anahtar = o.dize()
-            kv[anahtar] = _kisa(o.deger(o.al("<I")))
-        bilgiler = []
+            key = o.string()
+            kv[key] = _shorten(o.deger(o.fetch("<I")))
+        infos = []
         for _ in range(n_tensor):
-            ad = o.dize()
-            boyut = [o.al("<Q") for _ in range(o.al("<I"))]
-            tur, konum = o.al("<I"), o.al("<Q")
-            bilgiler.append((ad, boyut, tur, konum))
-        hiza = int(kv.get("general.alignment", 32))
-        bas = f.tell()
-        bas += (-bas) % hiza
-        tensorler = {}
-        for ad, boyut, tur, konum in bilgiler:
-            if tur not in TURLER:
-                raise ValueError(f"{ad}: bilinmeyen ggml türü {tur}")
-            tad, blok, bayt = TURLER[tur]
-            eleman = 1
-            for d in boyut:
-                eleman *= d
-            if eleman % blok:
-                raise ValueError(f"{ad}: {eleman} öğe {blok}'luk bloklara bölünmüyor")
-            uzunluk = eleman // blok * bayt
-            kayit = {"tur": tad, "boyut": boyut, "bayt": uzunluk}
-            if veri_ozeti:
-                f.seek(bas + konum)
+            name = o.string()
+            dims = [o.fetch("<Q") for _ in range(o.fetch("<I"))]
+            type_id, offset = o.fetch("<I"), o.fetch("<Q")
+            infos.append((name, dims, type_id, offset))
+        alignment = int(kv.get("general.alignment", 32))
+        data_start = f.tell()
+        data_start += (-data_start) % alignment
+        tensors = {}
+        for name, dims, type_id, offset in infos:
+            if type_id not in GGML_TYPES:
+                raise ValueError(f"{name}: bilinmeyen ggml türü {type_id}")
+            type_name, block_size, block_bytes = GGML_TYPES[type_id]
+            elements = 1
+            for d in dims:
+                elements *= d
+            if elements % block_size:
+                raise ValueError(f"{name}: {elements} öğe {block_size}'luk bloklara bölünmüyor")
+            length = elements // block_size * block_bytes
+            entry = {"tur": type_name, "boyut": dims, "bayt": length}
+            if with_digest:
+                f.seek(data_start + offset)
                 h = hashlib.sha256()
-                kalan = uzunluk
-                while kalan:
-                    parca = f.read(min(kalan, 1 << 24))
-                    if not parca:
-                        raise ValueError(f"{ad}: veri dosyanın sonunu aşıyor")
-                    h.update(parca)
-                    kalan -= len(parca)
-                kayit["ozet"] = h.hexdigest()[:24]
-            tensorler[ad] = kayit
-    return {"surum": surum, "kv": kv, "tensorler": tensorler}
+                remaining = length
+                while remaining:
+                    piece = f.read(min(remaining, 1 << 24))
+                    if not piece:
+                        raise ValueError(f"{name}: veri dosyanın sonunu aşıyor")
+                    h.update(piece)
+                    remaining -= len(piece)
+                entry["ozet"] = h.hexdigest()[:24]
+            tensors[name] = entry
+    return {"surum": version, "kv": kv, "tensorler": tensors}
 
 
-ONEMLI_KV = ("general.architecture", "general.file_type", "tokenizer.ggml.model", "tokenizer.ggml.pre",
+IMPORTANT_KV = ("general.architecture", "general.file_type", "tokenizer.ggml.model", "tokenizer.ggml.pre",
              "tokenizer.ggml.tokens", "tokenizer.ggml.token_type", "tokenizer.ggml.merges",
              "tokenizer.ggml.eos_token_id", "tokenizer.ggml.bos_token_id", "tokenizer.ggml.padding_token_id")
 
 
-def karsilastir(a: dict, b: dict) -> dict:
-    """İki özetin farkları. Mimari anahtarları (<mimari>.*) ve ONEMLI_KV karşılaştırılır; diğer üst bilgiler (ad,
-    lisans, dönüştürücü sürümü) dosyadan dosyaya değişebilir."""
-    mimari = a["kv"].get("general.architecture")
-    anahtarlar = sorted({k for k in set(a["kv"]) | set(b["kv"])
-                         if k in ONEMLI_KV or (mimari and k.startswith(f"{mimari}."))})
-    kv_farki = {k: [a["kv"].get(k), b["kv"].get(k)] for k in anahtarlar if a["kv"].get(k) != b["kv"].get(k)}
+def compare(a: dict, b: dict) -> dict:
+    """Differences of two summaries. The architecture keys (<architecture>.*) and IMPORTANT_KV are compared; the other
+    headers (name, license, converter version) may change from file to file."""
+    architecture = a["kv"].get("general.architecture")
+    keys = sorted({k for k in set(a["kv"]) | set(b["kv"])
+                         if k in IMPORTANT_KV or (architecture and k.startswith(f"{architecture}."))})
+    kv_diff = {k: [a["kv"].get(k), b["kv"].get(k)] for k in keys if a["kv"].get(k) != b["kv"].get(k)}
     ta, tb = a["tensorler"], b["tensorler"]
-    ortak = sorted(set(ta) & set(tb))
-    tur_farki = [t for t in ortak if (ta[t]["tur"], ta[t]["boyut"]) != (tb[t]["tur"], tb[t]["boyut"])]
-    veri_farki = [t for t in ortak if t not in tur_farki and ta[t].get("ozet") != tb[t].get("ozet")]
-    return {"kv_farki": kv_farki, "yalniz_ilkinde": sorted(set(ta) - set(tb)),
-            "yalniz_ikincide": sorted(set(tb) - set(ta)), "tur_farki": tur_farki, "veri_farki": veri_farki,
-            "ayni_tensor": len(ortak) - len(tur_farki) - len(veri_farki), "tensor": len(ortak)}
+    common = sorted(set(ta) & set(tb))
+    type_diff = [t for t in common if (ta[t]["tur"], ta[t]["boyut"]) != (tb[t]["tur"], tb[t]["boyut"])]
+    data_diff = [t for t in common if t not in type_diff and ta[t].get("ozet") != tb[t].get("ozet")]
+    return {"kv_farki": kv_diff, "yalniz_ilkinde": sorted(set(ta) - set(tb)),
+            "yalniz_ikincide": sorted(set(tb) - set(ta)), "tur_farki": type_diff, "veri_farki": data_diff,
+            "ayni_tensor": len(common) - len(type_diff) - len(data_diff), "tensor": len(common)}

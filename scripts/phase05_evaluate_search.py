@@ -1,20 +1,20 @@
-"""Faz 5: belge aramasını soru setiyle ölçer.
+"""Phase 5: measures document search with the question set.
 
-Ayar seti (belgelerin yarısı, kalıp çiftlerinin bir yanı) üzerinde istenildiği kadar çalıştırılabilir; her denemenin
-sonucu --kaydet ile reports/faz5_ayar_denemeleri.json'a eklenir. Ayrılmış set, ayarlar dondurulduktan sonra
---ayrilmis ile bir kez çalıştırılır; dört yöntemin sonucu yan yana reports/faz5_arama.json'a yazılır. Ona bakıp
-ayar değiştirilmez.
+It can be run as many times as wanted on the tuning set (half of the documents, one side of the template pairs); the
+result of each trial is appended to reports/faz5_ayar_denemeleri.json with --kaydet. The held-out set is run once with
+--ayrilmis after the settings are frozen; the results of the four methods are written side by side to
+reports/faz5_arama.json. No setting is changed after looking at it.
 
-Bütün sorular CFO rolüyle sorulur (en geniş arama alanı: bütün belgeler, kanunlar dahil).
+All questions are asked with the CFO role (the widest search scope: all documents, laws included).
 
-Girdi:  data/belge/belgeler.jsonl, data/belge/sorular.json (scripts/faz5_belge_uret.py)
-        data/belge/onbellek/gomme_bge-m3.npz (scripts/faz5_dizin_kur.py)
-        data/modeller/bge-reranker-v2-m3 (yalnızca önbellekte olmayan sıralama skorları için)
+Input:  data/belge/belgeler.jsonl, data/belge/sorular.json (scripts/phase05_generate_documents.py)
+        data/belge/onbellek/gomme_bge-m3.npz (scripts/phase05_build_index.py)
+        data/modeller/bge-reranker-v2-m3 (only for ranking scores that are not in the cache)
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz5_arama_olc.py --yontem karma_sirala
-    .venv\\Scripts\\python -I scripts\\faz5_arama_olc.py --yontem karma --rrf-k 30 --kaydet "k=30 denendi"
-    .venv\\Scripts\\python -I scripts\\faz5_arama_olc.py --ayrilmis
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase05_evaluate_search.py --yontem karma_sirala
+    .venv\\Scripts\\python -I scripts\\phase05_evaluate_search.py --yontem karma --rrf-k 30 --kaydet "k=30 denendi"
+    .venv\\Scripts\\python -I scripts\\phase05_evaluate_search.py --ayrilmis
 """
 
 from __future__ import annotations
@@ -25,112 +25,112 @@ import sys
 import time
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
-sys.path.insert(0, str(KOK / "tests"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests"))
 
 import support.phase05_scoring as puan  # noqa: E402
 
 from sayman.documents import library  # noqa: E402
-from sayman.documents.search import YONTEMLER, Arayici, ilk  # noqa: E402
+from sayman.documents.search import METHODS, Searcher, top_k  # noqa: E402
 
-BELGE = KOK / "data" / "belge"
-GOMME = BELGE / "onbellek" / "gomme_bge-m3.npz"
-SIRALAMA = BELGE / "onbellek" / "sirala_bge-reranker-v2-m3.json"
-MODEL = KOK / "data" / "modeller" / "bge-reranker-v2-m3"
-DENEMELER = KOK / "reports" / "faz5_ayar_denemeleri.json"
-SONUC = KOK / "reports" / "faz5_arama.json"
-ROL = "cfo"
+DOCUMENT_DIR = ROOT / "data" / "belge"
+EMBEDDING_CACHE = DOCUMENT_DIR / "onbellek" / "gomme_bge-m3.npz"
+RERANK_CACHE = DOCUMENT_DIR / "onbellek" / "sirala_bge-reranker-v2-m3.json"
+MODEL = ROOT / "data" / "modeller" / "bge-reranker-v2-m3"
+TUNING_TRIALS = ROOT / "reports" / "faz5_ayar_denemeleri.json"
+SEARCH_REPORT = ROOT / "reports" / "faz5_arama.json"
+ROLE = "cfo"
 K = 10
 
-# Ayar setinde seçilen ve ayrılmış set çalıştırılmadan önce dondurulan ayarlar.
-DONMUS = {"rrf_k": 60, "derinlik": 50, "aday": 20}
+# Settings chosen on the tuning set and frozen before the held-out set is run.
+FROZEN_SETTINGS = {"rrf_k": 60, "derinlik": 50, "aday": 20}
 
 
-def arayici_kur(parcalar, ayar: dict, yontem: str) -> Arayici:
-    anlam = siralayici = None
-    if yontem != "bm25":
-        from sayman.documents.semantic import AnlamDizini, GommeOnbellegi
-        anlam = AnlamDizini(parcalar, GommeOnbellegi(GOMME))
-    if yontem == "karma_sirala":
-        from sayman.documents.reranker import Siralayici
-        siralayici = Siralayici(MODEL, SIRALAMA)
-    return Arayici(parcalar, anlam, siralayici, **ayar)
+def build_searcher(chunks, settings: dict, method: str) -> Searcher:
+    semantic = reranker = None
+    if method != "bm25":
+        from sayman.documents.semantic import SemanticIndex, EmbeddingCache
+        semantic = SemanticIndex(chunks, EmbeddingCache(EMBEDDING_CACHE))
+    if method == "karma_sirala":
+        from sayman.documents.reranker import Reranker
+        reranker = Reranker(MODEL, RERANK_CACHE)
+    return Searcher(chunks, semantic, reranker, **settings)
 
 
-def olc(arayici: Arayici, yontem: str, sorular: list[dict]) -> tuple[dict, dict]:
-    bas = time.perf_counter()
-    sonuclar = {s["soru_id"]: ilk(arayici.skorlar(s["soru"], ROL, yontem), K) for s in sorular}
-    sure = time.perf_counter() - bas
-    if arayici.siralayici:
-        arayici.siralayici.kaydet()
-    return puan.puanla(sorular, sonuclar), {"soru_basina_ms": round(1000 * sure / len(sorular), 1)}
+def evaluate(searcher: Searcher, method: str, questions: list[dict]) -> tuple[dict, dict]:
+    start = time.perf_counter()
+    results = {s["soru_id"]: top_k(searcher.scores(s["soru"], ROLE, method), K) for s in questions}
+    duration = time.perf_counter() - start
+    if searcher.reranker:
+        searcher.reranker.kaydet()
+    return puan.score(questions, results), {"soru_basina_ms": round(1000 * duration / len(questions), 1)}
 
 
-def kisa(sonuc: dict) -> dict:
-    return {k: v for k, v in sonuc.items() if k != "kacanlar"} | {"kacan": len(sonuc["kacanlar"])}
+def brief(result: dict) -> dict:
+    return {k: v for k, v in result.items() if k != "kacanlar"} | {"kacan": len(result["kacanlar"])}
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--yontem", choices=YONTEMLER)
-    ap.add_argument("--rrf-k", type=int, default=DONMUS["rrf_k"])
-    ap.add_argument("--derinlik", type=int, default=DONMUS["derinlik"])
-    ap.add_argument("--aday", type=int, default=DONMUS["aday"])
-    ap.add_argument("--kaydet", metavar="DEGISIKLIK", help="sonucu ayar denemeleri günlüğüne ekle")
-    ap.add_argument("--goster", type=int, default=0, help="kaçan sorulardan ilk N tanesini göster")
-    ap.add_argument("--ayrilmis", action="store_true", help="dondurulmuş ayarlarla ayrılmış seti bir kez çalıştır")
-    a = ap.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--yontem", choices=METHODS)
+    parser.add_argument("--rrf-k", type=int, default=FROZEN_SETTINGS["rrf_k"])
+    parser.add_argument("--derinlik", type=int, default=FROZEN_SETTINGS["derinlik"])
+    parser.add_argument("--aday", type=int, default=FROZEN_SETTINGS["aday"])
+    parser.add_argument("--kaydet", metavar="DEGISIKLIK", help="sonucu ayar denemeleri günlüğüne ekle")
+    parser.add_argument("--goster", type=int, default=0, help="kaçan sorulardan ilk N tanesini göster")
+    parser.add_argument("--ayrilmis", action="store_true", help="dondurulmuş ayarlarla ayrılmış seti bir kez çalıştır")
+    a = parser.parse_args()
 
-    parcalar = library.parcalar(library.oku(BELGE / "belgeler.jsonl"))
-    sorular = json.loads((BELGE / "sorular.json").read_text(encoding="utf-8"))
+    chunks = library.to_chunks(library.read_documents(DOCUMENT_DIR / "belgeler.jsonl"))
+    questions = json.loads((DOCUMENT_DIR / "sorular.json").read_text(encoding="utf-8"))
 
     if a.ayrilmis:
-        if SONUC.exists():
-            raise SystemExit(f"{SONUC} zaten var: ayrılmış set bir kez çalıştırılır.")
-        arayici = arayici_kur(parcalar, DONMUS, "karma_sirala")
-        rapor = {"aciklama": "Ayrılmış set; ayarlar ayar setinde dondurulduktan sonra bir kez çalıştırıldı. Bütün "
+        if SEARCH_REPORT.exists():
+            raise SystemExit(f"{SEARCH_REPORT} zaten var: ayrılmış set bir kez çalıştırılır.")
+        searcher = build_searcher(chunks, FROZEN_SETTINGS, "karma_sirala")
+        report = {"aciklama": "Ayrılmış set; ayarlar ayar setinde dondurulduktan sonra bir kez çalıştırıldı. Bütün "
                              "sorular CFO rolüyle (bütün belgeler, kanunlar dahil) soruldu. Kabul ölçütü: "
                              "karma_sirala yönteminin isabet@5 değeri ≥ 0,85.",
-                 "ayarlar": DONMUS, "parca": len(parcalar), "yontemler": {}}
-        for set_adi in ("ayar", "ayrilmis"):
-            for yontem in YONTEMLER:
-                sonuc, _ = olc(arayici, yontem, sorular[set_adi])  # süre burada anlamsız (önbellek); bkz. faz5_kaynak
-                rapor["yontemler"].setdefault(yontem, {})[set_adi] = kisa(sonuc)
-                if set_adi == "ayrilmis":
-                    rapor["yontemler"][yontem]["ayrilmis_kacanlar"] = sonuc["kacanlar"]
-        rapor["kabul"] = rapor["yontemler"]["karma_sirala"]["ayrilmis"]["isabet@5"] >= 0.85
-        SONUC.write_text(json.dumps(rapor, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                 "ayarlar": FROZEN_SETTINGS, "parca": len(chunks), "yontemler": {}}
+        for set_name in ("ayar", "ayrilmis"):
+            for method in METHODS:
+                result, _ = evaluate(searcher, method, questions[set_name])  # the duration is meaningless here (cache); see phase05_evaluate_sources
+                report["yontemler"].setdefault(method, {})[set_name] = brief(result)
+                if set_name == "ayrilmis":
+                    report["yontemler"][method]["ayrilmis_kacanlar"] = result["kacanlar"]
+        report["kabul"] = report["yontemler"]["karma_sirala"]["ayrilmis"]["isabet@5"] >= 0.85
+        SEARCH_REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps({y: {s: r[s]["isabet@5"] for s in ("ayar", "ayrilmis")}
-                          for y, r in rapor["yontemler"].items()}, ensure_ascii=False, indent=1))
-        print("kabul:", rapor["kabul"])
+                          for y, r in report["yontemler"].items()}, ensure_ascii=False, indent=1))
+        print("kabul:", report["kabul"])
         return
 
     if not a.yontem:
         raise SystemExit("--yontem ya da --ayrilmis gerekli")
-    ayar = {"rrf_k": a.rrf_k, "derinlik": a.derinlik, "aday": a.aday}
-    arayici = arayici_kur(parcalar, ayar, a.yontem)
-    sonuc, sure = olc(arayici, a.yontem, sorular["ayar"])
-    print(json.dumps({"yontem": a.yontem, "ayarlar": ayar, **kisa(sonuc), **sure}, ensure_ascii=False, indent=1))
+    settings = {"rrf_k": a.rrf_k, "derinlik": a.derinlik, "aday": a.aday}
+    searcher = build_searcher(chunks, settings, a.yontem)
+    result, duration = evaluate(searcher, a.yontem, questions["ayar"])
+    print(json.dumps({"yontem": a.yontem, "ayarlar": settings, **brief(result), **duration}, ensure_ascii=False, indent=1))
 
     if a.goster:
-        for sid in sonuc["kacanlar"][: a.goster]:
-            s = next(x for x in sorular["ayar"] if x["soru_id"] == sid)
-            print(f"\n- {sid} [{s['stil']}] {s['soru']}\n  doğru: {arayici.parca[s['dogru_parca']].madde_baslik}")
-            for p, skor in arayici.ara(s["soru"], ROL, 5, a.yontem):
-                print(f"  {skor:7.3f} {p.parca_id} {p.belge_baslik[:30]} / {p.madde_baslik}")
+        for sid in result["kacanlar"][: a.goster]:
+            s = next(x for x in questions["ayar"] if x["soru_id"] == sid)
+            print(f"\n- {sid} [{s['stil']}] {s['soru']}\n  doğru: {searcher.chunk_by_id[s['dogru_parca']].madde_baslik}")
+            for p, score in searcher.search(s["soru"], ROLE, 5, a.yontem):
+                print(f"  {score:7.3f} {p.parca_id} {p.belge_baslik[:30]} / {p.madde_baslik}")
 
     if a.kaydet:
-        gunluk = (json.loads(DENEMELER.read_text(encoding="utf-8")) if DENEMELER.exists() else
+        trial_log = (json.loads(TUNING_TRIALS.read_text(encoding="utf-8")) if TUNING_TRIALS.exists() else
                   {"aciklama": "Faz 5 belge aramasının ayar denemeleri. Hepsi yalnızca ayar setinde (CFO rolüyle) "
                                "yapıldı. Ayrılmış set ayarlar dondurulduktan sonra bir kez çalıştırılır. Soru seti "
                                "ve puanlama (tests/phase05_questions.py, tests/phase05_scoring.py) aramadan önce yazıldı.",
                    "denemeler": []})
-        gunluk["denemeler"].append({"no": len(gunluk["denemeler"]) + 1, "yontem": a.yontem,
-                                    "ayarlar": ayar if a.yontem != "bm25" else None,
-                                    "degisiklik": a.kaydet, "ayar": kisa(sonuc)})
-        DENEMELER.write_text(json.dumps(gunluk, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        trial_log["denemeler"].append({"no": len(trial_log["denemeler"]) + 1, "yontem": a.yontem,
+                                    "ayarlar": settings if a.yontem != "bm25" else None,
+                                    "degisiklik": a.kaydet, "ayar": brief(result)})
+        TUNING_TRIALS.write_text(json.dumps(trial_log, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

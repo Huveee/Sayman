@@ -1,15 +1,17 @@
-"""Türk kanunlarını (mevzuat.gov.tr PDF'leri) maddelere böler; kütüphaneye karıştırıcı belge olarak eklenir.
+"""Splits Turkish laws (mevzuat.gov.tr PDFs) into articles; they are added to the library as distractor documents.
 
-Soru setindeki hiçbir soru kanunlardan sorulmaz. Kanunlar aramayı zorlaştırmak için oradadır: Çek Kanunu, Borçlar
-Kanunu ve Ticaret Kanunu'nda çek, temerrüt faizi, ayıplı mal ve fesih maddeleri vardır; bunlar şirketin politika ve
-sözleşme maddeleriyle aynı konulardan söz eder.
+None of the questions in the question set asks about the laws. The laws are there to make search harder: the Cheque
+Law (Çek Kanunu), the Code of Obligations (Türk Borçlar Kanunu) and the Commercial Code (Türk Ticaret Kanunu) have
+articles on cheques, default interest, defective goods and termination, and these cover the same topics as the
+company's policy and contract articles.
 
-- Her "MADDE n –" başlığı bir parçadır; parça kimliği "KANUN-6098#m5" gibidir (n kanundaki madde numarasıdır).
-- Geçici maddeler, ek maddeler, sonradan araya eklenen maddeler ("MADDE 5/A") ve yürürlükten kaldırılmış (mülga)
-  maddeler alınmaz.
-- Maddenin hemen üstündeki kısa satır (ör. "b. Hazır olmayanlar arasında") madde başlığı olarak alınır.
-- PDF'den çıkan metinde bazı kelimeler bölünmüş gelir ("tari hi"); düzeltilmez. Kanun metinleri telif kapsamı dışındadır
-  (5846 sayılı Kanun md. 31).
+- Every "MADDE n –" heading is one chunk; the chunk identifier looks like "KANUN-6098#m5" (n is the article number in
+  the law).
+- Temporary articles, additional articles, articles inserted later ("MADDE 5/A") and repealed (mülga) articles are not
+  taken.
+- The short line right above an article (e.g. "b. Hazır olmayanlar arasında") is taken as the article title.
+- Some words come out split in the text extracted from the PDF ("tari hi"); this is not corrected. The text of the
+  laws is outside copyright (Law No. 5846, art. 31).
 """
 
 from __future__ import annotations
@@ -17,53 +19,53 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from sayman.documents.synthetic import TUM_ROLLER, Belge, Madde
+from sayman.documents.synthetic import ALL_ROLES, Document, Article
 
-KANUNLAR = {"5941": ("Çek Kanunu", "2009-12-14"), "6098": ("Türk Borçlar Kanunu", "2011-01-11"),
+LAWS = {"5941": ("Çek Kanunu", "2009-12-14"), "6098": ("Türk Borçlar Kanunu", "2011-01-11"),
             "6102": ("Türk Ticaret Kanunu", "2011-01-13")}
-_MADDE = re.compile(r"^[ \t]*(GEÇİCİ\s+|EK\s+)?MADDE\s*(\d+)(\s*/\s*[A-Z])?\s*[-–—]\s*", re.M)
-EN_UZUN_BASLIK = 120
+_ARTICLE = re.compile(r"^[ \t]*(GEÇİCİ\s+|EK\s+)?MADDE\s*(\d+)(\s*/\s*[A-Z])?\s*[-–—]\s*", re.M)
+MAX_TITLE_LENGTH = 120
 
 
-def pdf_metni(yol: Path) -> str:
+def pdf_text(path: Path) -> str:
     from pypdf import PdfReader
-    return "\n".join(s.extract_text() for s in PdfReader(yol).pages)
+    return "\n".join(s.extract_text() for s in PdfReader(path).pages)
 
 
-def _baslik_basi(metin: str, madde_basi: int) -> tuple[int, str]:
-    """Madde başlığının başladığı konum ve başlık. Başlık yoksa (madde_basi, "")."""
-    once = metin[:madde_basi].rstrip()
-    satir_basi = once.rfind("\n") + 1
-    satir = once[satir_basi:].strip()
-    if satir and len(satir) <= EN_UZUN_BASLIK and not satir.endswith((".", ":", ";", ",")) and "MADDE" not in satir:
-        return satir_basi, satir
-    return madde_basi, ""
+def _title_start(text: str, article_start: int) -> tuple[int, str]:
+    """Position where the article title starts, and the title. If there is no title: (article_start, "")."""
+    before = text[:article_start].rstrip()
+    line_start = before.rfind("\n") + 1
+    line = before[line_start:].strip()
+    if line and len(line) <= MAX_TITLE_LENGTH and not line.endswith((".", ":", ";", ",")) and "MADDE" not in line:
+        return line_start, line
+    return article_start, ""
 
 
-def maddelere_bol(metin: str, kanun_no: str) -> tuple[Madde, ...]:
-    belge_id = f"KANUN-{kanun_no}"
-    eslesmeler = list(_MADDE.finditer(metin))
-    baslar = [_baslik_basi(metin, e.start()) for e in eslesmeler]
-    maddeler, gorulen = [], set()
-    for i, e in enumerate(eslesmeler):
+def split_articles(text: str, law_no: str) -> tuple[Article, ...]:
+    document_id = f"KANUN-{law_no}"
+    matches = list(_ARTICLE.finditer(text))
+    title_starts = [_title_start(text, e.start()) for e in matches]
+    articles, seen = [], set()
+    for i, e in enumerate(matches):
         if e.group(1) or e.group(3):
             continue
-        no = int(e.group(2))
-        bit = baslar[i + 1][0] if i + 1 < len(eslesmeler) else len(metin)
-        govde = " ".join(metin[e.end():bit].split())
-        if no in gorulen or len(govde) < 20 or govde.startswith("(Mülga"):
+        number = int(e.group(2))
+        end = title_starts[i + 1][0] if i + 1 < len(matches) else len(text)
+        body = " ".join(text[e.end():end].split())
+        if number in seen or len(body) < 20 or body.startswith("(Mülga"):
             continue
-        gorulen.add(no)
-        maddeler.append(Madde(f"{belge_id}#m{no}", belge_id, no, baslar[i][1] or f"Madde {no}", govde, None, None))
-    return tuple(maddeler)
+        seen.add(number)
+        articles.append(Article(f"{document_id}#m{number}", document_id, number, title_starts[i][1] or f"Madde {number}", body, None, None))
+    return tuple(articles)
 
 
-def kanunlar(klasor: Path) -> list[Belge]:
-    """klasor/<kanun_no>.pdf dosyalarından kanun belgeleri (bulunanlar, kanun numarasına göre sıralı)."""
-    belgeler = []
-    for no, (ad, tarih) in sorted(KANUNLAR.items()):
-        yol = klasor / f"{no}.pdf"
-        if yol.exists():
-            belgeler.append(Belge(f"KANUN-{no}", "mevzuat", ad, None, None, None, TUM_ROLLER, tarih,
-                                  maddelere_bol(pdf_metni(yol), no)))
-    return belgeler
+def laws(directory: Path) -> list[Document]:
+    """Law documents from the files directory/<law_no>.pdf (those that exist, sorted by law number)."""
+    documents = []
+    for number, (name, date) in sorted(LAWS.items()):
+        path = directory / f"{number}.pdf"
+        if path.exists():
+            documents.append(Document(f"KANUN-{number}", "mevzuat", name, None, None, None, ALL_ROLES, date,
+                                  split_articles(pdf_text(path), number)))
+    return documents

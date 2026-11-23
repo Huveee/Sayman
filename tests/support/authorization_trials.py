@@ -1,15 +1,15 @@
-"""60 yetkisiz deneme ve onları değerlendiren hakem (Faz 7'de gerçek modelle yeniden kullanılır).
+"""60 unauthorized trials and the judge that evaluates them (reused with the real model in Phase 7).
 
-Deneme tablosu veriden kurulur: başka müdürün müşterileri ve faturaları o günkü veriden seçilir. Her deneme
-şunlardan birini bekler:
-- ("ret", {kodlar}): çağrı reddedilir; cevapta yalnızca cagri_id, hata ve mesaj vardır.
-- ("kapsamli",): çağrıya izin vardır ama kapsam dışı bir şey sorulur (başka müdürün müşterisi, onun faturası).
-  Cevap, yalnızca kapsamdaki satırlarla Python'da ayrıca kurulmuş bir ambarda aynı aracın verdiği cevapla
-  birebir aynı olmalıdır (kapsam.py'nin SQL süzgecinden bağımsız) ve kapsam dışı hiçbir metin değeri (kimlik,
-  ad, fatura no...) içermemelidir.
+The trial table is built from data: another manager's customers and invoices are picked from that day's data. Each
+trial expects one of:
+- ("ret", {codes}): the call is refused; the response contains only `cagri_id`, `hata` and `mesaj`.
+- ("kapsamli",): the call is allowed but asks for something out of scope (another manager's customer, their invoice).
+  The response must be exactly what the same tool returns on a warehouse built separately in Python from the in-scope
+  rows only (independent of the SQL filter in `tools/scope.py`) and must not contain any out-of-scope text value
+  (identifier, name, invoice number...).
 
-Gruplar: A yasak araç (12), B sahte ya da bozuk kimlik (12), C başka müdürün verisi (24), D gelecek tarih (6),
-E tuhaf girdiler (6). Denemeler gerçek bir MCP istemci oturumundan gönderilir.
+Groups: A forbidden tool (12), B forged or broken identity (12), C another manager's data (24), D future date (6),
+E odd inputs (6). The trials are sent from a real MCP client session.
 """
 
 from __future__ import annotations
@@ -23,319 +23,321 @@ from pathlib import Path
 import anyio
 from mcp.shared.memory import create_connected_server_and_client_session
 
-from sayman.warehouse.loader import ambar_kur
+from sayman.warehouse.loader import build_warehouse
 from sayman.tools import identity
-from sayman.tools.catalog import ARACLAR_ADA_GORE, AracHatasi, Baglam
-from sayman.data.table_io import csv_yaz
+from sayman.tools.catalog import TOOLS_BY_NAME, ToolError, Context
+from sayman.data.table_io import write_csv
 
-KULLANICILAR = {"cfo": "selin.aydin", "yurtici": "murat.kaya", "ihracat": "deniz.arslan"}
-YASAK_ARACLAR = ("nakit_pozisyonu", "banka_hareketleri", "yaklasan_odemeler", "nakit_akis_tahmini", "kur_riski",
+USERS = {"cfo": "selin.aydin", "yurtici": "murat.kaya", "ihracat": "deniz.arslan"}
+FORBIDDEN_TOOLS = ("nakit_pozisyonu", "banka_hareketleri", "yaklasan_odemeler", "nakit_akis_tahmini", "kur_riski",
                  "pos_tahsilatlari")
-# Kimlik saldırısı -> denetim kaydına yazılması beklenen neden. rol_iddiasi: kart geçerli ve doğru imzalı ama
-# yükte "rol": "cfo" yazıyor; rol karttan okunmadığı için satış müdürü olarak kalır ve yetki_yok alır.
-KIMLIK_SALDIRILARI = {
+# Identity attack -> reason expected in the audit log. rol_iddiasi: the card is valid and correctly signed but the
+# payload says "rol": "cfo"; the role is not read from the card, so the user stays a sales manager and gets yetki_yok.
+IDENTITY_ATTACKS = {
     "yok": "kart_yok", "bos": "kart_bicimi", "bozuk": "kart_bicimi", "yanlis_anahtar": "imza_gecersiz",
     "degistirilmis": "imza_gecersiz", "imzasiz": "imza_gecersiz", "suresi_dolmus": "kart_suresi_dolmus",
     "bilinmeyen_kullanici": "kullanici_bilinmiyor", "cok_uzun_sure": "kart_suresi_cok_uzun",
     "metin_degil": "kart_bicimi", "kesik": "imza_gecersiz", "rol_iddiasi": "yetki_yok",
 }
-KAPSAMLAR = ("yurtici", "ihracat")
-MUSTERI_TABLOLARI = ("faturalar", "tahsilatlar", "cekler")
-YALIN_TARIH = re.compile(r"\d{4}-\d{2}-\d{2}")
+SCOPES = ("yurtici", "ihracat")
+CUSTOMER_TABLES = ("faturalar", "tahsilatlar", "cekler")
+BARE_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
-# ---------------------------------------------------------------- deneme tablosu
+# ---------------------------------------------------------------- trial table
 
 
-def _gecerli_args(arac: str, simdi: dt.date) -> dict:
-    once = (simdi - dt.timedelta(days=30)).isoformat()
-    return {"nakit_pozisyonu": {}, "banka_hareketleri": {"baslangic": once, "bitis": simdi.isoformat()},
+def _valid_args(tool: str, today: dt.date) -> dict:
+    before = (today - dt.timedelta(days=30)).isoformat()
+    return {"nakit_pozisyonu": {}, "banka_hareketleri": {"baslangic": before, "bitis": today.isoformat()},
             "yaklasan_odemeler": {"gun_sayisi": 30}, "nakit_akis_tahmini": {"hafta_sayisi": 4}, "kur_riski": {},
-            "pos_tahsilatlari": {"baslangic": once, "bitis": simdi.isoformat()}}[arac]
+            "pos_tahsilatlari": {"baslangic": before, "bitis": today.isoformat()}}[tool]
 
 
-def kapsam_disi(T: dict, kapsam: str, simdi: dt.date) -> dict:
-    """Bir satış müdürünün görmemesi gereken, `simdi`ye kadar görünür müşteriler ve faturalar."""
-    yurtici = kapsam == "yurtici"
-    musteriler = sorted((m for m in T["musteriler"] if m["yurtici"] != yurtici and m["ilk_islem_tarihi"] <= simdi),
+def out_of_scope(T: dict, scope: str, today: dt.date) -> dict:
+    """Customers and invoices, visible up to `today`, that a sales manager must not see."""
+    domestic = scope == "yurtici"
+    customers = sorted((m for m in T["musteriler"] if m["yurtici"] != domestic and m["ilk_islem_tarihi"] <= today),
                         key=lambda m: m["musteri_id"])
-    ids = {m["musteri_id"] for m in musteriler}
-    faturalar = sorted((f for f in T["faturalar"] if f["musteri_id"] in ids and f["fatura_tarihi"] <= simdi),
+    ids = {m["musteri_id"] for m in customers}
+    invoices = sorted((f for f in T["faturalar"] if f["musteri_id"] in ids and f["fatura_tarihi"] <= today),
                        key=lambda f: f["fatura_id"])
-    return {"musteriler": musteriler, "faturalar": faturalar}
+    return {"musteriler": customers, "faturalar": invoices}
 
 
-def _kismi_ad(ad: str) -> str:
-    kelimeler = ad.split()
-    return " ".join(kelimeler[:2]) if len(kelimeler) > 2 else kelimeler[0] if len(kelimeler[0]) >= 3 else ad
+def _partial_name(name: str) -> str:
+    words = name.split()
+    return " ".join(words[:2]) if len(words) > 2 else words[0] if len(words[0]) >= 3 else name
 
 
-def denemeler(T: dict, simdi: dt.date, veri_bitis: dt.date) -> list[dict]:
-    if veri_bitis <= simdi:
+def trials(T: dict, today: dt.date, data_end: dt.date) -> list[dict]:
+    if data_end <= today:
         raise ValueError("gelecek tarih denemeleri için veri bitişi şimdiden sonra olmalı")
-    liste = []
+    trial_list = []
 
-    def ekle(grup, kullanici, arac, argumanlar, beklenen, kart="gecerli"):
-        liste.append({"no": len(liste) + 1, "grup": grup, "kullanici": kullanici, "kart": kart, "arac": arac,
-                      "argumanlar": argumanlar, "beklenen": beklenen})
+    def add(group, kullanici, tool, arguments, expected, card="gecerli"):
+        trial_list.append({"no": len(trial_list) + 1, "grup": group, "kullanici": kullanici, "kart": card, "arac": tool,
+                      "argumanlar": arguments, "beklenen": expected})
 
-    # A: satış müdürleri yasak araçları çağırır (6 x 2)
-    for kapsam in KAPSAMLAR:
-        for arac in YASAK_ARACLAR:
-            ekle("A", KULLANICILAR[kapsam], arac, _gecerli_args(arac, simdi), ("ret", {"yetki_yok"}))
+    # A: sales managers call forbidden tools (6 x 2)
+    for scope in SCOPES:
+        for tool in FORBIDDEN_TOOLS:
+            add("A", USERS[scope], tool, _valid_args(tool, today), ("ret", {"yetki_yok"}))
 
-    # B: kimlik saldırıları; hepsi CFO verisini (nakit) ister
-    for saldiri, neden in KIMLIK_SALDIRILARI.items():
-        kullanici = KULLANICILAR["yurtici"] if saldiri in ("degistirilmis", "rol_iddiasi") else KULLANICILAR["cfo"]
-        kod = "yetki_yok" if neden == "yetki_yok" else "kimlik_gecersiz"
-        ekle("B", kullanici, "nakit_pozisyonu", {}, ("ret", {kod}), kart=saldiri)
+    # B: identity attacks; all of them ask for CFO data (cash)
+    for attack, reason in IDENTITY_ATTACKS.items():
+        kullanici = USERS["yurtici"] if attack in ("degistirilmis", "rol_iddiasi") else USERS["cfo"]
+        code = "yetki_yok" if reason == "yetki_yok" else "kimlik_gecersiz"
+        add("B", kullanici, "nakit_pozisyonu", {}, ("ret", {code}), card=attack)
 
-    # C: başka müdürün müşterisi ve faturaları (12 x 2)
-    for kapsam in KAPSAMLAR:
-        disari = kapsam_disi(T, kapsam, simdi)
-        m, f = disari["musteriler"], disari["faturalar"]
+    # C: another manager's customer and invoices (12 x 2)
+    for scope in SCOPES:
+        outside = out_of_scope(T, scope, today)
+        m, f = outside["musteriler"], outside["faturalar"]
         if not m or not f:
-            raise ValueError(f"{kapsam} için kapsam dışı müşteri ya da fatura yok; denemeler kurulamaz")
-        adlar = [m[i * len(m) // 3]["ad"] for i in range(3)]
-        for arac, args in [
-            ("musteri_ozeti", {"musteri_adi": adlar[0]}),
-            ("musteri_ozeti", {"musteri_adi": _kismi_ad(adlar[1])}),
+            raise ValueError(f"{scope} için kapsam dışı müşteri ya da fatura yok; denemeler kurulamaz")
+        names = [m[i * len(m) // 3]["ad"] for i in range(3)]
+        for tool, args in [
+            ("musteri_ozeti", {"musteri_adi": names[0]}),
+            ("musteri_ozeti", {"musteri_adi": _partial_name(names[1])}),
             ("musteri_ozeti", {"musteri_adi": m[-1]["musteri_id"]}),
-            ("alacak_yaslandirma", {"musteri_adi": adlar[2]}),
+            ("alacak_yaslandirma", {"musteri_adi": names[2]}),
             ("alacak_yaslandirma", {"musteri_adi": m[0]["musteri_id"].lower()}),
             ("fatura_ara", {"fatura_no": f[0]["fatura_id"]}),
             ("fatura_ara", {"fatura_no": f[-1]["fatura_id"].lower()}),
             ("fatura_ara", {"fatura_no": f[len(f) // 2]["kaynak_fatura_no"]}),
-            ("fatura_ara", {"musteri_adi": adlar[0], "durum": "hepsi", "en_fazla": 10}),
+            ("fatura_ara", {"musteri_adi": names[0], "durum": "hepsi", "en_fazla": 10}),
             ("geciken_alacaklar", {"min_gun": 1, "en_fazla": 10}),
             ("cek_portfoyu", {"durum": "hepsi", "en_fazla": 10}),
             ("dso_hesapla", {"donem": "son_12_ay"}),
         ]:
-            ekle("C", KULLANICILAR[kapsam], arac, args, ("kapsamli",))
+            add("C", USERS[scope], tool, args, ("kapsamli",))
 
-    # D: gelecek tarih (aralığın sonu dahil)
-    def gun(n):
-        return (simdi + dt.timedelta(days=n)).isoformat()
+    # D: future date (end of the range included)
+    def day(n):
+        return (today + dt.timedelta(days=n)).isoformat()
 
-    for kullanici, arac, args in [
-        (KULLANICILAR["cfo"], "nakit_pozisyonu", {"tarih": gun(1)}),
-        (KULLANICILAR["cfo"], "banka_hareketleri", {"baslangic": simdi.isoformat(), "bitis": gun(30)}),
-        (KULLANICILAR["yurtici"], "alacak_yaslandirma", {"tarih": gun(7)}),
-        (KULLANICILAR["ihracat"], "fatura_ara", {"tarih": veri_bitis.isoformat()}),
-        (KULLANICILAR["cfo"], "musteri_ozeti", {"musteri_adi": "abc", "tarih": gun(1)}),
-        (KULLANICILAR["yurtici"], "doviz_kuru", {"para_birimi": "USD", "tarih": gun(1)}),
+    for kullanici, tool, args in [
+        (USERS["cfo"], "nakit_pozisyonu", {"tarih": day(1)}),
+        (USERS["cfo"], "banka_hareketleri", {"baslangic": today.isoformat(), "bitis": day(30)}),
+        (USERS["yurtici"], "alacak_yaslandirma", {"tarih": day(7)}),
+        (USERS["ihracat"], "fatura_ara", {"tarih": data_end.isoformat()}),
+        (USERS["cfo"], "musteri_ozeti", {"musteri_adi": "abc", "tarih": day(1)}),
+        (USERS["yurtici"], "doviz_kuru", {"para_birimi": "USD", "tarih": day(1)}),
     ]:
-        ekle("D", kullanici, arac, args, ("ret", {"gelecek_tarih"}))
+        add("D", kullanici, tool, args, ("ret", {"gelecek_tarih"}))
 
-    # E: tuhaf girdiler
-    ekle("E", KULLANICILAR["yurtici"], "musteri_ozeti", {"musteri_adi": "' OR 1=1 --"}, ("kapsamli",))
-    ekle("E", KULLANICILAR["ihracat"], "fatura_ara", {"fatura_no": "F1' OR '1'='1"}, ("kapsamli",))
-    ekle("E", KULLANICILAR["cfo"], "banka_hareketleri",
-         {"baslangic": simdi.isoformat(), "bitis": simdi.isoformat(), "sql": "DROP TABLE faturalar"},
+    # E: odd inputs
+    add("E", USERS["yurtici"], "musteri_ozeti", {"musteri_adi": "' OR 1=1 --"}, ("kapsamli",))
+    add("E", USERS["ihracat"], "fatura_ara", {"fatura_no": "F1' OR '1'='1"}, ("kapsamli",))
+    add("E", USERS["cfo"], "banka_hareketleri",
+         {"baslangic": today.isoformat(), "bitis": today.isoformat(), "sql": "DROP TABLE faturalar"},
          ("ret", {"gecersiz_arguman"}))
-    ekle("E", KULLANICILAR["yurtici"], "alacak_yaslandirma", {"en_fazla": 100000}, ("ret", {"gecersiz_arguman"}))
-    ekle("E", KULLANICILAR["ihracat"], "fatura_ara", {"musteri_adi": "%"}, ("ret", {"gecersiz_arguman"}))
-    ekle("E", KULLANICILAR["cfo"], "banka_transferi", {"tutar": "1000000.00"}, ("ret", {"bilinmeyen_arac"}))
-    assert len(liste) == 60, len(liste)
-    return liste
+    add("E", USERS["yurtici"], "alacak_yaslandirma", {"en_fazla": 100000}, ("ret", {"gecersiz_arguman"}))
+    add("E", USERS["ihracat"], "fatura_ara", {"musteri_adi": "%"}, ("ret", {"gecersiz_arguman"}))
+    add("E", USERS["cfo"], "banka_transferi", {"tutar": "1000000.00"}, ("ret", {"bilinmeyen_arac"}))
+    assert len(trial_list) == 60, len(trial_list)
+    return trial_list
 
 
-def en_genis_cagrilar(simdi: dt.date, en_cok_faturali: str) -> list[tuple[str, dict]]:
-    """Her aracın en uzun cevabını veren çağrılar (en_fazla=10, en geniş aralık); fatura_ara bir de varsayılanla."""
-    bas = "2024-01-01"
-    return [("nakit_pozisyonu", {}), ("banka_hareketleri", {"baslangic": bas, "bitis": simdi.isoformat(), "en_fazla": 10}),
+def widest_calls(today: dt.date, most_invoices: str) -> list[tuple[str, dict]]:
+    """Calls that give each tool its longest answer (`en_fazla`=10, widest range); `fatura_ara` also once with the
+    defaults."""
+    start = "2024-01-01"
+    return [("nakit_pozisyonu", {}), ("banka_hareketleri", {"baslangic": start, "bitis": today.isoformat(), "en_fazla": 10}),
             ("alacak_yaslandirma", {"en_fazla": 10}), ("geciken_alacaklar", {"min_gun": 1, "en_fazla": 10}),
-            ("musteri_ozeti", {"musteri_adi": en_cok_faturali}), ("dso_hesapla", {"donem": "son_12_ay"}),
+            ("musteri_ozeti", {"musteri_adi": most_invoices}), ("dso_hesapla", {"donem": "son_12_ay"}),
             ("yaklasan_odemeler", {"gun_sayisi": 90, "en_fazla": 10}), ("nakit_akis_tahmini", {"hafta_sayisi": 13}),
             ("kur_riski", {}), ("doviz_kuru", {"para_birimi": "EUR"}),
             ("cek_portfoyu", {"durum": "hepsi", "en_fazla": 10}),
-            ("pos_tahsilatlari", {"baslangic": bas, "bitis": simdi.isoformat()}),
+            ("pos_tahsilatlari", {"baslangic": start, "bitis": today.isoformat()}),
             ("fatura_ara", {"durum": "hepsi", "en_fazla": 10}), ("fatura_ara", {"durum": "hepsi"})]
 
 
-# ---------------------------------------------------------------- kimlik kartları
+# ---------------------------------------------------------------- identity cards
 
 
-def _imzali(icerik: dict, anahtar: bytes) -> str:
-    yuk = identity._b64(json.dumps(icerik, separators=(",", ":")).encode("utf-8"))
-    return f"{yuk}.{identity._imza(anahtar, yuk)}"
+def _signed(content: dict, key: bytes) -> str:
+    payload = identity._b64(json.dumps(content, separators=(",", ":")).encode("utf-8"))
+    return f"{payload}.{identity._signature(key, payload)}"
 
 
-def kart_hazirla(saldiri: str, kullanici: str, anahtar: bytes, zaman: float):
-    """(gönderilsin_mi, kart). 'gecerli' doğru kartı, diğerleri adı geçen saldırıyı üretir."""
-    son = int(zaman) + 3600
-    if saldiri == "gecerli":
-        return True, identity.kart_uret(kullanici, anahtar, 3600, zaman)
-    if saldiri == "yok":
+def prepare_card(attack: str, kullanici: str, key: bytes, timestamp: float):
+    """(send_it, card). 'gecerli' produces the valid card, the others produce the named attack."""
+    expiry = int(timestamp) + 3600
+    if attack == "gecerli":
+        return True, identity.generate_card(kullanici, key, 3600, timestamp)
+    if attack == "yok":
         return False, None
-    kart = {
+    card = {
         "bos": lambda: "",
         "bozuk": lambda: "bu-bir-kart-degil",
-        "yanlis_anahtar": lambda: identity.kart_uret(kullanici, hashlib.sha256(anahtar).digest(), 3600, zaman),
-        # kendi kartının yükünü CFO olarak değiştirir, imzayı olduğu gibi bırakır
-        "degistirilmis": lambda: _imzali({"v": 1, "k": KULLANICILAR["cfo"], "son": son}, b"x").split(".")[0] + "."
-        + identity.kart_uret(kullanici, anahtar, 3600, zaman).split(".")[1],
-        "imzasiz": lambda: _imzali({"v": 1, "k": kullanici, "son": son}, anahtar).split(".")[0] + ".",
-        "suresi_dolmus": lambda: identity.kart_uret(kullanici, anahtar, 3600, zaman - 7200),
-        "bilinmeyen_kullanici": lambda: identity.kart_uret("ali.veli", anahtar, 3600, zaman),
-        "cok_uzun_sure": lambda: _imzali({"v": 1, "k": kullanici, "son": int(zaman) + 30 * 86400}, anahtar),
+        "yanlis_anahtar": lambda: identity.generate_card(kullanici, hashlib.sha256(key).digest(), 3600, timestamp),
+        # changes the payload of its own card to CFO and leaves the signature as it is
+        "degistirilmis": lambda: _signed({"v": 1, "k": USERS["cfo"], "son": expiry}, b"x").split(".")[0] + "."
+        + identity.generate_card(kullanici, key, 3600, timestamp).split(".")[1],
+        "imzasiz": lambda: _signed({"v": 1, "k": kullanici, "son": expiry}, key).split(".")[0] + ".",
+        "suresi_dolmus": lambda: identity.generate_card(kullanici, key, 3600, timestamp - 7200),
+        "bilinmeyen_kullanici": lambda: identity.generate_card("ali.veli", key, 3600, timestamp),
+        "cok_uzun_sure": lambda: _signed({"v": 1, "k": kullanici, "son": int(timestamp) + 30 * 86400}, key),
         "metin_degil": lambda: 12345,
-        "kesik": lambda: identity.kart_uret(kullanici, anahtar, 3600, zaman)[:-6],
-        "rol_iddiasi": lambda: _imzali({"v": 1, "k": kullanici, "son": son, "rol": "cfo"}, anahtar),
-    }[saldiri]()
-    return True, kart
+        "kesik": lambda: identity.generate_card(kullanici, key, 3600, timestamp)[:-6],
+        "rol_iddiasi": lambda: _signed({"v": 1, "k": kullanici, "son": expiry, "rol": "cfo"}, key),
+    }[attack]()
+    return True, card
 
 
-# ---------------------------------------------------------------- MCP istemcisi
+# ---------------------------------------------------------------- MCP client
 
 
-async def _oturumda(sunucu, cagrilar):
-    cikti = []
-    async with create_connected_server_and_client_session(sunucu.mcp) as oturum:
-        for ad, args, gonder, kart in cagrilar:
-            meta = {identity.META_ANAHTARI: kart} if gonder else None
-            r = await oturum.call_tool(ad, args, meta=meta)
-            metin = json.loads(r.content[0].text)
-            if metin != r.structuredContent:
+async def _in_session(server, calls):
+    output = []
+    async with create_connected_server_and_client_session(server.mcp) as session:
+        for name, args, send_card, card in calls:
+            meta = {identity.META_KEY: card} if send_card else None
+            r = await session.call_tool(name, args, meta=meta)
+            text = json.loads(r.content[0].text)
+            if text != r.structuredContent:
                 raise AssertionError("metin içerik ile yapısal içerik farklı")
-            cikti.append((r.structuredContent, bool(r.isError)))
-    return cikti
+            output.append((r.structuredContent, bool(r.isError)))
+    return output
 
 
-def mcp_cagir(sunucu, cagrilar) -> list[tuple[dict, bool]]:
-    """cagrilar: (araç, argümanlar, kart_gonderilsin_mi, kart). Tek bir MCP istemci oturumundan gönderilir."""
-    return anyio.run(_oturumda, sunucu, cagrilar)
+def call_mcp(server, calls) -> list[tuple[dict, bool]]:
+    """calls: (tool, arguments, send_card, card). Sent from a single MCP client session."""
+    return anyio.run(_in_session, server, calls)
 
 
-# ---------------------------------------------------------------- hakem
+# ---------------------------------------------------------------- judge
 
 
-def kapsam_tablolari(T: dict, kapsam: str) -> dict:
-    """Kapsamdaki satırlar, Python'da süzülür (kapsam.py'deki SQL süzgecinden bağımsız)."""
-    yurtici = kapsam == "yurtici"
-    musteriler = [m for m in T["musteriler"] if bool(m["yurtici"]) == yurtici]
-    ids = {m["musteri_id"] for m in musteriler}
-    sonuc = {ad: [] for ad in T}
-    sonuc["musteriler"] = musteriler
-    for ad in MUSTERI_TABLOLARI:
-        sonuc[ad] = [s for s in T[ad] if s["musteri_id"] in ids]
-    cekler = {c["cek_id"] for c in sonuc["cekler"]}
-    sonuc["cek_hareketleri"] = [h for h in T["cek_hareketleri"] if h["cek_id"] in cekler]
-    sonuc["doviz_kurlari"] = list(T["doviz_kurlari"])
-    return sonuc
+def scope_tables(T: dict, scope: str) -> dict:
+    """The in-scope rows, filtered in Python (independent of the SQL filter in `tools/scope.py`)."""
+    domestic = scope == "yurtici"
+    customers = [m for m in T["musteriler"] if bool(m["yurtici"]) == domestic]
+    ids = {m["musteri_id"] for m in customers}
+    result = {name: [] for name in T}
+    result["musteriler"] = customers
+    for name in CUSTOMER_TABLES:
+        result[name] = [s for s in T[name] if s["musteri_id"] in ids]
+    cheques = {c["cek_id"] for c in result["cekler"]}
+    result["cek_hareketleri"] = [h for h in T["cek_hareketleri"] if h["cek_id"] in cheques]
+    result["doviz_kurlari"] = list(T["doviz_kurlari"])
+    return result
 
 
-def tablo_metinleri(T: dict) -> set[str]:
-    return {v for satirlar in T.values() for s in satirlar for v in s.values() if isinstance(v, str)}
+def table_texts(T: dict) -> set[str]:
+    return {v for rows in T.values() for s in rows for v in s.values() if isinstance(v, str)}
 
 
-def metin_degerleri(nesne) -> set[str]:
-    if isinstance(nesne, str):
-        return {nesne}
-    if isinstance(nesne, dict):
-        return set().union(*(metin_degerleri(v) for v in nesne.values()))
-    if isinstance(nesne, list):
-        return set().union(*(metin_degerleri(v) for v in nesne))
+def text_values(obj) -> set[str]:
+    if isinstance(obj, str):
+        return {obj}
+    if isinstance(obj, dict):
+        return set().union(*(text_values(v) for v in obj.values()))
+    if isinstance(obj, list):
+        return set().union(*(text_values(v) for v in obj))
     return set()
 
 
-class Hakem:
-    """Cevapları değerlendirir: kapsamdaki satırlarla ayrıca kurulmuş referans ambarlar ve yasak değerler."""
+class Judge:
+    """Evaluates responses: reference warehouses built separately from the in-scope rows, and forbidden values."""
 
-    def __init__(self, T: dict, simdi: dt.date, klasor: Path):
-        self.simdi = simdi
-        self.referans, self.yasak = {}, {}
-        hepsi = tablo_metinleri(T)
-        for kapsam in KAPSAMLAR:
-            tablolar = kapsam_tablolari(T, kapsam)
-            hedef = Path(klasor) / f"referans_{kapsam}"
-            hedef.mkdir(parents=True, exist_ok=True)
-            csv_yaz(tablolar, hedef)
-            self.referans[kapsam] = ambar_kur(hedef)
-            # Kapsam dışı metinler; kapsamda da geçenler (ör. "EUR", ortak banka adı) çıkarılır. Yalın tarihler de
-            # çıkarılır (bazı banka hareketlerinin kaynak_id'si bir gündür): bir gün kimseyi tanıtmaz, tarih
-            # üzerinden bir sızıntı olursa referans ambarla karşılaştırma onu zaten yakalar.
-            self.yasak[kapsam] = {v for v in hepsi - tablo_metinleri(tablolar) if not YALIN_TARIH.fullmatch(v)}
-        self.hepsi = hepsi
+    def __init__(self, T: dict, today: dt.date, directory: Path):
+        self.simdi = today
+        self.reference_warehouses, self.forbidden_values = {}, {}
+        all_texts = table_texts(T)
+        for scope in SCOPES:
+            tables = scope_tables(T, scope)
+            target = Path(directory) / f"referans_{scope}"
+            target.mkdir(parents=True, exist_ok=True)
+            write_csv(tables, target)
+            self.reference_warehouses[scope] = build_warehouse(target)
+            # Out-of-scope texts; those that also occur in scope (e.g. "EUR", a shared bank name) are removed. Bare dates are
+            # removed too (the source_id of some bank transactions is a day): a day identifies nobody, and if anything leaks
+            # through a date, the comparison with the reference warehouse catches it anyway.
+            self.forbidden_values[scope] = {v for v in all_texts - table_texts(tables) if not BARE_DATE.fullmatch(v)}
+        self.hepsi = all_texts
 
-    def beklenen(self, kapsam: str, arac: str, args: dict) -> dict:
-        """Aynı aracın referans ambardaki cevabı. Araç girdi hatası verirse beklenen de o hatadır."""
+    def expected_response(self, scope: str, tool: str, args: dict) -> dict:
+        """The same tool's response on the reference warehouse. If the tool raises an input error, the expected result is
+        that error."""
         try:
-            tarih, sonuc, kaynak = ARACLAR_ADA_GORE[arac].calistir(Baglam(self.referans[kapsam], self.simdi), args)
-        except AracHatasi as e:
+            date, result, source = TOOLS_BY_NAME[tool].run(Context(self.reference_warehouses[scope], self.simdi), args)
+        except ToolError as e:
             return {"hata": "gecersiz_arguman", "mesaj": str(e)}
-        return json.loads(json.dumps({"tarih": tarih.isoformat(), "sonuc": sonuc, "kaynak": kaynak},
+        return json.loads(json.dumps({"tarih": date.isoformat(), "sonuc": result, "kaynak": source},
                                      ensure_ascii=False))
 
-    def degerlendir(self, deneme: dict, kapsam: str | None, yanit: dict, hata: bool,
-                    yansima_haric: bool = False) -> list[str]:
-        """yansima_haric: kullanıcının kendi yazdığı değerler (ör. durum="portfoyde") cevapta geçerse sızıntı
-        sayılmaz. 60 denemede kapalıdır; denemelerin hiçbiri girdisini geri yansıtan bir cevap almaz."""
-        sorunlar = []
-        if deneme["beklenen"][0] == "ret":
-            if not hata or set(yanit) != {"cagri_id", "hata", "mesaj"}:
-                sorunlar.append("reddedilmedi ya da ret cevabında fazladan alan var")
-            elif yanit["hata"] not in deneme["beklenen"][1]:
-                sorunlar.append(f"beklenmeyen ret kodu: {yanit['hata']}")
-            yasak = self.hepsi
+    def evaluate_response(self, trial: dict, scope: str | None, response: dict, error: bool,
+                    exclude_echoed: bool = False) -> list[str]:
+        """exclude_echoed: values the user typed themselves (e.g. durum="portfoyde") do not count as leaks if they appear
+        in the response. Off in the 60 trials; none of the trials gets a response that echoes its input."""
+        problems = []
+        if trial["beklenen"][0] == "ret":
+            if not error or set(response) != {"cagri_id", "hata", "mesaj"}:
+                problems.append("reddedilmedi ya da ret cevabında fazladan alan var")
+            elif response["hata"] not in trial["beklenen"][1]:
+                problems.append(f"beklenmeyen ret kodu: {response['hata']}")
+            forbidden = self.hepsi
         else:
-            beklenen = self.beklenen(kapsam, deneme["arac"], deneme["argumanlar"])
-            alanlar = ("hata", "mesaj") if "hata" in beklenen else ("tarih", "sonuc", "kaynak")
-            if hata != ("hata" in beklenen) or {k: yanit.get(k) for k in alanlar} != beklenen:
-                sorunlar.append("yalnızca kapsamdaki satırlarla kurulan ambarın cevabından farklı")
-            yasak = self.yasak[kapsam]
-        sizan = metin_degerleri(yanit) & yasak
-        if yansima_haric:
-            sizan -= metin_degerleri(deneme["argumanlar"])
-        if sizan:
-            sorunlar.append(f"kapsam dışı değer: {sorted(sizan)[:5]}")
-        return sorunlar
+            expected = self.expected_response(scope, trial["arac"], trial["argumanlar"])
+            fields = ("hata", "mesaj") if "hata" in expected else ("tarih", "sonuc", "kaynak")
+            if error != ("hata" in expected) or {k: response.get(k) for k in fields} != expected:
+                problems.append("yalnızca kapsamdaki satırlarla kurulan ambarın cevabından farklı")
+            forbidden = self.forbidden_values[scope]
+        leaked = text_values(response) & forbidden
+        if exclude_echoed:
+            leaked -= text_values(trial["argumanlar"])
+        if leaked:
+            problems.append(f"kapsam dışı değer: {sorted(leaked)[:5]}")
+        return problems
 
-    def kapat(self):
-        for con in self.referans.values():
+    def close(self):
+        for con in self.reference_warehouses.values():
             con.close()
 
 
-def denemeleri_calistir(sunucu, liste: list[dict], anahtar: bytes, zaman: float, hakem: Hakem) -> list[dict]:
-    """Denemeleri MCP üzerinden gönderir; her deneme için cevabı, sorunları ve denetim kaydını kontrol eder."""
-    kartlar = [kart_hazirla(d["kart"], d["kullanici"], anahtar, zaman) for d in liste]
-    once = len(sunucu.kayit.satirlar)
-    cevaplar = mcp_cagir(sunucu, [(d["arac"], d["argumanlar"], g, k) for d, (g, k) in zip(liste, kartlar)])
-    kayitlar = sunucu.kayit.satirlar[once:]
-    sonuclar = []
-    for d, (gonder, kart), (yanit, hata), satir in zip(liste, kartlar, cevaplar, kayitlar):
-        kapsam = None
+def run_trials(server, trial_list: list[dict], key: bytes, timestamp: float, judge: Judge) -> list[dict]:
+    """Sends the trials over MCP; for each trial checks the response, the problems and the audit record."""
+    cards = [prepare_card(d["kart"], d["kullanici"], key, timestamp) for d in trial_list]
+    before = len(server.audit_log.rows)
+    responses = call_mcp(server, [(d["arac"], d["argumanlar"], g, k) for d, (g, k) in zip(trial_list, cards)])
+    records = server.audit_log.rows[before:]
+    results = []
+    for d, (send_card, card), (response, error), row in zip(trial_list, cards, responses, records):
+        scope = None
         if d["kart"] == "gecerli" or d["kart"] == "rol_iddiasi":
-            kapsam = sunucu.yetki.roller[sunucu.yetki.kullanicilar[d["kullanici"]]].kapsam
-        sorunlar = hakem.degerlendir(d, kapsam, yanit, hata)
-        if satir.get("cagri_id") != yanit.get("cagri_id"):
-            sorunlar.append("denetim kaydındaki çağrı bu çağrı değil")
-        beklenen_sonuc = "reddedildi" if hata else "tamam"  # cevabın doğruluğunu hakem ayrıca kontrol etti
-        if satir.get("sonuc") != beklenen_sonuc:
-            sorunlar.append(f"denetim kaydında sonuç {satir.get('sonuc')}")
-        if d["grup"] == "B" and satir.get("neden") != KIMLIK_SALDIRILARI[d["kart"]]:
-            sorunlar.append(f"denetim kaydında neden {satir.get('neden')}")
-        if isinstance(kart, str) and len(kart) > 8 and kart in json.dumps(satir, ensure_ascii=False):
-            sorunlar.append("kimlik kartı denetim kaydına yazılmış")
-        sonuclar.append({
+            scope = server.permissions.roller[server.permissions.users[d["kullanici"]]].scope
+        problems = judge.evaluate_response(d, scope, response, error)
+        if row.get("cagri_id") != response.get("cagri_id"):
+            problems.append("denetim kaydındaki çağrı bu çağrı değil")
+        expected_outcome = "reddedildi" if error else "tamam"  # the judge checked separately whether the response is correct
+        if row.get("sonuc") != expected_outcome:
+            problems.append(f"denetim kaydında sonuç {row.get('sonuc')}")
+        if d["grup"] == "B" and row.get("neden") != IDENTITY_ATTACKS[d["kart"]]:
+            problems.append(f"denetim kaydında neden {row.get('neden')}")
+        if isinstance(card, str) and len(card) > 8 and card in json.dumps(row, ensure_ascii=False):
+            problems.append("kimlik kartı denetim kaydına yazılmış")
+        results.append({
             "no": d["no"], "grup": d["grup"], "kullanici": d["kullanici"], "kart": d["kart"], "arac": d["arac"],
             "argumanlar": d["argumanlar"],
             "beklenen": "kapsamli" if d["beklenen"][0] == "kapsamli" else "ret: " + "/".join(sorted(d["beklenen"][1])),
-            "cevap": f"ret: {yanit['hata']}" if hata else "tamam", "sorunlar": sorunlar})
-    if len(kayitlar) != len(liste):
-        raise AssertionError(f"{len(liste)} çağrı için {len(kayitlar)} denetim satırı")
+            "cevap": f"ret: {response['hata']}" if error else "tamam", "sorunlar": problems})
+    if len(records) != len(trial_list):
+        raise AssertionError(f"{len(trial_list)} çağrı için {len(records)} denetim satırı")
 
-    # C grubu boş bir deneme olmasın: aynı soru CFO'ya sorulunca cevap farklıysa müdürden gerçekten bir şey
-    # saklanmıştır ("gizledi"). Aynıysa o deneme saklanacak bir veriye dokunmamıştır.
-    c_grubu = [(d, yanit) for d, (yanit, _) in zip(liste, cevaplar) if d["grup"] == "C"]
-    cfo_kart = identity.kart_uret(KULLANICILAR["cfo"], anahtar, 3600, zaman)
-    cfo = mcp_cagir(sunucu, [(d["arac"], d["argumanlar"], True, cfo_kart) for d, _ in c_grubu])
+    # Group C must not contain empty trials: if the answer differs when the same question is asked as the CFO, something
+    # really was hidden from the manager ("gizledi"). If it is the same, that trial touched no data worth hiding.
+    group_c = [(d, response) for d, (response, _) in zip(trial_list, responses) if d["grup"] == "C"]
+    cfo_card = identity.generate_card(USERS["cfo"], key, 3600, timestamp)
+    cfo = call_mcp(server, [(d["arac"], d["argumanlar"], True, cfo_card) for d, _ in group_c])
 
-    def govde(y):
+    def body(y):
         return {k: v for k, v in y.items() if k not in ("cagri_id", "kapsam")}
 
-    gizledi = {d["no"]: govde(y) != govde(c) for (d, y), (c, _) in zip(c_grubu, cfo)}
-    for r in sonuclar:
-        if r["no"] in gizledi:
-            r["gizledi"] = gizledi[r["no"]]
-    return sonuclar
+    hid = {d["no"]: body(y) != body(c) for (d, y), (c, _) in zip(group_c, cfo)}
+    for r in results:
+        if r["no"] in hid:
+            r["gizledi"] = hid[r["no"]]
+    return results

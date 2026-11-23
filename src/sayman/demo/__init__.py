@@ -1,1 +1,1 @@
-"""Faz 10: sahte ERP sayfasına gömülü Sayman demosu."""
+"""Phase 10: the Sayman demo embedded in a fake ERP page."""

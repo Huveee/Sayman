@@ -1,36 +1,36 @@
-"""Araç çağrısı geçerlilik kontrolü ve seçim kuralı için birim testleri (sahte veriyle)."""
+"""Unit tests for tool-call validity checking and the selection rule (with fake data)."""
 
 from __future__ import annotations
 
 import pytest
 
 from sayman.model_selection.call_validation import (
-    arac_cagrisi_gecerli_mi,
-    beklenen_cagri_mi,
-    cevap_gecerli_mi,
-    secim_kurali,
+    is_tool_call_valid,
+    is_expected_call,
+    is_response_valid,
+    selection_rule,
 )
 
 
-def _gecerli(ad, argumanlar):
-    return arac_cagrisi_gecerli_mi({"ad": ad, "argumanlar": argumanlar})
+def _validate(name, arguments):
+    return is_tool_call_valid({"ad": name, "argumanlar": arguments})
 
 
-def test_dogru_cagri_gecerli():
-    assert _gecerli("geciken_alacaklar", {"min_gun": 60}) == (True, "geçerli")
+def test_correct_call_is_valid():
+    assert _validate("geciken_alacaklar", {"min_gun": 60}) == (True, "geçerli")
 
 
-def test_argumansiz_arac_bos_argumanla_gecerli():
-    assert _gecerli("nakit_pozisyonu", {})[0]
-    assert _gecerli("nakit_pozisyonu", None)[0]
+def test_tool_without_arguments_is_valid_with_empty_arguments():
+    assert _validate("nakit_pozisyonu", {})[0]
+    assert _validate("nakit_pozisyonu", None)[0]
 
 
-def test_json_metni_olarak_gelen_argumanlar_cozulur():
-    assert _gecerli("doviz_kuru", '{"para_birimi": "USD"}')[0]
+def test_arguments_arriving_as_json_text_are_parsed():
+    assert _validate("doviz_kuru", '{"para_birimi": "USD"}')[0]
 
 
 @pytest.mark.parametrize(
-    "ad, argumanlar, neden_parcasi",
+    "name, arguments, reason_part",
     [
         ("para_transferi_yap", {}, "bilinmeyen araç"),
         ("geciken_alacaklar", {}, "eksik zorunlu alan"),
@@ -44,64 +44,64 @@ def test_json_metni_olarak_gelen_argumanlar_cozulur():
         ("doviz_kuru", "[1, 2]", "JSON nesnesi değil"),
     ],
 )
-def test_gecersiz_cagrilar_yakalanir(ad, argumanlar, neden_parcasi):
-    gecerli, neden = _gecerli(ad, argumanlar)
-    assert not gecerli
-    assert neden_parcasi in neden
+def test_invalid_calls_are_caught(name, arguments, reason_part):
+    valid, reason = _validate(name, arguments)
+    assert not valid
+    assert reason_part in reason
 
 
-def test_cagri_yoksa_gecersiz():
-    assert cevap_gecerli_mi([]) == (False, "araç çağrısı yok")
+def test_no_call_is_invalid():
+    assert is_response_valid([]) == (False, "araç çağrısı yok")
 
 
-def test_birden_fazla_cagride_biri_bozuksa_gecersiz():
-    cagrilar = [
+def test_one_broken_call_among_several_makes_it_invalid():
+    calls = [
         {"ad": "nakit_pozisyonu", "argumanlar": {}},
         {"ad": "geciken_alacaklar", "argumanlar": {}},
     ]
-    assert not cevap_gecerli_mi(cagrilar)[0]
+    assert not is_response_valid(calls)[0]
 
 
-def test_beklenen_cagri_arac_ve_argumanlara_bakar():
-    cagrilar = [{"ad": "geciken_alacaklar", "argumanlar": {"min_gun": 60, "en_fazla": 10}}]
-    assert beklenen_cagri_mi(cagrilar, "geciken_alacaklar", {"min_gun": 60})
-    assert not beklenen_cagri_mi(cagrilar, "geciken_alacaklar", {"min_gun": 30})
-    assert not beklenen_cagri_mi(cagrilar, "alacak_yaslandirma", {})
+def test_expected_call_checks_tool_and_arguments():
+    calls = [{"ad": "geciken_alacaklar", "argumanlar": {"min_gun": 60, "en_fazla": 10}}]
+    assert is_expected_call(calls, "geciken_alacaklar", {"min_gun": 60})
+    assert not is_expected_call(calls, "geciken_alacaklar", {"min_gun": 30})
+    assert not is_expected_call(calls, "alacak_yaslandirma", {})
 
 
-def _aday(model, milyar, sureler, gecerli_sayisi):
-    turlar = [{"sure_s": s, "gecerli": i < gecerli_sayisi} for i, s in enumerate(sureler)]
-    return {"model": model, "parametre_milyar": milyar, "turlar": turlar}
+def _candidate(model, billions, durations, valid_count):
+    turns = [{"sure_s": s, "gecerli": i < valid_count} for i, s in enumerate(durations)]
+    return {"model": model, "parametre_milyar": billions, "turlar": turns}
 
 
-def test_kurali_saglayan_en_buyuk_model_secilir():
-    adaylar = [
-        _aday("kucuk", 4, [5, 6, 5, 7, 6], 5),
-        _aday("buyuk", 9, [20, 25, 22, 30, 21], 5),
+def test_largest_model_satisfying_the_rule_is_selected():
+    candidates = [
+        _candidate("kucuk", 4, [5, 6, 5, 7, 6], 5),
+        _candidate("buyuk", 9, [20, 25, 22, 30, 21], 5),
     ]
-    assert secim_kurali(adaylar) == "buyuk"
+    assert selection_rule(candidates) == "buyuk"
 
 
-def test_tek_turu_esigi_asan_model_elenir():
-    adaylar = [
-        _aday("kucuk", 4, [5, 6, 5, 7, 6], 5),
-        _aday("buyuk", 9, [20, 25, 22, 30.5, 21], 5),
+def test_model_with_one_turn_over_the_threshold_is_eliminated():
+    candidates = [
+        _candidate("kucuk", 4, [5, 6, 5, 7, 6], 5),
+        _candidate("buyuk", 9, [20, 25, 22, 30.5, 21], 5),
     ]
-    assert secim_kurali(adaylar) == "kucuk"
+    assert selection_rule(candidates) == "kucuk"
 
 
-def test_bes_soruda_bes_gecerli_olmayan_elenir():
-    adaylar = [
-        _aday("kucuk", 4, [5, 6, 5, 7, 6], 5),
-        _aday("buyuk", 9, [10, 10, 10, 10, 10], 4),
+def test_candidate_without_five_valid_in_five_questions_is_eliminated():
+    candidates = [
+        _candidate("kucuk", 4, [5, 6, 5, 7, 6], 5),
+        _candidate("buyuk", 9, [10, 10, 10, 10, 10], 4),
     ]
-    assert secim_kurali(adaylar) == "kucuk"
+    assert selection_rule(candidates) == "kucuk"
 
 
-def test_eksik_tur_olan_elenir():
-    assert secim_kurali([_aday("eksik", 9, [5, 5, 5, 5], 4)]) is None
+def test_candidate_with_a_missing_turn_is_eliminated():
+    assert selection_rule([_candidate("eksik", 9, [5, 5, 5, 5], 4)]) is None
 
 
-def test_kimse_gecmezse_secim_yok():
-    adaylar = [_aday("kucuk", 4, [31, 6, 5, 7, 6], 5), _aday("buyuk", 9, [5, 5, 5, 5, 5], 3)]
-    assert secim_kurali(adaylar) is None
+def test_no_selection_when_nobody_passes():
+    candidates = [_candidate("kucuk", 4, [31, 6, 5, 7, 6], 5), _candidate("buyuk", 9, [5, 5, 5, 5, 5], 3)]
+    assert selection_rule(candidates) is None

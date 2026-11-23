@@ -1,16 +1,17 @@
-"""Faz 8 karşılaştırması: temel model (Faz 7 ölçümü) ile ince ayarlı model, aynı sorularda soru soru.
+"""Phase 8 comparison: the base model (Phase 7 measurement) and the fine-tuned model, question by question on the same questions.
 
-İki ölçüm raporunu (`reports/<etiket>_olcum_<set>.json`) okur. Önce ikisinin aynı soru setiyle ve aynı sistemle
-(istem, kod, araçlar, belgeler) alındığını denetler; değilse durur. Sonra iki tablo yazar:
+Reads the two measurement reports (`reports/<label>_olcum_<set>.json`). It first checks that both were taken with the same
+question set and the same system (prompt, code, tools, documents) and stops otherwise. Then it writes two tables:
 
-- hedef tablosu: Faz 7 hedefleri, iki modelin değeri ve geçip geçmediği;
-- eşleştirme: her metrikte iyileşen / kötüleşen soru sayısı ve McNemar p değeri. Araç soruları ayrıca "eğitimde
-  yok" (Faz 8 eğitiminin hiç görmediği 8 şablon) ve "eğitimde var" diye ayrılır; yetkisiz denemeler türlerine göre.
+- target table: the Phase 7 targets, the value of each model and whether it passed;
+- pairing: for each metric the number of questions that improved / got worse and the McNemar p value. Tool questions are also
+  split into "not in training" (the 8 templates that Phase 8 training never saw) and "in training"; unauthorized attempts
+  are split by kind.
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz8_karsilastir.py --set gelistirme
-    .venv\\Scripts\\python -I scripts\\faz8_karsilastir.py --set saklanan
-    .venv\\Scripts\\python -I scripts\\faz8_karsilastir.py --set gelistirme --temel faz7 --ayarli faz7   # deneme
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase08_compare.py --set gelistirme
+    .venv\\Scripts\\python -I scripts\\phase08_compare.py --set saklanan
+    .venv\\Scripts\\python -I scripts\\phase08_compare.py --set gelistirme --temel faz7 --ayarli faz7   # trial
 """
 
 from __future__ import annotations
@@ -20,88 +21,88 @@ import json
 import sys
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
-sys.path.insert(0, str(KOK / "tests"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests"))
 
-from support.phase08_training_questions import HARIC_NIYETLER  # noqa: E402
+from support.phase08_training_questions import EXCLUDED_INTENTS  # noqa: E402
 from sayman.evaluation import pairing  # noqa: E402
 
-SORU_SETI = KOK / "reports" / "faz7_soru_seti.json"
+QUESTION_SET = ROOT / "reports" / "faz7_soru_seti.json"
 
 
-def rapor(etiket: str, kume: str) -> dict:
-    p = KOK / "reports" / f"{etiket}_olcum_{kume}.json"
+def load_report(label: str, subset: str) -> dict:
+    p = ROOT / "reports" / f"{label}_olcum_{subset}.json"
     if not p.exists():
-        raise SystemExit(f"rapor yok: {p.relative_to(KOK)}")
+        raise SystemExit(f"rapor yok: {p.relative_to(ROOT)}")
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def denetle(t: dict, a: dict) -> list[str]:
-    """Karşılaştırmayı geçersiz kılacak farklar (hata) ve dikkat edilecekler (uyarı)."""
-    hatalar = []
-    for alan in ("set", "soru_seti_ozeti"):
-        if t[alan] != a[alan]:
-            hatalar.append(f"{alan} farklı: {t[alan]} ↔ {a[alan]}")
-    if t["sistem"]["ozet"] != a["sistem"]["ozet"]:
-        farkli = [k for k in t["sistem"] if t["sistem"][k] != a["sistem"].get(k)]
-        hatalar.append(f"sistem özeti farklı ({', '.join(farkli)})")
-    for ad, r in (("temel", t), ("ayarli", a)):
-        bitti, toplam = r["tamamlanan"].split("/")
-        if bitti != toplam:
-            hatalar.append(f"{ad} ölçümü bitmemiş: {r['tamamlanan']}")
-    if [h["ad"] for h in t["hedefler"]] != [h["ad"] for h in a["hedefler"]]:
-        hatalar.append("hedef listeleri farklı")
-    return hatalar
+def check_comparable(base: dict, tuned: dict) -> list[str]:
+    """Differences that invalidate the comparison (errors) and points to watch (warnings)."""
+    errors = []
+    for field in ("set", "soru_seti_ozeti"):
+        if base[field] != tuned[field]:
+            errors.append(f"{field} farklı: {base[field]} ↔ {tuned[field]}")
+    if base["sistem"]["ozet"] != tuned["sistem"]["ozet"]:
+        differing = [k for k in base["sistem"] if base["sistem"][k] != tuned["sistem"].get(k)]
+        errors.append(f"sistem özeti farklı ({', '.join(differing)})")
+    for name, r in (("temel", base), ("ayarli", tuned)):
+        done, total = r["tamamlanan"].split("/")
+        if done != total:
+            errors.append(f"{name} ölçümü bitmemiş: {r['tamamlanan']}")
+    if [h["ad"] for h in base["hedefler"]] != [h["ad"] for h in tuned["hedefler"]]:
+        errors.append("hedef listeleri farklı")
+    return errors
 
 
-def ozetle_uyusuyor_mu(r: dict, sonuc_bolum: dict, taraf: str) -> list[str]:
-    """Bu modülün oranları Faz 7 özetindekilerle aynı mı? Tanım kayarsa karşılaştırma yanlış olur."""
-    farklar = []
-    for bolum, kayit in sonuc_bolum.items():
-        for ad, satir in kayit["metrikler"].items():
-            beklenen = r["ozet"][bolum].get(ad)
-            if beklenen is None:
+def summary_differences(r: dict, section_result: dict, side: str) -> list[str]:
+    """Are this script's rates the same as those in the Phase 7 summary? If a definition drifts the comparison is wrong."""
+    differences = []
+    for section, record in section_result.items():
+        for name, row in record["metrikler"].items():
+            expected = r["ozet"][section].get(name)
+            if expected is None:
                 continue
-            bulunan = satir[taraf]
-            if isinstance(beklenen, int) and not isinstance(beklenen, bool):  # sızıntı özette sayıdır
-                bulunan = round(bulunan * satir["n"])
-            if beklenen != bulunan:
-                farklar.append(f"{taraf} {bolum}.{ad}: özet {beklenen}, eşleştirme {bulunan}")
-    return farklar
+            found = row[side]
+            if isinstance(expected, int) and not isinstance(expected, bool):  # leakage is a count in the summary
+                found = round(found * row["n"])
+            if expected != found:
+                differences.append(f"{side} {section}.{name}: özet {expected}, eşleştirme {found}")
+    return differences
 
 
-def gruplar(kume: str) -> dict[str, str]:
-    seti = json.loads(SORU_SETI.read_text(encoding="utf-8"))
+def groups(subset: str) -> dict[str, str]:
+    question_set = json.loads(QUESTION_SET.read_text(encoding="utf-8"))
     g = {}
-    for s in seti["sorular"]:
-        if s["set"] != kume:
+    for s in question_set["sorular"]:
+        if s["set"] != subset:
             continue
         if s["bolum"] == "arac":
-            g[s["soru_id"]] = "egitimde_yok" if s["sablon"] in HARIC_NIYETLER else "egitimde_var"
+            g[s["soru_id"]] = "egitimde_yok" if s["sablon"] in EXCLUDED_INTENTS else "egitimde_var"
         elif s["bolum"] == "yetkisiz":
             g[s["soru_id"]] = s["tur"]
     return g
 
 
-def yaz_tablo(sonuc: dict) -> None:
-    print(f"\nHedefler ({sonuc['set']}, {sonuc['temel']} ↔ {sonuc['ayarli']})")
+def print_tables(result: dict) -> None:
+    print(f"\nHedefler ({result['set']}, {result['temel']} ↔ {result['ayarli']})")
     print(f"  {'hedef':26} {'eşik':>8} {'temel':>8}    {'ayarlı':>8}")
-    for h in sonuc["hedefler"]:
-        isaret = "≤" if h["yon"] == "en_cok" else "≥"
-        print(f"  {h['ad']:26} {isaret}{h['esik']:>7} {h['temel']:>8} {'✓' if h['temel_gecti'] else '✗'}  "
+    for h in result["hedefler"]:
+        sign = "≤" if h["yon"] == "en_cok" else "≥"
+        print(f"  {h['ad']:26} {sign}{h['esik']:>7} {h['temel']:>8} {'✓' if h['temel_gecti'] else '✗'}  "
               f"{h['ayarli']:>8} {'✓' if h['ayarli_gecti'] else '✗'}")
     print("\nSoru soru (iyileşen / kötüleşen, p)")
-    for bolum, kayit in sonuc["eslestirme"]["bolum"].items():
-        print(f"  {bolum} (n={kayit['n']})")
-        for ad, m in kayit["metrikler"].items():
-            print(f"    {ad:24} {m['temel']!s:>7} → {m['ayarli']!s:<7}  +{m['iyilesen']} / -{m['kotulesen']}  "
+    for section, record in result["eslestirme"]["bolum"].items():
+        print(f"  {section} (n={record['n']})")
+        for name, m in record["metrikler"].items():
+            print(f"    {name:24} {m['temel']!s:>7} → {m['ayarli']!s:<7}  +{m['iyilesen']} / -{m['kotulesen']}  "
                   f"p={m['p']}")
-        for g, gk in kayit["gruplar"].items():
-            ana = "cevap_dogrulugu" if bolum == "arac" else "reddetti"
-            m = gk["metrikler"].get(ana)
+        for g, gk in record["gruplar"].items():
+            main_metric = "cevap_dogrulugu" if section == "arac" else "reddetti"
+            m = gk["metrikler"].get(main_metric)
             if m:
-                print(f"      · {g:22} n={gk['n']:<3} {ana}: {m['temel']} → {m['ayarli']}  "
+                print(f"      · {g:22} n={gk['n']:<3} {main_metric}: {m['temel']} → {m['ayarli']}  "
                       f"+{m['iyilesen']} / -{m['kotulesen']}  p={m['p']}")
 
 
@@ -114,36 +115,36 @@ def main() -> None:
     ap.add_argument("--cikti", type=Path, default=None)
     arg = ap.parse_args()
 
-    t, a = rapor(arg.temel, arg.set), rapor(arg.ayarli, arg.set)
-    hatalar = denetle(t, a)
-    if hatalar:
-        raise SystemExit("karşılaştırılamaz:\n  " + "\n  ".join(hatalar))
-    uyarilar = []
-    if t["model_izi"]["ozet"] == a["model_izi"]["ozet"]:
-        uyarilar.append("iki ölçümün model izi aynı (aynı model karşılaştırılıyor)")
+    base, tuned = load_report(arg.temel, arg.set), load_report(arg.ayarli, arg.set)
+    errors = check_comparable(base, tuned)
+    if errors:
+        raise SystemExit("karşılaştırılamaz:\n  " + "\n  ".join(errors))
+    warnings = []
+    if base["model_izi"]["ozet"] == tuned["model_izi"]["ozet"]:
+        warnings.append("iki ölçümün model izi aynı (aynı model karşılaştırılıyor)")
 
-    e = pairing.eslestir(t["sorular"], a["sorular"], gruplar(arg.set))
-    farklar = ozetle_uyusuyor_mu(t, e["bolum"], "temel") + ozetle_uyusuyor_mu(a, e["bolum"], "ayarli")
-    if farklar:
-        raise SystemExit("eşleştirme oranları özetle uyuşmuyor:\n  " + "\n  ".join(farklar))
+    e = pairing.pair(base["sorular"], tuned["sorular"], groups(arg.set))
+    differences = summary_differences(base, e["bolum"], "temel") + summary_differences(tuned, e["bolum"], "ayarli")
+    if differences:
+        raise SystemExit("eşleştirme oranları özetle uyuşmuyor:\n  " + "\n  ".join(differences))
 
-    sonuc = {
+    result = {
         "set": arg.set, "temel": arg.temel, "ayarli": arg.ayarli,
-        "soru_seti_ozeti": t["soru_seti_ozeti"], "sistem_ozeti": t["sistem"]["ozet"],
-        "model_izi": {"temel": t["model_izi"], "ayarli": a["model_izi"]},
-        "egitimde_olmayan_sablonlar": list(HARIC_NIYETLER),
-        "uyarilar": uyarilar,
-        "hedefler": pairing.hedef_tablosu(t["hedefler"], a["hedefler"]),
-        "durumlar": {"temel": t["ozet"]["genel"]["durumlar"], "ayarli": a["ozet"]["genel"]["durumlar"]},
-        "sure": {"temel": t["ozet"]["sure"], "ayarli": a["ozet"]["sure"]},
+        "soru_seti_ozeti": base["soru_seti_ozeti"], "sistem_ozeti": base["sistem"]["ozet"],
+        "model_izi": {"temel": base["model_izi"], "ayarli": tuned["model_izi"]},
+        "egitimde_olmayan_sablonlar": list(EXCLUDED_INTENTS),
+        "uyarilar": warnings,
+        "hedefler": pairing.target_table(base["hedefler"], tuned["hedefler"]),
+        "durumlar": {"temel": base["ozet"]["genel"]["durumlar"], "ayarli": tuned["ozet"]["genel"]["durumlar"]},
+        "sure": {"temel": base["ozet"]["sure"], "ayarli": tuned["ozet"]["sure"]},
         "eslestirme": e,
     }
-    cikti = arg.cikti or KOK / "reports" / f"faz8_karsilastirma_{arg.set}.json"
-    cikti.write_text(json.dumps(sonuc, ensure_ascii=False, indent=1), encoding="utf-8")
-    yaz_tablo(sonuc)
-    for u in uyarilar:
+    output = arg.cikti or ROOT / "reports" / f"faz8_karsilastirma_{arg.set}.json"
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    print_tables(result)
+    for u in warnings:
         print("uyarı:", u)
-    print(f"\nyazıldı: {cikti.relative_to(KOK) if cikti.is_relative_to(KOK) else cikti}")
+    print(f"\nyazıldı: {output.relative_to(ROOT) if output.is_relative_to(ROOT) else output}")
 
 
 if __name__ == "__main__":

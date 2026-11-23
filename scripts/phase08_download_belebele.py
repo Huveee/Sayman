@@ -1,14 +1,14 @@
-"""Belebele'nin Türkçe dosyasını indirir (Faz 8 unutma testi).
+"""Downloads the Turkish file of Belebele (Phase 8 forgetting test).
 
-Kaynak: Bandarkar ve diğerleri (2023). The Belebele Benchmark. Hugging Face facebook/belebele,
-data/tur_Latn.jsonl. Lisans: CC BY-SA 4.0. Dosya sabit bir sürümden (commit) indirilir.
+Source: Bandarkar et al. (2023). The Belebele Benchmark. Hugging Face facebook/belebele,
+data/tur_Latn.jsonl. License: CC BY-SA 4.0. The file is downloaded from a fixed revision (commit).
 
-Çıktılar (git'e girmez, bu betik yeniden üretir):
-    data/ham/belebele/tur_Latn.jsonl    indirilen dosya
-    data/ham/belebele/kaynak.json       adres, sürüm, boyut ve SHA-256 özeti
+Outputs (not committed to git, this script regenerates them):
+    data/ham/belebele/tur_Latn.jsonl    the downloaded file
+    data/ham/belebele/kaynak.json       address, revision, size and SHA-256 digest
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz8_belebele_indir.py
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase08_download_belebele.py
 """
 
 from __future__ import annotations
@@ -19,25 +19,25 @@ import json
 import urllib.request
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-SURUM = "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2"
-ADRES = f"https://huggingface.co/datasets/facebook/belebele/resolve/{SURUM}/data/tur_Latn.jsonl"
-HEDEF = KOK / "data" / "ham" / "belebele" / "tur_Latn.jsonl"
+ROOT = Path(__file__).resolve().parents[1]
+REVISION = "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2"
+URL = f"https://huggingface.co/datasets/facebook/belebele/resolve/{REVISION}/data/tur_Latn.jsonl"
+TARGET = ROOT / "data" / "ham" / "belebele" / "tur_Latn.jsonl"
 
 
 def main() -> None:
-    HEDEF.parent.mkdir(parents=True, exist_ok=True)
-    gecici = HEDEF.with_suffix(".part")
-    with urllib.request.urlopen(ADRES, timeout=120) as yanit, open(gecici, "wb") as f:
-        while parca := yanit.read(1 << 16):
-            f.write(parca)
-    gecici.replace(HEDEF)
-    veri = HEDEF.read_bytes()
-    satir = sum(1 for s in veri.decode("utf-8").splitlines() if s.strip())
-    kayit = {"adres": ADRES, "surum": SURUM, "lisans": "CC BY-SA 4.0", "boyut": len(veri), "satir": satir,
-             "sha256": hashlib.sha256(veri).hexdigest(), "indirme": dt.datetime.now().astimezone().isoformat()}
-    (HEDEF.parent / "kaynak.json").write_text(json.dumps(kayit, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps(kayit, ensure_ascii=False, indent=1))
+    TARGET.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = TARGET.with_suffix(".part")
+    with urllib.request.urlopen(URL, timeout=120) as response, open(temp_path, "wb") as f:
+        while chunk := response.read(1 << 16):
+            f.write(chunk)
+    temp_path.replace(TARGET)
+    data = TARGET.read_bytes()
+    line_count = sum(1 for s in data.decode("utf-8").splitlines() if s.strip())
+    record = {"adres": URL, "surum": REVISION, "lisans": "CC BY-SA 4.0", "boyut": len(data), "satir": line_count,
+             "sha256": hashlib.sha256(data).hexdigest(), "indirme": dt.datetime.now().astimezone().isoformat()}
+    (TARGET.parent / "kaynak.json").write_text(json.dumps(record, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(json.dumps(record, ensure_ascii=False, indent=1))
 
 
 if __name__ == "__main__":

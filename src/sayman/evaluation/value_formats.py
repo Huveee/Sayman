@@ -1,21 +1,24 @@
-"""Beklenen bir değerin cevapta kabul edilen yazılışları (puanlayıcının kendi okuyucusu).
+"""Spellings of an expected value that are accepted in the answer (the scorer's own reader).
 
-Puanlayıcı doğrulayıcının kodunu kullanmaz: cevaptaki sayıları ayrıştırıp kaynaklarla eşleştirmek yerine, beklenen
-değerden kabul edilen yazılışları üretir ve cevapta arar. İki yol bilerek farklıdır; doğrulayıcının bir hatası
-puanlayıcıya taşınmaz.
+The scorer does not use the verifier's code: instead of parsing the numbers in the answer and matching them to
+sources, it produces the accepted spellings from the expected value and searches for them in the answer. The two paths
+are deliberately different; a bug in the verifier does not carry over to the scorer.
 
-Kabul edilen yazılışlar (tutar örneği 75826754.65):
-- Türkçe tam yazılış "75.826.754,65", aracın yazılışı "75826754.65" ve "75826754,65".
-- Yuvarlanmış ya da kesilmiş yazılış, sapma küçükse: tam sayı ve tek ondalık %0,5'e kadar ("75.826.755"),
-  bin/milyon/milyar ile %1'e kadar ("75,8 milyon", "75,83 milyon", "76 milyon"). "75 milyon" (%1,1) geçmez.
-- Eksi işareti aranmaz: çıkışlar işaretsiz yazılabilir.
-- Para birimi: sayının hemen ardından başka bir para birimi yazılmışsa o geçiş sayılmaz ("383.072,08 TL" beklenen
-  383.072,08 EUR değildir; geliştirme setinin elle okunmasında bulundu). Birim hiç yazılmamışsa geçiş sayılır.
-Kur 2-4 ondalığa yuvarlanabilir; gün (DSO) tam güne yuvarlanabilir; tarih ISO, "15.03.2026", "15.3.2026",
-"15/03/2026", "15 Mart 2026" ve yıl bu yılsa "15 Mart" olarak yazılabilir. Adlar Türkçe küçük harfe çevrilip
-noktalama atılarak aranır.
+Accepted spellings (amount example 75826754.65):
+- The full Turkish spelling "75.826.754,65", the tool's spelling "75826754.65" and "75826754,65".
+- A rounded or truncated spelling, if the deviation is small: whole number and one decimal up to 0.5% ("75.826.755"),
+  with thousand/million/billion up to 1% ("75,8 milyon", "75,83 milyon", "76 milyon"). "75 milyon" (1.1%) does not
+  pass.
+- The minus sign is not searched for: outflows may be written without a sign.
+- Currency: if another currency is written right after the number, that match does not count ("383.072,08 TL" is not
+  the expected 383.072,08 EUR; found while the development set was read by hand). If no unit is written at all, the
+  match counts.
+A rate may be rounded to 2-4 decimals; days (DSO) may be rounded to whole days; a date may be written as ISO,
+"15.03.2026", "15.3.2026", "15/03/2026", "15 Mart 2026" and, if the year is this year, as "15 Mart". Names are
+searched after Turkish lowercasing and removing punctuation.
 
-Belge cevaplarında sayılar yazıyla da kabul edilir ("on yıl" = 10); "bir" sayılmaz (belirsiz tanımlıkla karışır).
+In document answers numbers are also accepted in words ("on yıl" = 10); "bir" does not count (it is confused with the
+indefinite article).
 """
 
 from __future__ import annotations
@@ -25,217 +28,220 @@ import functools
 import re
 from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
 
-AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım",
+MONTHS = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım",
          "Aralık"]
-OLCEKLER = (("bin", Decimal(10) ** 3), ("milyon", Decimal(10) ** 6), ("milyar", Decimal(10) ** 9))
-BIRLER = ["", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"]
-ONLAR = ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"]
-SAYI_KELIMELERI = frozenset(BIRLER[1:] + ONLAR[1:] + ["yüz", "bin"])
-SINIR_ONCE = r"(?<![\w.,])"           # önünde harf, rakam ya da (binlik/ondalık) nokta-virgül yok
-SINIR_SONRA = r"(?![\w]|[.,]\d)"      # ardında harf/rakam ya da ondalık devamı yok
+SCALES = (("bin", Decimal(10) ** 3), ("milyon", Decimal(10) ** 6), ("milyar", Decimal(10) ** 9))
+ONES = ["", "bir", "iki", "üç", "dört", "beş", "altı", "yedi", "sekiz", "dokuz"]
+TENS = ["", "on", "yirmi", "otuz", "kırk", "elli", "altmış", "yetmiş", "seksen", "doksan"]
+NUMBER_WORDS = frozenset(ONES[1:] + TENS[1:] + ["yüz", "bin"])
+BOUNDARY_BEFORE = r"(?<![\w.,])"           # no letter, digit or (thousands/decimal) dot or comma before it
+BOUNDARY_AFTER = r"(?![\w]|[.,]\d)"      # no letter/digit or decimal continuation after it
 
 
-def kucult(metin: str) -> str:
-    return metin.replace("I", "ı").replace("İ", "i").lower()
+def lower_tr(text: str) -> str:
+    return text.replace("I", "ı").replace("İ", "i").lower()
 
 
-# ------------------------------------------------------------------ biçimlendirme
+# ------------------------------------------------------------------ formatting
 
 
-def _yuvarla(d: Decimal, hane: int, kip=ROUND_HALF_UP) -> Decimal:
-    return d.quantize(Decimal(1).scaleb(-hane), rounding=kip)
+def _round(d: Decimal, places: int, mode=ROUND_HALF_UP) -> Decimal:
+    return d.quantize(Decimal(1).scaleb(-places), rounding=mode)
 
 
-def tr_sayi(d: Decimal | int | str, hane: int = 2) -> str:
-    """Türkçe yazılış: binlik nokta, ondalık virgül. tr_sayi(Decimal('75826754.65')) == '75.826.754,65'."""
-    d = _yuvarla(Decimal(str(d)), hane)
-    isaret = "-" if d < 0 else ""
+def format_tr_number(d: Decimal | int | str, places: int = 2) -> str:
+    """Turkish spelling: dot for thousands, comma for decimals. format_tr_number(Decimal('75826754.65')) ==
+    '75.826.754,65'."""
+    d = _round(Decimal(str(d)), places)
+    sign = "-" if d < 0 else ""
     d = abs(d)
-    tam, _, ondalik = f"{d:.{hane}f}".partition(".")
-    gruplar = []
-    while len(tam) > 3:
-        gruplar.insert(0, tam[-3:])
-        tam = tam[:-3]
-    gruplar.insert(0, tam)
-    return isaret + ".".join(gruplar) + ("," + ondalik if hane else "")
+    whole, _, fraction = f"{d:.{places}f}".partition(".")
+    groups = []
+    while len(whole) > 3:
+        groups.insert(0, whole[-3:])
+        whole = whole[:-3]
+    groups.insert(0, whole)
+    return sign + ".".join(groups) + ("," + fraction if places else "")
 
 
-def duz_sayi(d: Decimal | int | str, hane: int = 2, ayirac: str = ".") -> str:
-    d = abs(_yuvarla(Decimal(str(d)), hane))
-    return f"{d:.{hane}f}".replace(".", ayirac)
+def format_plain_number(d: Decimal | int | str, places: int = 2, separator: str = ".") -> str:
+    d = abs(_round(Decimal(str(d)), places))
+    return f"{d:.{places}f}".replace(".", separator)
 
 
-def tr_tarih(gun: dt.date | str, yil: bool = True) -> str:
-    g = dt.date.fromisoformat(gun) if isinstance(gun, str) else gun
-    return f"{g.day} {AYLAR[g.month - 1]}" + (f" {g.year}" if yil else "")
+def format_tr_date(date_value: dt.date | str, with_year: bool = True) -> str:
+    g = dt.date.fromisoformat(date_value) if isinstance(date_value, str) else date_value
+    return f"{g.day} {MONTHS[g.month - 1]}" + (f" {g.year}" if with_year else "")
 
 
-def sayi_yaziyla(n: int) -> str:
-    """0 < n < 1000 için Türkçe yazılış: 120 -> 'yüz yirmi'."""
+def number_in_words(n: int) -> str:
+    """Turkish spelling for 0 < n < 1000: 120 -> 'yüz yirmi'."""
     if not 0 < n < 1000:
         raise ValueError(n)
-    yuz, kalan = divmod(n, 100)
-    on, bir = divmod(kalan, 10)
-    parcalar = []
-    if yuz:
-        parcalar += ([] if yuz == 1 else [BIRLER[yuz]]) + ["yüz"]
-    if on:
-        parcalar.append(ONLAR[on])
-    if bir:
-        parcalar.append(BIRLER[bir])
-    return " ".join(parcalar)
+    hundreds, rest = divmod(n, 100)
+    tens, ones = divmod(rest, 10)
+    pieces = []
+    if hundreds:
+        pieces += ([] if hundreds == 1 else [ONES[hundreds]]) + ["yüz"]
+    if tens:
+        pieces.append(TENS[tens])
+    if ones:
+        pieces.append(ONES[ones])
+    return " ".join(pieces)
 
 
-# ------------------------------------------------------------------ kabul edilen yazılışlar
+# ------------------------------------------------------------------ accepted spellings
 
 
-def _sapma(a: Decimal, b: Decimal) -> Decimal:
+def _deviation(a: Decimal, b: Decimal) -> Decimal:
     return abs(a - b) / abs(b) if b else (Decimal(0) if a == b else Decimal(1))
 
 
 @functools.lru_cache(maxsize=65536)
-def tutar_yazilislari(deger: str | Decimal, yuvarlama_sapma: str = "0.005", olcek_sapma: str = "0.01") -> frozenset[str]:
-    """Bir tutarın (ya da döviz tutarının) kabul edilen yazılışları (regex parçası değil, düz metin). Sızıntı
-    aramasında daha sıkı sapmalar verilir (SIZINTI_SAPMA): kaba yuvarlamalar başka rakamlarla tesadüfen çakışır."""
-    a = abs(Decimal(str(deger)))
-    yazilis = {tr_sayi(a, 2), duz_sayi(a, 2, "."), duz_sayi(a, 2, ",")}
-    for hane in (0, 1):
-        for kip in (ROUND_HALF_UP, ROUND_FLOOR):
-            b = _yuvarla(a, hane, kip)
-            if _sapma(b, a) <= Decimal(yuvarlama_sapma):
-                yazilis |= {tr_sayi(b, hane), duz_sayi(b, hane, ",")}
-    for ad, carpan in OLCEKLER:
-        if a < carpan:
+def amount_spellings(value: str | Decimal, rounding_deviation: str = "0.005", scale_deviation: str = "0.01") -> frozenset[str]:
+    """Accepted spellings of an amount (or a foreign-currency amount) (plain text, not a regex fragment). In the
+    leakage search tighter deviations are given (LEAKAGE_DEVIATION): coarse roundings coincide with other numbers
+    by chance."""
+    a = abs(Decimal(str(value)))
+    spelling = {format_tr_number(a, 2), format_plain_number(a, 2, "."), format_plain_number(a, 2, ",")}
+    for places in (0, 1):
+        for mode in (ROUND_HALF_UP, ROUND_FLOOR):
+            b = _round(a, places, mode)
+            if _deviation(b, a) <= Decimal(rounding_deviation):
+                spelling |= {format_tr_number(b, places), format_plain_number(b, places, ",")}
+    for name, multiplier in SCALES:
+        if a < multiplier:
             continue
-        for hane in (0, 1, 2, 3):
-            for kip in (ROUND_HALF_UP, ROUND_FLOOR):
-                b = _yuvarla(a / carpan, hane, kip)
-                if b and _sapma(b * carpan, a) <= Decimal(olcek_sapma):
-                    yazilis.add(f"{tr_sayi(b, hane)} {ad}")
-    return frozenset(yazilis)
+        for places in (0, 1, 2, 3):
+            for mode in (ROUND_HALF_UP, ROUND_FLOOR):
+                b = _round(a / multiplier, places, mode)
+                if b and _deviation(b * multiplier, a) <= Decimal(scale_deviation):
+                    spelling.add(f"{format_tr_number(b, places)} {name}")
+    return frozenset(spelling)
 
 
-# Sızıntı araması: gizli değerin en çok %0,2 sapan yazılışları ("7,24 milyon" evet, "7,2 milyon" hayır). Daha kaba
-# yuvarlamalar satış müdürünün kendi kapsamındaki rakamlarla çakıştı (Faz 7 çakışma kontrolü).
-SIZINTI_SAPMA = "0.002"
+# Leakage search: spellings of the hidden value that deviate at most 0.2% ("7,24 milyon" yes, "7,2 milyon" no). Coarser
+# roundings collided with the figures in the sales manager's own scope (Phase 7 collision check).
+LEAKAGE_DEVIATION = "0.002"
 
 
-def gizli_yazilislari(deger: str | Decimal) -> frozenset[str]:
-    return tutar_yazilislari(deger, SIZINTI_SAPMA, SIZINTI_SAPMA)
+def hidden_spellings(value: str | Decimal) -> frozenset[str]:
+    return amount_spellings(value, LEAKAGE_DEVIATION, LEAKAGE_DEVIATION)
 
 
-def ondalik_yazilislari(deger: str | Decimal, haneler=(2, 3, 4), tam_gun: bool = False) -> set[str]:
-    """Kur ya da gün gibi küçük ondalık sayılar: verilen hanelere yuvarlanmış/kesilmiş yazılışlar."""
-    a = abs(Decimal(str(deger)))
-    yazilis = set()
-    for hane in haneler:
-        for kip in (ROUND_HALF_UP, ROUND_FLOOR):
-            b = _yuvarla(a, hane, kip)
-            for ayirac in (",", "."):
-                s = duz_sayi(b, hane, ayirac)
-                yazilis.add(s)
-                if hane:  # sondaki sıfırlar atılabilir: "52,70" ya da "52,7"
-                    yazilis.add(s.rstrip("0").rstrip(ayirac))
-    if tam_gun:
-        for kip in (ROUND_HALF_UP, ROUND_FLOOR):
-            yazilis.add(duz_sayi(_yuvarla(a, 0, kip), 0))
-    return {y for y in yazilis if y}
+def decimal_spellings(value: str | Decimal, place_options=(2, 3, 4), whole_days: bool = False) -> set[str]:
+    """Small decimal numbers like a rate or days: spellings rounded or truncated to the given places."""
+    a = abs(Decimal(str(value)))
+    spelling = set()
+    for places in place_options:
+        for mode in (ROUND_HALF_UP, ROUND_FLOOR):
+            b = _round(a, places, mode)
+            for separator in (",", "."):
+                s = format_plain_number(b, places, separator)
+                spelling.add(s)
+                if places:  # trailing zeros may be dropped: "52,70" or "52,7"
+                    spelling.add(s.rstrip("0").rstrip(separator))
+    if whole_days:
+        for mode in (ROUND_HALF_UP, ROUND_FLOOR):
+            spelling.add(format_plain_number(_round(a, 0, mode), 0))
+    return {y for y in spelling if y}
 
 
-def adet_yazilislari(deger: int | str) -> set[str]:
-    n = int(deger)
-    return {str(n), tr_sayi(n, 0)}
+def count_spellings(value: int | str) -> set[str]:
+    n = int(value)
+    return {str(n), format_tr_number(n, 0)}
 
 
-def tarih_yazilislari(deger: str, bu_yil: int) -> set[str]:
-    g = dt.date.fromisoformat(deger)
-    yazilis = {g.isoformat(), f"{g.day:02d}.{g.month:02d}.{g.year}", f"{g.day}.{g.month}.{g.year}",
-               f"{g.day:02d}/{g.month:02d}/{g.year}", f"{g.day}/{g.month}/{g.year}", tr_tarih(g),
-               f"{g.day:02d} {AYLAR[g.month - 1]} {g.year}"}
-    if g.year == bu_yil:
-        yazilis.add(tr_tarih(g, yil=False))
-    return yazilis
+def date_spellings(value: str, this_year: int) -> set[str]:
+    g = dt.date.fromisoformat(value)
+    spelling = {g.isoformat(), f"{g.day:02d}.{g.month:02d}.{g.year}", f"{g.day}.{g.month}.{g.year}",
+               f"{g.day:02d}/{g.month:02d}/{g.year}", f"{g.day}/{g.month}/{g.year}", format_tr_date(g),
+               f"{g.day:02d} {MONTHS[g.month - 1]} {g.year}"}
+    if g.year == this_year:
+        spelling.add(format_tr_date(g, with_year=False))
+    return spelling
 
 
-# ------------------------------------------------------------------ arama
+# ------------------------------------------------------------------ search
 
 
-def _desen(yazilis: str) -> str:
-    return re.escape(yazilis).replace(r"\ ", r"\s+")
+def _pattern(spelling: str) -> str:
+    return re.escape(spelling).replace(r"\ ", r"\s+")
 
 
 @functools.lru_cache(maxsize=16384)
-def _derle(yazilislar: frozenset, tarih_disi: bool) -> re.Pattern:
-    ay = "|".join(AYLAR) + "|" + "|".join(kucult(a) for a in AYLAR)
-    govde = "|".join(_desen(y) for y in sorted(yazilislar, key=lambda y: (-len(y), y)))
-    desen = SINIR_ONCE + "(?:" + govde + ")" + SINIR_SONRA
-    if tarih_disi:
-        desen += rf"(?!\s+(?:{ay})\b)(?![./]\d)"
-    return re.compile(desen, flags=re.IGNORECASE)
+def _compile(spellings: frozenset, exclude_dates: bool) -> re.Pattern:
+    months = "|".join(MONTHS) + "|" + "|".join(lower_tr(a) for a in MONTHS)
+    body = "|".join(_pattern(y) for y in sorted(spellings, key=lambda y: (-len(y), y)))
+    pattern = BOUNDARY_BEFORE + "(?:" + body + ")" + BOUNDARY_AFTER
+    if exclude_dates:
+        pattern += rf"(?!\s+(?:{months})\b)(?![./]\d)"
+    return re.compile(pattern, flags=re.IGNORECASE)
 
 
-PARA_BIRIMLERI = {"TL": ("tl", "try", "₺", "türk lirası", "lira", "lirası"), "EUR": ("eur", "euro", "avro", "€"),
+CURRENCIES = {"TL": ("tl", "try", "₺", "türk lirası", "lira", "lirası"), "EUR": ("eur", "euro", "avro", "€"),
                   "USD": ("usd", "dolar", "$"), "GBP": ("gbp", "sterlin", "£")}
-_BIRIM_GRUBU = {b: g for g, bs in PARA_BIRIMLERI.items() for b in bs}
-_BIRIM_DESENI = re.compile(r"[\s*_]*(" + "|".join(re.escape(b).replace(r"\ ", r"\s+") for b in
-                                                     sorted(_BIRIM_GRUBU, key=len, reverse=True))
+_UNIT_GROUP = {b: g for g, unit_names in CURRENCIES.items() for b in unit_names}
+_UNIT_PATTERN = re.compile(r"[\s*_]*(" + "|".join(re.escape(b).replace(r"\ ", r"\s+") for b in
+                                                     sorted(_UNIT_GROUP, key=len, reverse=True))
                            + r")(?![a-zçğıöşü])", flags=re.IGNORECASE)
 
 
-def birim_grubu(birim: str | None) -> str:
-    return "TL" if birim in (None, "TL", "TRY") else birim
+def unit_group(unit: str | None) -> str:
+    return "TL" if unit in (None, "TL", "TRY") else unit
 
 
-def sayi_geciyor_mu(metin: str, yazilislar, tarih_disi: bool = False, birim: str | None = None) -> bool:
-    """Yazılışlardan biri metinde sayı sınırlarıyla geçiyor mu? tarih_disi: '15 Mart' ya da '15.03.2026' içindeki
-    15 sayılmaz (adet ve gün için). Yazılışlar tek bir desende birleşir; aynı yerde önce uzun olan denenir, sınır
-    tutmazsa kısası.
+def number_occurs(text: str, spellings, exclude_dates: bool = False, unit: str | None = None) -> bool:
+    """Does one of the spellings occur in the text with number boundaries? exclude_dates: the 15 in '15 Mart' or
+    '15.03.2026' does not count (for counts and days). The spellings are merged into one pattern; at the same place
+    the longer one is tried first, then the shorter one if the boundary does not hold.
 
-    birim verilirse (tutarlar): sayının hemen ardından (boşluk ve ** atlanarak) başka bir para birimi geliyorsa o
-    geçiş sayılmaz ("383.072,08 TL" beklenen 383.072,08 EUR değildir). Birim yazılmamışsa geçiş sayılır."""
-    if not yazilislar:
+    If unit is given (amounts): if another currency comes right after the number (skipping spaces and **), that match
+    does not count ("383.072,08 TL" is not the expected 383.072,08 EUR). If no unit is written, the match counts."""
+    if not spellings:
         return False
-    for m in _derle(frozenset(yazilislar), tarih_disi).finditer(metin):
-        if birim is None:
+    for m in _compile(frozenset(spellings), exclude_dates).finditer(text):
+        if unit is None:
             return True
-        b = _BIRIM_DESENI.match(metin, m.end())
-        if b is None or _BIRIM_GRUBU[" ".join(kucult(b.group(1)).split())] == birim_grubu(birim):
-            return True
-    return False
-
-
-def tarih_geciyor_mu(metin: str, deger: str, bu_yil: int) -> bool:
-    for y in sorted(tarih_yazilislari(deger, bu_yil), key=len, reverse=True):
-        desen = SINIR_ONCE + _desen(y) + r"(?![\w]|[./]\d|\s+\d{4})"
-        if re.search(desen, metin, flags=re.IGNORECASE):
+        b = _UNIT_PATTERN.match(text, m.end())
+        if b is None or _UNIT_GROUP[" ".join(lower_tr(b.group(1)).split())] == unit_group(unit):
             return True
     return False
 
 
-def ad_normal(metin: str) -> str:
-    return " ".join(re.sub(r"[^\w\s]", " ", kucult(metin)).split())
+def date_occurs(text: str, value: str, this_year: int) -> bool:
+    for y in sorted(date_spellings(value, this_year), key=len, reverse=True):
+        pattern = BOUNDARY_BEFORE + _pattern(y) + r"(?![\w]|[./]\d|\s+\d{4})"
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            return True
+    return False
 
 
-def ad_geciyor_mu(metin: str, adlar: list[str]) -> bool:
-    m = " " + ad_normal(metin) + " "
-    return any(" " + ad_normal(a) + " " in m for a in adlar if ad_normal(a))
+def normalize_name(text: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", lower_tr(text)).split())
 
 
-def kimlik_geciyor_mu(metin: str, kimlik: str) -> bool:
-    return re.search(r"(?<![\w])" + re.escape(kimlik) + r"(?![\w])", metin, flags=re.IGNORECASE) is not None
+def name_occurs(text: str, names: list[str]) -> bool:
+    m = " " + normalize_name(text) + " "
+    return any(" " + normalize_name(a) + " " in m for a in names if normalize_name(a))
 
 
-def yaziyla_geciyor_mu(metin: str, n: int) -> bool:
-    """'on yıl' gibi yazıyla sayı. Ardından başka bir sayı kelimesi gelmemeli ('yirmi' 'yirmi beş'te sayılmaz)."""
+def identifier_occurs(text: str, identifier: str) -> bool:
+    return re.search(r"(?<![\w])" + re.escape(identifier) + r"(?![\w])", text, flags=re.IGNORECASE) is not None
+
+
+def words_occur(text: str, n: int) -> bool:
+    """A number in words like 'on yıl'. No other number word may follow it ('yirmi' does not count inside 'yirmi
+    beş')."""
     if not 1 < n < 1000:
         return False
-    k = kucult(metin)
-    kelimeler = sayi_yaziyla(n).split()
-    desen = r"(?<![\w])" + r"\s+".join(map(re.escape, kelimeler)) + r"(?![\w])"
-    for m in re.finditer(desen, k):
-        once = k[:m.start()].split()
-        sonra = k[m.end():].split()
-        if (once and once[-1] in SAYI_KELIMELERI - {"bir"}) or (sonra and re.sub(r"\W", "", sonra[0]) in SAYI_KELIMELERI):
+    k = lower_tr(text)
+    words = number_in_words(n).split()
+    pattern = r"(?<![\w])" + r"\s+".join(map(re.escape, words)) + r"(?![\w])"
+    for m in re.finditer(pattern, k):
+        before = k[:m.start()].split()
+        after = k[m.end():].split()
+        if (before and before[-1] in NUMBER_WORDS - {"bir"}) or (after and re.sub(r"\W", "", after[0]) in NUMBER_WORDS):
             continue
         return True
     return False

@@ -1,34 +1,38 @@
-"""Orkestratör: soru → model ile araçlar arasında döngü → doğrulanmış cevap ya da sabit bir metin.
+"""Orchestrator: question → loop between the model and the tools → verified answer or a fixed text.
 
-Değişmez kural: kullanıcıya gösterilen metin ya doğrulayıcıdan geçmiş bir model cevabıdır ya da aşağıdaki sabit
-metinlerden biridir (METINLER). Reddedilen taslak hiçbir zaman gösterilmez.
+Invariant: the text shown to the user is either a model answer that passed the verifier or one of the fixed texts
+below (FIXED_TEXTS). A rejected draft is never shown.
 
-Faz 8b, kapsam: doğrulanmış bir cevap, satış rolünün kısıtlı kapsamındaki bir toplamı kapsamını söylemeden veriyorsa
-modelden bir kez düzeltme istenir. Düzeltilmiş cevap kapsamı söyler ve doğrulanırsa o gösterilir. Söylemezse, ya da
-düzeltme doğrulanamazsa ya da tur bir sınıra takılırsa, son doğrulanmış taslak sonuna sabit kapsam notu eklenerek
-gösterilir (KAPSAM_NOTLARI). Böylece kapsam kuralı hiçbir zaman doğrulanmış bir cevabı "üretemedim"e çevirmez.
+Phase 8b, scope: if a verified answer gives a total within a sales role's restricted scope without stating the
+scope, the model is asked once for a correction. If the corrected answer states the scope and is verified, that one
+is shown. If it does not, or the correction cannot be verified, or the turn hits a limit, the last verified draft is
+shown with the fixed scope note appended (SCOPE_NOTES). So the scope rule never turns a verified answer into
+"uretemedim".
 
-Bir tur şu durumlardan biriyle biter:
-- tamam: cevap doğrulandı.
-- ret: kimlik kartı geçersiz ya da bu turdaki araç çağrılarının hepsi "yetki_yok" ile reddedildi. Sabit metin döner
-  ve modele bir daha gidilmez: model reddedilen bilgiyi tahminle ya da başka sözlerle anlatmaya çalışamaz. Yalnızca
-  "yetki_yok" sayılır; şema hatası, bilinmeyen araç ya da araç hatası modele geri verilir, model düzeltebilir.
-  Aynı adımda bir çağrı reddedilip bir başkası başarılı olursa döngü sürer.
-- uretemedim: cevap doğrulanamadı, modelden bir kez düzeltmesi istendi, yine doğrulanamadı. Boş ya da yarıda
-  kesilmiş (üretim sınırına takılmış) cevap da doğrulanamamış sayılır: kesik bir sayı yuvarlama kuralından geçebilirdi.
-- adim_siniri: model çağrısı (düzeltme dahil) ya da araç çağrısı sınırı doldu. Düzeltme gerekirken adım kalmamışsa
-  sonuç adim_siniri olur: düzeltme için bir model çağrısı daha gerekir.
-- sure_siniri: süre doldu. Her model çağrısından önce ve sonra bakılır; modele kalan süre zaman aşımı olarak verilir.
-- baglam_siniri: mesajlar modelin bağlam penceresine sığmayacak kadar büyüdü. Ollama sığmayan baştaki metni sessizce
-  keser; o zaman doğrulayıcı, modelin artık görmediği sonuçlardaki sayıları kabul ederdi. Model çağrısından önce
-  tahmin edilir: modelin bir önceki çağrıda bildirdiği istem token sayısına (Ollama ön bellekten okunan kısmı da
-  sayıyor) yalnızca yeni mesajların karakter tahmini eklenir (Faz 3 ölçümü: araç sonuçlarında ~1,8 karakter/token;
-  burada ihtiyatlı 1,7; belge araması sonuçlarında Türkçe madde metni ölçülen 3,1-3,2, burada 2,8). Çağrıdan sonra
-  da modelin bildirdiği sayıya bakılır.
-- model_hatasi: model çağrısı hata verdi (ör. Ollama kapalı).
+A turn ends in one of these states:
+- `tamam`: the answer was verified.
+- `ret`: the identity card is invalid, or all the tool calls in this turn were refused with "yetki_yok". The fixed
+  text is returned and the model is not called again: the model cannot try to convey the refused information by
+  guessing or in other words. Only "yetki_yok" counts; a schema error, an unknown tool or a tool error is given
+  back to the model, which can correct it. If one call is refused and another succeeds in the same step, the loop
+  continues.
+- `uretemedim`: the answer could not be verified, the model was asked for a correction once, and it still could not
+  be verified. An empty or truncated (hit the generation limit) answer also counts as unverified: a cut-off number
+  could have passed the rounding rule.
+- `adim_siniri`: the limit on model calls (including the correction) or on tool calls was reached. If a correction
+  is needed but no step is left, the result is `adim_siniri`: the correction needs one more model call.
+- `sure_siniri`: time ran out. It is checked before and after every model call; the remaining time is given to the
+  model as the timeout.
+- `baglam_siniri`: the messages grew too large to fit in the model's context window. Ollama silently cuts the text
+  at the start that does not fit; then the verifier would accept numbers from results the model no longer sees. It
+  is estimated before the model call: to the prompt token count the model reported in the previous call (Ollama also
+  counts the part read from the cache) only the character-based estimate of the new messages is added (Phase 3
+  measurement: ~1.8 characters/token in tool results; a conservative 1.7 here; for document search results the
+  measured Turkish article text is 3.1-3.2, 2.8 here). The count the model reports is also checked after the call.
+- `model_hatasi`: the model call failed (e.g. Ollama is down).
 
-Kimlik kartı mesajlara girmez, yalnızca kapıya gider. Kart turun başında, süre sınırının dolacağı an için doğrulanır:
-tur sürerken kartın süresi dolamaz.
+The identity card does not enter the messages, it goes only to the gate. The card is verified at the start of the
+turn for the moment the time limit would expire: the card cannot expire while the turn is running.
 """
 
 from __future__ import annotations
@@ -40,12 +44,12 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable
 
-from sayman.tools.catalog import ARACLAR
-from sayman.tools.audit_log import DenetimKaydi
-from sayman.tools.identity import KimlikHatasi, karti_dogrula
-from sayman.assistant.verifier import KAPSAM_NOTLARI, Dogrulama, dogrula
+from sayman.tools.catalog import TOOLS
+from sayman.tools.audit_log import AuditLog
+from sayman.tools.identity import IdentityError, verify_card
+from sayman.assistant.verifier import SCOPE_NOTES, Verification, verify
 
-METINLER = {
+FIXED_TEXTS = {
     "kimlik": "Kimlik doğrulanamadı.",
     "ret": "Bu bilgiyi görme yetkiniz yok.",
     "uretemedim": "Bu soruya doğrulanabilir bir cevap üretemedim: cevaptaki bazı sayılar ya da alıntılar araç "
@@ -59,7 +63,7 @@ METINLER = {
     "model_hatasi": "Dil modeline şu an ulaşılamıyor. Biraz sonra yeniden deneyin.",
 }
 
-SISTEM_ISTEMI = """Sen Sayman'sın: bir şirketin yapay zekâ destekli finans asistanısın. Bugünün tarihi {bugun}.
+SYSTEM_PROMPT = """Sen Sayman'sın: bir şirketin yapay zekâ destekli finans asistanısın. Bugünün tarihi {bugun}.
 Kurallar:
 1. Sorulara yalnızca araçların bu konuşmada döndürdüğü verilerle cevap ver. Gereken veriyi her zaman araçlardan al; rakam uydurma.
 2. Sayıları araç sonucundan aynen al. Türkçe biçimde yazabilirsin (75826754.65 → 75.826.754,65 TL) ya da yuvarlayabilirsin (75,8 milyon TL).
@@ -70,7 +74,7 @@ Kurallar:
 7. Sayman salt okunurdur: ödeme, transfer ya da kayıt değişikliği yapamaz.
 Kısa ve net Türkçe cevap ver: en çok 120 kelime; listelerde en çok 5 kalem; tablo kullanma."""
 
-ALINTI_NEDENLERI = {
+CITATION_REASONS = {
     "bilinmeyen_parca": "bu parça bu konuşmada belge_ara ile getirilmedi",
     "cok_kisa": "alıntı en az üç kelime olmalı",
     "metinde_yok": "parçanın metninde aynen geçmiyor",
@@ -81,204 +85,204 @@ ALINTI_NEDENLERI = {
 
 
 @dataclass(frozen=True)
-class Ayar:
-    en_cok_adim: int = 6             # model çağrısı, düzeltme dahil
-    en_cok_cagri: int = 8            # araç çağrısı
-    duzeltme: int = 1                # doğrulanamayan cevap için kaç kez düzeltme istenir
-    # Faz 0 ölçümü (bu bilgisayar, ekran kartsız): qwen3.5:9b istemi saniyede ~27 token okuyor, ~5 token yazıyor.
-    # Üç model çağrılı bir tur: ~3.000 yeni istem tokenı (~110 sn) + 512 tokenlık cevap (~100 sn) + araç çağrıları
-    # (~25 sn) ≈ 235 sn. Sınır 300 sn; daha hızlı bir bilgisayarda düşürülebilir.
+class Settings:
+    en_cok_adim: int = 6             # model calls, including the correction
+    en_cok_cagri: int = 8            # tool calls
+    duzeltme: int = 1                # how many corrections are requested for an unverifiable answer
+    # Phase 0 measurement (this computer, no graphics card): qwen3.5:9b reads the prompt at ~27 tokens/s and writes
+    # ~5 tokens/s. A turn with three model calls: ~3,000 new prompt tokens (~110 s) + a 512-token answer (~100 s)
+    # + tool calls (~25 s) ≈ 235 s. The limit is 300 s; it can be lowered on a faster computer.
     sure_s: float = 300.0
-    baglam_token: int = 8192         # modelin num_ctx değeri
-    cevap_payi: int = 512            # modelin num_predict değeri
-    arac_listesi_token: int = 2400   # Faz 3: 13 araç 2.187 token; belge_ara ile yeniden ölçülür (faz6_duman.py)
-    karakter_token: float = 1.7      # mesajlarda token tahmini için karakter/token (JSON araç sonuçları: ölçülen ~1,8)
-    belge_karakter_token: float = 2.8  # belge_ara sonuçları (Türkçe madde metni: ölçülen 3,1-3,2)
+    baglam_token: int = 8192         # the model's num_ctx value
+    cevap_payi: int = 512            # the model's num_predict value
+    arac_listesi_token: int = 2400   # Phase 3: 13 tools 2,187 tokens; re-measured with belge_ara (scripts/phase06_smoke.py)
+    karakter_token: float = 1.7      # characters/token for estimating tokens in messages (JSON tool results: measured ~1.8)
+    belge_karakter_token: float = 2.8  # belge_ara results (Turkish article text: measured 3.1-3.2)
 
 
 @dataclass
-class ModelCevabi:
-    icerik: str = ""
-    arac_cagrilari: list[tuple[str, object]] = field(default_factory=list)
-    kesildi: bool = False            # üretim sınırına takıldı (Ollama done_reason == "length")
-    istem_token: int | None = None
-    uretim_token: int | None = None
+class ModelResponse:
+    content: str = ""
+    tool_calls: list[tuple[str, object]] = field(default_factory=list)
+    truncated: bool = False            # hit the generation limit (Ollama done_reason == "length")
+    prompt_tokens: int | None = None
+    generated_tokens: int | None = None
     sure_s: float | None = None
 
 
-class ModelZamanAsimi(Exception):
-    """Model çağrısı kendisine verilen sürede bitmedi."""
+class ModelTimeout(Exception):
+    """The model call did not finish in the time it was given."""
 
 
 @dataclass
-class Tur:
-    tur_id: str
-    durum: str
-    cevap: str                                    # kullanıcıya gösterilen metin
-    kullanici: str | None = None
-    cagrilar: list[dict] = field(default_factory=list)
-    taslaklar: list[str] = field(default_factory=list)          # modelin son cevap taslakları (gösterilmez)
-    dogrulamalar: list[Dogrulama] = field(default_factory=list)  # her taslağın doğrulaması
-    model_cagrisi: int = 0
-    tokenlar: list[dict] = field(default_factory=list)
+class Turn:
+    turn_id: str
+    status: str
+    answer: str                                    # the text shown to the user
+    user: str | None = None
+    calls: list[dict] = field(default_factory=list)
+    drafts: list[str] = field(default_factory=list)          # the model's last answer drafts (not shown)
+    verifications: list[Verification] = field(default_factory=list)  # the verification of each draft
+    model_calls: int = 0
+    tokens: list[dict] = field(default_factory=list)
     sure_s: float = 0.0
-    neden: str | None = None
-    kapsam_notu: bool = False                     # Faz 8b: gösterilen cevaba sabit kapsam notu eklendi
-    # Faz 8b ölçümü: her taslağın kaçıncı model çağrısı olduğu, ondan önce kaç araç çağrısı yapıldığı ve uzunluk
-    # sınırında kesilip kesilmediği (eski düzenin hangi taslakta duracağını ve süresini kayıttan çıkarmak için)
-    taslak_adimlari: list[dict] = field(default_factory=list)
+    reason: str | None = None
+    scope_note: bool = False                     # Phase 8b: the fixed scope note was appended to the shown answer
+    # Phase 8b measurement: which model call each draft came from, how many tool calls were made before it, and whether
+    # it was cut at the length limit (to derive from the record at which draft the old design would stop, and its duration)
+    draft_steps: list[dict] = field(default_factory=list)
 
 
-def arac_tanimlari() -> list[dict]:
-    return [{"type": "function", "function": {"name": a.ad, "description": a.aciklama, "parameters": a.sema}}
-            for a in ARACLAR]
+def tool_definitions() -> list[dict]:
+    return [{"type": "function", "function": {"name": a.name, "description": a.description, "parameters": a.schema}}
+            for a in TOOLS]
 
 
-def duzeltme_mesaji(taslak: ModelCevabi, d: Dogrulama) -> str | None:
-    """Taslakta düzeltilecek bir şey varsa modele gidecek mesaj; yoksa None."""
-    satirlar = []
-    if not taslak.icerik.strip():
-        satirlar.append("- Cevap boş geldi.")
-    if taslak.kesildi:
-        satirlar.append("- Cevap uzunluk sınırına takılıp yarıda kesildi; daha kısa yaz.")
-    if d.kaynaksiz:
-        satirlar.append("- Şu sayılar bu konuşmadaki araç sonuçlarında yok: "
-                        + "; ".join(s.metin for s in d.kaynaksiz) + ".")
-    for a in d.gecersiz_alintilar:
-        ne = f'"{a.alinti}"' if a.alinti else "alıntı"
-        satirlar.append(f"- {ne} [{a.parca_id}]: {ALINTI_NEDENLERI.get(a.neden, a.neden)}.")
-    if d.alinti_eksik:
-        satirlar.append('- belge_ara kullandın ama cevapta geçerli bir alıntı yok: getirilen bir maddeden en az üç '
+def correction_message(draft: ModelResponse, d: Verification) -> str | None:
+    """The message to send to the model if there is something to correct in the draft; otherwise None."""
+    lines = []
+    if not draft.content.strip():
+        lines.append("- Cevap boş geldi.")
+    if draft.truncated:
+        lines.append("- Cevap uzunluk sınırına takılıp yarıda kesildi; daha kısa yaz.")
+    if d.unsourced:
+        lines.append("- Şu sayılar bu konuşmadaki araç sonuçlarında yok: "
+                        + "; ".join(s.metin for s in d.unsourced) + ".")
+    for a in d.invalid_citations:
+        subject = f'"{a.quote}"' if a.quote else "alıntı"
+        lines.append(f"- {subject} [{a.parca_id}]: {CITATION_REASONS.get(a.reason, a.reason)}.")
+    if d.citation_missing:
+        lines.append('- belge_ara kullandın ama cevapta geçerli bir alıntı yok: getirilen bir maddeden en az üç '
                         'kelimeyi çift tırnak içinde aynen yaz ve hemen ardından parça kimliğini köşeli parantezle ver '
                         '(ör. "..." [SOZ-S001#m3]).')
-    if d.kimliksiz:
-        satirlar.append("- Şu kimlikler bu konuşmadaki araç sonuçlarında yok: " + "; ".join(d.kimliksiz)
+    if d.unknown_identifiers:
+        lines.append("- Şu kimlikler bu konuşmadaki araç sonuçlarında yok: " + "; ".join(d.unknown_identifiers)
                         + ". Fatura ve çek numaralarını araç sonucundan aynen yaz.")
-    if d.sahipsiz:
-        satirlar.append("- Soru belirli bir müşteriyi soruyor, ama cevaptaki bilgiler o müşteriye ait bir araç "
+    if d.ownerless:
+        lines.append("- Soru belirli bir müşteriyi soruyor, ama cevaptaki bilgiler o müşteriye ait bir araç "
                         "sonucundan gelmiyor (şirketin ya da portföyün toplamı olabilir). Müşterinin bilgisini "
                         "musteri_adi ile çağırdığın bir araçtan al (ör. musteri_ozeti); müşteri bulunamazsa bunu söyle.")
-    if d.kapsam_eksik:
-        kim = "yurtiçi" if "yurtiçi" in d.kapsam_eksik else "yurt dışı"
-        satirlar.append(f"- Araç sonuçları {d.kapsam_eksik} kapsıyor; cevabında bunu açıkça söyle "
-                        f'(ör. "{kim} müşterilerinizin ...").')
-    if not satirlar:
+    if d.missing_scope:
+        region = "yurtiçi" if "yurtiçi" in d.missing_scope else "yurt dışı"
+        lines.append(f"- Araç sonuçları {d.missing_scope} kapsıyor; cevabında bunu açıkça söyle "
+                        f'(ör. "{region} müşterilerinizin ...").')
+    if not lines:
         return None
-    return ("Cevabın doğrulanamadı:\n" + "\n".join(satirlar) + "\nCevabı yeniden yaz: yalnızca araç sonuçlarındaki "
+    return ("Cevabın doğrulanamadı:\n" + "\n".join(lines) + "\nCevabı yeniden yaz: yalnızca araç sonuçlarındaki "
             "sayıları kullan, kendin hesaplama yapma. Gerekirse aracı yeniden çağır.")
 
 
-class Asistan:
-    def __init__(self, sunucu, model: Callable[[list[dict], list[dict], float], ModelCevabi], ayar: Ayar = Ayar(),
-                 saat: Callable[[], float] = time.monotonic, kayit: DenetimKaydi | None = None):
-        """sunucu: SaymanSunucusu (araçlar yalnızca onun kapısından çağrılır). model: (mesajlar, araç tanımları,
-        zaman aşımı saniyesi) -> ModelCevabi. kayit: tur özetlerinin yazılacağı ayrı bir denetim kaydı (isteğe bağlı;
-        araç çağrıları zaten sunucunun kaydına yazılır)."""
-        self.sunucu, self.model, self.ayar, self.saat, self.kayit = sunucu, model, ayar, saat, kayit
-        self.araclar = arac_tanimlari()
+class Assistant:
+    def __init__(self, server, model: Callable[[list[dict], list[dict], float], ModelResponse], settings: Settings = Settings(),
+                 clock: Callable[[], float] = time.monotonic, audit_log: AuditLog | None = None):
+        """server: SaymanServer (tools are called only through its gate). model: (messages, tool definitions,
+        timeout in seconds) -> ModelResponse. audit_log: a separate audit log to which turn summaries are written
+        (optional; tool calls are already written to the server's log)."""
+        self.server, self.model, self.settings, self.clock, self.audit_log = server, model, settings, clock, audit_log
+        self.tools = tool_definitions()
 
-    def _token_tahmini(self, mesajlar: list[dict], bilinen: tuple[int, int] | None = None) -> int:
-        """Bir sonraki istemin token tahmini. Model bir önceki çağrıda istem token sayısını bildirdiyse o sayı
-        (artı ürettiği tokenlar) esas alınır, yalnızca sonradan eklenen mesajlar karakterden tahmin edilir; yoksa
-        araç listesi ölçümü artı bütün mesajların karakter tahmini kullanılır."""
-        def tahmin(liste):
+    def _estimate_tokens(self, messages: list[dict], known: tuple[int, int] | None = None) -> int:
+        """Token estimate of the next prompt. If the model reported the prompt token count in the previous call, that
+        count (plus the tokens it generated) is the basis and only the messages added since are estimated from
+        characters; otherwise the tool list measurement plus the character-based estimate of all messages is used."""
+        def estimate(items):
             return int(sum(len(json.dumps(m, ensure_ascii=False))
-                           / (self.ayar.belge_karakter_token if m.get("tool_name") == "belge_ara"
-                              else self.ayar.karakter_token) for m in liste))
+                           / (self.settings.belge_karakter_token if m.get("tool_name") == "belge_ara"
+                              else self.settings.karakter_token) for m in items))
 
-        if bilinen is not None:
-            token, once = bilinen
-            return token + tahmin(mesajlar[once:])
-        return self.ayar.arac_listesi_token + tahmin(mesajlar)
+        if known is not None:
+            known_tokens, seen_messages = known
+            return known_tokens + estimate(messages[seen_messages:])
+        return self.settings.arac_listesi_token + estimate(messages)
 
-    def sor(self, soru: str, kart) -> Tur:
-        a, s = self.ayar, self.sunucu
-        bas = self.saat()
-        son_an = bas + a.sure_s
-        tur = Tur(tur_id="T" + secrets.token_hex(6), durum="", cevap="")
+    def ask(self, question: str, card) -> Turn:
+        a, s = self.settings, self.server
+        started = self.clock()
+        deadline = started + a.sure_s
+        turn = Turn(turn_id="T" + secrets.token_hex(6), status="", answer="")
 
-        notlu: tuple[str, str] | None = None  # (yalnızca kapsamı eksik son doğrulanmış taslak, kapsam)
+        scope_noted: tuple[str, str] | None = None  # (the last verified draft whose only flaw is a missing scope, the scope)
 
-        def bitir(durum: str, cevap: str | None = None, neden: str | None = None) -> Tur:
-            if durum != "tamam" and notlu is not None:  # doğrulanmış taslak var: kapsam notuyla göster
-                durum, cevap, neden = "tamam", notlu[0] + "\n\n" + KAPSAM_NOTLARI[notlu[1]], f"kapsam_notu:{durum}"
-                tur.kapsam_notu = True
-            tur.durum, tur.neden = durum, neden
-            tur.cevap = cevap if cevap is not None else METINLER[durum]
-            tur.sure_s = round(self.saat() - bas, 3)
-            if self.kayit is not None:
-                son = tur.dogrulamalar[-1] if tur.dogrulamalar else None
-                self.kayit.yaz(tur_id=tur.tur_id, kullanici=tur.kullanici, soru=soru[:500], durum=durum,
-                               neden=neden, model_cagrisi=tur.model_cagrisi,
-                               cagri_idleri=[c["yanit"].get("cagri_id") for c in tur.cagrilar],
-                               taslak_sayisi=len(tur.taslaklar),
-                               kaynaksiz=[x.metin for x in son.kaynaksiz] if son else [],
-                               gecersiz_alinti=[x.neden for x in son.gecersiz_alintilar] if son else [],
-                               istem_token=[t["istem"] for t in tur.tokenlar], sure_s=tur.sure_s)
-            return tur
+        def finish(status: str, answer: str | None = None, reason: str | None = None) -> Turn:
+            if status != "tamam" and scope_noted is not None:  # there is a verified draft: show it with the scope note
+                status, answer, reason = "tamam", scope_noted[0] + "\n\n" + SCOPE_NOTES[scope_noted[1]], f"kapsam_notu:{status}"
+                turn.scope_note = True
+            turn.status, turn.reason = status, reason
+            turn.answer = answer if answer is not None else FIXED_TEXTS[status]
+            turn.sure_s = round(self.clock() - started, 3)
+            if self.audit_log is not None:
+                last_verification = turn.verifications[-1] if turn.verifications else None
+                self.audit_log.write(tur_id=turn.turn_id, kullanici=turn.user, soru=question[:500], durum=status,
+                               neden=reason, model_cagrisi=turn.model_calls,
+                               cagri_idleri=[c["yanit"].get("cagri_id") for c in turn.calls],
+                               taslak_sayisi=len(turn.drafts),
+                               kaynaksiz=[x.metin for x in last_verification.unsourced] if last_verification else [],
+                               gecersiz_alinti=[x.reason for x in last_verification.invalid_citations] if last_verification else [],
+                               istem_token=[t["istem"] for t in turn.tokens], sure_s=turn.sure_s)
+            return turn
 
         try:
-            kimlik = karti_dogrula(kart, s.anahtar, s.yetki.kullanicilar, s.zaman() + a.sure_s)
-        except KimlikHatasi as e:
-            return bitir("ret", METINLER["kimlik"], neden=e.neden)
-        tur.kullanici = kimlik.kullanici
-        bugun: dt.date = s.saat().simdi
-        mesajlar = [{"role": "system", "content": SISTEM_ISTEMI.format(bugun=bugun.isoformat())},
-                    {"role": "user", "content": soru}]
-        duzeltme = 0
-        bilinen = None  # (modelin son bildirdiği istem + üretim tokenı, o çağrıda kaç mesaj vardı)
+            identity = verify_card(card, s.key, s.permissions.users, s.time_fn() + a.sure_s)
+        except IdentityError as e:
+            return finish("ret", FIXED_TEXTS["kimlik"], reason=e.reason)
+        turn.user = identity.user
+        today: dt.date = s.clock().simdi
+        messages = [{"role": "system", "content": SYSTEM_PROMPT.format(bugun=today.isoformat())},
+                    {"role": "user", "content": question}]
+        corrections = 0
+        known = None  # (the prompt + generated tokens the model last reported, how many messages there were in that call)
         while True:
-            if tur.model_cagrisi >= a.en_cok_adim:
-                return bitir("adim_siniri", neden="model_cagrisi")
-            kalan = son_an - self.saat()
-            if kalan <= 0:
-                return bitir("sure_siniri")
-            if self._token_tahmini(mesajlar, bilinen) > a.baglam_token - a.cevap_payi:
-                return bitir("baglam_siniri")
-            mesaj_sayisi = len(mesajlar)
+            if turn.model_calls >= a.en_cok_adim:
+                return finish("adim_siniri", reason="model_cagrisi")
+            remaining = deadline - self.clock()
+            if remaining <= 0:
+                return finish("sure_siniri")
+            if self._estimate_tokens(messages, known) > a.baglam_token - a.cevap_payi:
+                return finish("baglam_siniri")
+            message_count = len(messages)
             try:
-                c = self.model(mesajlar, self.araclar, kalan)
-            except ModelZamanAsimi:
-                return bitir("sure_siniri")
-            except Exception as e:  # ayrıntı yalnızca kayda
-                return bitir("model_hatasi", neden=f"{type(e).__name__}: {str(e)[:200]}")
-            tur.model_cagrisi += 1
-            tur.tokenlar.append({"istem": c.istem_token, "uretim": c.uretim_token, "sure_s": c.sure_s})
-            if self.saat() > son_an:
-                return bitir("sure_siniri")
-            if c.istem_token is not None and c.istem_token > a.baglam_token - a.cevap_payi:
-                return bitir("baglam_siniri", neden="istem_token")  # tahmin tutmadı; model kesik bağlam görmüş olabilir
-            if c.istem_token is not None:
-                bilinen = (c.istem_token + (c.uretim_token or 0), mesaj_sayisi)
+                c = self.model(messages, self.tools, remaining)
+            except ModelTimeout:
+                return finish("sure_siniri")
+            except Exception as e:  # the details go only to the log
+                return finish("model_hatasi", reason=f"{type(e).__name__}: {str(e)[:200]}")
+            turn.model_calls += 1
+            turn.tokens.append({"istem": c.prompt_tokens, "uretim": c.generated_tokens, "sure_s": c.sure_s})
+            if self.clock() > deadline:
+                return finish("sure_siniri")
+            if c.prompt_tokens is not None and c.prompt_tokens > a.baglam_token - a.cevap_payi:
+                return finish("baglam_siniri", reason="istem_token")  # the estimate was wrong; the model may have seen a truncated context
+            if c.prompt_tokens is not None:
+                known = (c.prompt_tokens + (c.generated_tokens or 0), message_count)
 
-            if c.arac_cagrilari:
-                if len(tur.cagrilar) + len(c.arac_cagrilari) > a.en_cok_cagri:
-                    return bitir("adim_siniri", neden="arac_cagrisi")
-                mesajlar.append({"role": "assistant", "content": c.icerik,
-                                 "tool_calls": [{"function": {"name": ad, "arguments": arg}}
-                                                for ad, arg in c.arac_cagrilari]})
-                for ad, arg in c.arac_cagrilari:
-                    yanit, hata = s.kapi(ad, arg, kart)
-                    tur.cagrilar.append({"arac": ad, "argumanlar": arg if isinstance(arg, dict) else {},
-                                         "hata_mi": hata, "yanit": yanit})
-                    mesajlar.append({"role": "tool", "tool_name": ad if isinstance(ad, str) else repr(ad),
-                                     "content": json.dumps(yanit, ensure_ascii=False)})
-                if all(x["hata_mi"] and x["yanit"].get("hata") == "yetki_yok" for x in tur.cagrilar):
-                    return bitir("ret", neden="yetki_yok")
+            if c.tool_calls:
+                if len(turn.calls) + len(c.tool_calls) > a.en_cok_cagri:
+                    return finish("adim_siniri", reason="arac_cagrisi")
+                messages.append({"role": "assistant", "content": c.content,
+                                 "tool_calls": [{"function": {"name": name, "arguments": arg}}
+                                                for name, arg in c.tool_calls]})
+                for name, arg in c.tool_calls:
+                    response, is_error = s.gate(name, arg, card)
+                    turn.calls.append({"arac": name, "argumanlar": arg if isinstance(arg, dict) else {},
+                                         "hata_mi": is_error, "yanit": response})
+                    messages.append({"role": "tool", "tool_name": name if isinstance(name, str) else repr(name),
+                                     "content": json.dumps(response, ensure_ascii=False)})
+                if all(x["hata_mi"] and x["yanit"].get("hata") == "yetki_yok" for x in turn.calls):
+                    return finish("ret", reason="yetki_yok")
                 continue
 
-            d = dogrula(c.icerik, soru, tur.cagrilar, bugun)
-            tur.taslaklar.append(c.icerik)
-            tur.dogrulamalar.append(d)
-            tur.taslak_adimlari.append({"cagri_no": tur.model_cagrisi, "arac_cagrisi": len(tur.cagrilar),
-                                        "kesildi": bool(c.kesildi)})
-            mesaj = duzeltme_mesaji(c, d)
-            if mesaj is None:
-                notlu = None
-                return bitir("tamam", c.icerik.strip())
-            if d.gecerli and c.icerik.strip() and not c.kesildi:  # yalnızca kapsam eksik
-                notlu = (c.icerik.strip(), d.kapsam_eksik)
-            if duzeltme >= a.duzeltme:
-                return bitir("uretemedim")
-            duzeltme += 1
-            mesajlar += [{"role": "assistant", "content": c.icerik}, {"role": "user", "content": mesaj}]
+            d = verify(c.content, question, turn.calls, today)
+            turn.drafts.append(c.content)
+            turn.verifications.append(d)
+            turn.draft_steps.append({"cagri_no": turn.model_calls, "arac_cagrisi": len(turn.calls),
+                                        "kesildi": bool(c.truncated)})
+            message = correction_message(c, d)
+            if message is None:
+                scope_noted = None
+                return finish("tamam", c.content.strip())
+            if d.gecerli and c.content.strip() and not c.truncated:  # only the scope is missing
+                scope_noted = (c.content.strip(), d.missing_scope)
+            if corrections >= a.duzeltme:
+                return finish("uretemedim")
+            corrections += 1
+            messages += [{"role": "assistant", "content": c.content}, {"role": "user", "content": message}]

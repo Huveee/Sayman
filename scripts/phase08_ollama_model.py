@@ -1,24 +1,24 @@
-"""Faz 8: ince ayarlı GGUF'u Ollama'ya temel modelle aynı biçimde kurar ve modelin gerçekten değiştiğini denetler.
+"""Phase 8: installs the fine-tuned GGUF in Ollama in the same form as the base model and checks that the model really changed.
 
-Ollama 0.40.11 LoRA adapterını (ADAPTER) desteklemiyor; ince ayarlı model, LoRA'sı katılmış tek bir GGUF dosyasıdır
-(kaggle/faz8_birlestir.py). Adımlar (proje kökünden; Ollama'da başka iş çalışmıyorken):
+Ollama 0.40.11 does not support a LoRA adapter (ADAPTER); the fine-tuned model is a single GGUF file with its LoRA merged in
+(kaggle/phase08_merge.py). Steps (from the project root; while no other job runs in Ollama):
 
-    .venv\\Scripts\\python -I scripts\\faz8_ollama_model.py kur --ad sayman-ayarli --gguf <dosya.gguf>
-    .venv\\Scripts\\python -I scripts\\faz8_ollama_model.py dene --ad sayman-ayarli ^
+    .venv\\Scripts\\python -I scripts\\phase08_ollama_model.py kur --ad sayman-ayarli --gguf <file.gguf>
+    .venv\\Scripts\\python -I scripts\\phase08_ollama_model.py dene --ad sayman-ayarli ^
         --ornekler data\\egitim\\tam\\dogrulama.jsonl --kaggle-rapor data\\egitim\\kaggle_cikti\\sayman-faz8-tam\\rapor.json ^
         --temel sayman-taban-kendi --yalniz-kaggle
-    .venv\\Scripts\\python -I scripts\\faz8_ollama_model.py bosalt
+    .venv\\Scripts\\python -I scripts\\phase08_ollama_model.py bosalt
 
-kur: temel modelin (qwen3.5:9b) Modelfile'ı alınır, yalnızca ilk FROM satırı (dil modeli) verilen dosyayla değişir.
-Görsel kodlayıcı, TEMPLATE, RENDERER, PARSER ve PARAMETER satırları aynen kalır; betik sonra bunları denetler.
+kur: the Modelfile of the base model (qwen3.5:9b) is taken and only the first FROM line (the language model) is replaced
+with the given file. The vision encoder, TEMPLATE, RENDERER, PARSER and PARAMETER lines stay as they are; the script then checks them.
 
-dene: üç denetim, rapor reports/faz8_model_denemesi_<ad>.json
-  1. Çizim: aynı mesajlar ve araçlar iki modelde de aynı istem metnine çizilmeli.
-  2. Üretim: örneklerin istemleri ham olarak iki modele verilir. İnce ayarlı modelin çıktısı Kaggle'daki üretim
-     denemesine benzemeli, temel modelinkinden farklı olmalı. Her model boş başlangıçla (bosalt) sorulur.
-  3. Seçenekler: üretimde SECENEKLER kullanılır (num_predict hariç), böylece model yeniden yüklenmez.
+dene: three checks, report reports/faz8_model_denemesi_<name>.json
+  1. Rendering: the same messages and tools must render to the same prompt text in both models.
+  2. Generation: the prompts of the samples are given raw to both models. The output of the fine-tuned model should
+     resemble the Kaggle generation trial and differ from the base model's. Each model is queried from an empty start (bosalt).
+  3. Options: generation uses the shared model options (all except num_predict), so the model is not reloaded.
 
-bosalt: Ollama'da yüklü bütün modelleri kapatır; her ölçüm aynı boş durumdan başlar.
+bosalt: closes all the models loaded in Ollama; every measurement starts from the same empty state.
 """
 
 from __future__ import annotations
@@ -30,12 +30,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 OLLAMA = Path.home() / "AppData" / "Local" / "Programs" / "Ollama" / "ollama.exe"
 HOST = "http://127.0.0.1:11434"
-TEMEL = "qwen3.5:9b"
+BASE_MODEL = "qwen3.5:9b"
 
 
 def ollama(*arg: str) -> str:
@@ -45,163 +45,163 @@ def ollama(*arg: str) -> str:
     return r.stdout
 
 
-YONERGELER = ("FROM", "TEMPLATE", "RENDERER", "PARSER", "PARAMETER", "SYSTEM", "ADAPTER", "MESSAGE")
+DIRECTIVES = ("FROM", "TEMPLATE", "RENDERER", "PARSER", "PARAMETER", "SYSTEM", "ADAPTER", "MESSAGE")
 
 
-def modelfile_satirlari(model: str = TEMEL) -> list[str]:
-    """Modelfile'ın tek satırlık yönergeleri (LICENSE gibi çok satırlı bloklar dışarıda)."""
-    return [s for s in ollama("show", model, "--modelfile").splitlines() if s.split(" ", 1)[0] in YONERGELER]
+def modelfile_lines(model: str = BASE_MODEL) -> list[str]:
+    """The single-line directives of the Modelfile (multi-line blocks such as LICENSE are left out)."""
+    return [s for s in ollama("show", model, "--modelfile").splitlines() if s.split(" ", 1)[0] in DIRECTIVES]
 
 
-def kur(ad: str, gguf: Path) -> None:
+def build_model(name: str, gguf: Path) -> None:
     gguf = gguf.resolve()
     if not gguf.exists():
         raise SystemExit(f"yok: {gguf}")
-    temel = modelfile_satirlari()
-    froms = [i for i, s in enumerate(temel) if s.startswith("FROM ")]
+    base = modelfile_lines()
+    froms = [i for i, s in enumerate(base) if s.startswith("FROM ")]
     if len(froms) != 2:
         raise SystemExit(f"temel modelde iki FROM (dil modeli + görsel kodlayıcı) bekleniyordu: {froms}")
-    if any(s.startswith(("ADAPTER", "MESSAGE")) for s in temel):
+    if any(s.startswith(("ADAPTER", "MESSAGE")) for s in base):
         raise SystemExit("temel modelde beklenmeyen ADAPTER/MESSAGE yönergesi")
-    satirlar = list(temel)
-    satirlar[froms[0]] = f"FROM {gguf}"
-    klasor = KOK / "data" / "egitim" / "calisma" / ad
-    klasor.mkdir(parents=True, exist_ok=True)
-    mf = klasor / "Modelfile"
-    mf.write_text("\n".join(satirlar) + "\n", encoding="utf-8")
+    lines = list(base)
+    lines[froms[0]] = f"FROM {gguf}"
+    directory = ROOT / "data" / "egitim" / "calisma" / name
+    directory.mkdir(parents=True, exist_ok=True)
+    mf = directory / "Modelfile"
+    mf.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(mf.read_text(encoding="utf-8"))
-    print(ollama("create", ad, "-f", str(mf))[-300:])
-    beklenen = sorted(s for s in temel if not s.startswith("FROM "))  # Ollama PARAMETER sırasını değiştirebiliyor
-    bulunan = sorted(s for s in modelfile_satirlari(ad) if not s.startswith("FROM "))
-    if beklenen != bulunan:
+    print(ollama("create", name, "-f", str(mf))[-300:])
+    expected = sorted(s for s in base if not s.startswith("FROM "))  # Ollama can reorder the PARAMETER lines
+    actual = sorted(s for s in modelfile_lines(name) if not s.startswith("FROM "))
+    if expected != actual:
         raise SystemExit("kurulan modelin Modelfile'ı temel modelinkinden farklı (FROM dışında)")
-    yeni_froms = [s for s in modelfile_satirlari(ad) if s.startswith("FROM ")]
-    if yeni_froms[1] != temel[froms[1]]:
+    new_froms = [s for s in modelfile_lines(name) if s.startswith("FROM ")]
+    if new_froms[1] != base[froms[1]]:
         raise SystemExit("görsel kodlayıcı temel modelinkiyle aynı değil")
     print("Modelfile FROM dışında temel modelle aynı; görsel kodlayıcı aynı.")
 
 
-def bosalt() -> None:
+def unload_all() -> None:
     import httpx
 
-    yuklu = httpx.get(f"{HOST}/api/ps", timeout=30).json().get("models", [])
-    for m in yuklu:
+    loaded = httpx.get(f"{HOST}/api/ps", timeout=30).json().get("models", [])
+    for m in loaded:
         httpx.post(f"{HOST}/api/generate", json={"model": m["name"], "keep_alive": 0}, timeout=300)
-    kalan = httpx.get(f"{HOST}/api/ps", timeout=30).json().get("models", [])
-    print("boşaltıldı:", [m["name"] for m in yuklu], "kalan:", [m["name"] for m in kalan])
-    if kalan:
+    remaining = httpx.get(f"{HOST}/api/ps", timeout=30).json().get("models", [])
+    print("boşaltıldı:", [m["name"] for m in loaded], "kalan:", [m["name"] for m in remaining])
+    if remaining:
         raise SystemExit("bazı modeller hâlâ yüklü")
 
 
-def ciz_denetimi(ad: str, temel: str = TEMEL) -> dict:
-    from sayman.assistant.orchestrator import arac_tanimlari
-    from sayman.training.prompt import istem_ciz
+def check_rendering(name: str, base: str = BASE_MODEL) -> dict:
+    from sayman.assistant.orchestrator import tool_definitions
+    from sayman.training.prompt import render_prompt
 
-    araclar = arac_tanimlari()
-    izler = [json.loads(s) for s in (KOK / "data" / "egitim" / "izler.jsonl").read_text(encoding="utf-8").splitlines()
+    tools = tool_definitions()
+    traces = [json.loads(s) for s in (ROOT / "data" / "egitim" / "izler.jsonl").read_text(encoding="utf-8").splitlines()
              if s.strip()][:3]
-    sonuc = []
-    for iz in izler:
-        for c in iz["cagrilar"]:
-            t, a = istem_ciz(c["mesajlar"], araclar, temel), istem_ciz(c["mesajlar"], araclar, ad)
-            sonuc.append({"soru_id": iz["soru_id"], "ayni": t == a, "karakter": len(t)})
-    return {"istem": len(sonuc), "hepsi_ayni": all(s["ayni"] for s in sonuc), "ayrinti": sonuc}
+    result = []
+    for trace in traces:
+        for c in trace["cagrilar"]:
+            t, a = render_prompt(c["mesajlar"], tools, base), render_prompt(c["mesajlar"], tools, name)
+            result.append({"soru_id": trace["soru_id"], "ayni": t == a, "karakter": len(t)})
+    return {"istem": len(result), "hepsi_ayni": all(s["ayni"] for s in result), "ayrinti": result}
 
 
-def uret(model: str, istem: str, istemci) -> str:
-    from sayman.assistant.model import SECENEKLER
+def generate(model: str, prompt: str, client) -> str:
+    from sayman.assistant.model import OPTIONS
 
-    r = istemci.post(f"{HOST}/api/generate", json={
-        "model": model, "prompt": istem, "raw": True, "stream": False, "think": False,
-        "options": {**SECENEKLER, "num_predict": 160}}, timeout=900)
+    r = client.post(f"{HOST}/api/generate", json={
+        "model": model, "prompt": prompt, "raw": True, "stream": False, "think": False,
+        "options": {**OPTIONS, "num_predict": 160}}, timeout=900)
     r.raise_for_status()
     return r.json()["response"]
 
 
-def benzerlik(a: str, b: str) -> float:
+def similarity(a: str, b: str) -> float:
     return round(difflib.SequenceMatcher(None, a, b).ratio(), 3)
 
 
-def kes(metin: str) -> str:
-    """Karşılaştırma için ilk <|im_end|>'e kadar (Kaggle üretimi durmadan devam edebiliyordu)."""
-    return metin.split("<|im_end|>")[0].strip()
+def truncate_at_end(text: str) -> str:
+    """Up to the first <|im_end|> for the comparison (the Kaggle generation could keep going without stopping)."""
+    return text.split("<|im_end|>")[0].strip()
 
 
-def dene(ad: str, ornekler_yolu: Path, kaggle_rapor: Path | None, temel: str = TEMEL,
-         yalniz_kaggle: bool = False) -> None:
-    """yalniz_kaggle: yalnızca Kaggle'daki üretim denemesinde de sorulan örnekler (CPU'da 110 örnek saatler sürer)."""
+def run_trial(name: str, samples_path: Path, kaggle_report: Path | None, base: str = BASE_MODEL,
+         kaggle_only: bool = False) -> None:
+    """kaggle_only: only the samples that were also asked in the Kaggle generation trial (110 samples take hours on the CPU)."""
     import httpx
 
-    ornekler = [json.loads(s) for s in ornekler_yolu.read_text(encoding="utf-8").splitlines() if s.strip()]
+    samples = [json.loads(s) for s in samples_path.read_text(encoding="utf-8").splitlines() if s.strip()]
     kaggle = {}
-    if kaggle_rapor and kaggle_rapor.exists():
-        for u in json.loads(kaggle_rapor.read_text(encoding="utf-8")).get("uretim_denemesi", []):
+    if kaggle_report and kaggle_report.exists():
+        for u in json.loads(kaggle_report.read_text(encoding="utf-8")).get("uretim_denemesi", []):
             kaggle[(u["soru_id"], u["adim"])] = u["uretilen"]
-    if yalniz_kaggle:
-        ornekler = [o for o in ornekler if (o.get("soru_id"), o.get("adim")) in kaggle]
-        if len(ornekler) != len(kaggle):
-            raise SystemExit(f"Kaggle'daki {len(kaggle)} örneğin {len(ornekler)} tanesi örnek dosyasında bulundu")
-    rapor = {"model": ad, "temel": temel, "ciz": ciz_denetimi(ad, temel), "uretim": []}
-    print("çizim aynı mı:", rapor["ciz"]["hepsi_ayni"], flush=True)
-    with httpx.Client() as istemci:
-        for model in (ad, temel):  # model başına sırayla ve boş başlangıçla (önceki işler cevabı değiştirebiliyor)
-            bosalt()
-            for i, o in enumerate(ornekler):
-                cikti = uret(model, o["istem"], istemci)
-                if model == ad:
-                    rapor["uretim"].append({"soru_id": o.get("soru_id"), "adim": o.get("adim"),
-                                            "beklenen": kes(o["tamamlama"]), "ayarli": cikti})
+    if kaggle_only:
+        samples = [o for o in samples if (o.get("soru_id"), o.get("adim")) in kaggle]
+        if len(samples) != len(kaggle):
+            raise SystemExit(f"Kaggle'daki {len(kaggle)} örneğin {len(samples)} tanesi örnek dosyasında bulundu")
+    report = {"model": name, "temel": base, "ciz": check_rendering(name, base), "uretim": []}
+    print("çizim aynı mı:", report["ciz"]["hepsi_ayni"], flush=True)
+    with httpx.Client() as client:
+        for model in (name, base):  # one model at a time from an empty start (earlier jobs can change the answer)
+            unload_all()
+            for i, o in enumerate(samples):
+                output = generate(model, o["istem"], client)
+                if model == name:
+                    report["uretim"].append({"soru_id": o.get("soru_id"), "adim": o.get("adim"),
+                                            "beklenen": truncate_at_end(o["tamamlama"]), "ayarli": output})
                 else:
-                    rapor["uretim"][i]["temel"] = cikti
-                print(f"{model} {o.get('soru_id')} {o.get('adim')}: {kes(cikti)[:90]!r}", flush=True)
-    for u in rapor["uretim"]:
+                    report["uretim"][i]["temel"] = output
+                print(f"{model} {o.get('soru_id')} {o.get('adim')}: {truncate_at_end(output)[:90]!r}", flush=True)
+    for u in report["uretim"]:
         k = kaggle.get((u["soru_id"], u["adim"]))
         u["kaggle"] = k
-        u["ayarli_kaggle_benzerligi"] = benzerlik(kes(u["ayarli"]), kes(k)) if k is not None else None
-        u["temel_kaggle_benzerligi"] = benzerlik(kes(u["temel"]), kes(k)) if k is not None else None
-        u["ayarli_temel_ayni"] = kes(u["ayarli"]) == kes(u["temel"])
-        u["ayarli_beklenen_ayni"] = kes(u["ayarli"]) == u["beklenen"]
-        u["temel_beklenen_ayni"] = kes(u["temel"]) == u["beklenen"]
-    u = rapor["uretim"]
-    karsilastirilan = [x for x in u if x["kaggle"] is not None]
-    rapor["ozet"] = {
+        u["ayarli_kaggle_benzerligi"] = similarity(truncate_at_end(u["ayarli"]), truncate_at_end(k)) if k is not None else None
+        u["temel_kaggle_benzerligi"] = similarity(truncate_at_end(u["temel"]), truncate_at_end(k)) if k is not None else None
+        u["ayarli_temel_ayni"] = truncate_at_end(u["ayarli"]) == truncate_at_end(u["temel"])
+        u["ayarli_beklenen_ayni"] = truncate_at_end(u["ayarli"]) == u["beklenen"]
+        u["temel_beklenen_ayni"] = truncate_at_end(u["temel"]) == u["beklenen"]
+    u = report["uretim"]
+    compared = [x for x in u if x["kaggle"] is not None]
+    report["ozet"] = {
         "ornek": len(u),
         "ayarli_temelden_farkli": sum(not x["ayarli_temel_ayni"] for x in u),
         "ayarli_beklenenle_ayni": sum(x["ayarli_beklenen_ayni"] for x in u),
         "temel_beklenenle_ayni": sum(x["temel_beklenen_ayni"] for x in u),
-        "kaggle_ile_karsilastirilan": len(karsilastirilan),
-        "ayarli_kaggle_benzerligi_ort": round(sum(x["ayarli_kaggle_benzerligi"] for x in karsilastirilan)
-                                              / len(karsilastirilan), 3) if karsilastirilan else None,
-        "temel_kaggle_benzerligi_ort": round(sum(x["temel_kaggle_benzerligi"] for x in karsilastirilan)
-                                             / len(karsilastirilan), 3) if karsilastirilan else None,
+        "kaggle_ile_karsilastirilan": len(compared),
+        "ayarli_kaggle_benzerligi_ort": round(sum(x["ayarli_kaggle_benzerligi"] for x in compared)
+                                              / len(compared), 3) if compared else None,
+        "temel_kaggle_benzerligi_ort": round(sum(x["temel_kaggle_benzerligi"] for x in compared)
+                                             / len(compared), 3) if compared else None,
     }
-    cikti = KOK / "reports" / f"faz8_model_denemesi_{ad}.json"
-    cikti.write_text(json.dumps(rapor, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps(rapor["ozet"], ensure_ascii=False, indent=1))
-    print("yazıldı:", cikti.relative_to(KOK))
+    output = ROOT / "reports" / f"faz8_model_denemesi_{name}.json"
+    output.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(json.dumps(report["ozet"], ensure_ascii=False, indent=1))
+    print("yazıldı:", output.relative_to(ROOT))
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="Faz 8: ince ayarlı modeli Ollama'ya kurma ve denetleme")
-    alt = ap.add_subparsers(dest="komut", required=True)
-    o = alt.add_parser("kur")
+    subparsers = ap.add_subparsers(dest="komut", required=True)
+    o = subparsers.add_parser("kur")
     o.add_argument("--ad", required=True)
     o.add_argument("--gguf", type=Path, required=True)
-    alt.add_parser("bosalt")
-    d = alt.add_parser("dene")
+    subparsers.add_parser("bosalt")
+    d = subparsers.add_parser("dene")
     d.add_argument("--ad", required=True)
     d.add_argument("--ornekler", type=Path, required=True)
     d.add_argument("--kaggle-rapor", type=Path, default=None)
-    d.add_argument("--temel", default=TEMEL, help="karşılaştırılan temel model (ör. sayman-taban-kendi)")
+    d.add_argument("--temel", default=BASE_MODEL, help="karşılaştırılan temel model (ör. sayman-taban-kendi)")
     d.add_argument("--yalniz-kaggle", action="store_true", help="yalnızca Kaggle üretim denemesindeki örnekler")
     a = ap.parse_args()
     if a.komut == "kur":
-        kur(a.ad, a.gguf)
+        build_model(a.ad, a.gguf)
     elif a.komut == "bosalt":
-        bosalt()
+        unload_all()
     else:
-        dene(a.ad, a.ornekler, a.kaggle_rapor, a.temel, a.yalniz_kaggle)
+        run_trial(a.ad, a.ornekler, a.kaggle_rapor, a.temel, a.yalniz_kaggle)
 
 
 if __name__ == "__main__":

@@ -1,18 +1,19 @@
-"""Faz 10 demosu: sahte ERP sayfası, içine gömülü Sayman sohbet penceresi, kimliği imzalayan arka uç ve
-"zamanı ileri sar" düğmesi. Çalıştırma ve sıfırlama: scripts/phase10_demo.py.
+"""Phase 10 demo: a fake ERP page, the Sayman chat window embedded in it, the back end that signs the identity and
+the "fast-forward time" button. Running and resetting: scripts/phase10_demo.py.
 
-Güvenlik:
-- Tarayıcı imza anahtarını da kimlik kartını da hiç görmez. Girişte arka uç rastgele bir oturum kimliği üretir
-  (HttpOnly çerez); her soru ve rapor için kart, oturumdaki kullanıcı adına burada imzalanır. İstek gövdesindeki
-  bir kullanıcı alanı yok sayılır. (Demoda parola yok: gerçek bir ERP'de oturumu ERP'nin kendi girişi açar.)
-- Araç sonuçları Faz 3 kapısından geçer: rol izni ve veri kapsamı orada uygulanır.
-- Uyarılar kapıdan geçmez (izleme bütün şirketin tablolarında çalışır). Bu yüzden burada süzülür: CFO hepsini görür;
-  satış müdürü yalnızca kendi kapsamındaki müşterilerin uyarılarını görür, müşterisi olmayan (şirket düzeyindeki)
-  uyarıları görmez.
-- Rapor, oturumdaki kullanıcının kartıyla kapıdan çağrılan araçlardan kurulur; model rapora karışmaz. Rolün
-  çağıramadığı aracın bölümü raporda yer almaz.
-- Demo durumu (saat kopyası, uyarı deposu, denetim kayıtları, kapsam kopyaları) kendi klasöründe durur; ambar ve
-  data/saat.json değişmez. Saat geri alınamaz; baştan başlamak için klasör silinir.
+Security:
+- The browser sees neither the signing key nor the identity card. At login the back end creates a random session id
+  (HttpOnly cookie); for every question and report the card is signed here for the user of the session. A user
+  field in the request body is ignored. (There is no password in the demo: in a real ERP the ERP's own login opens
+  the session.)
+- Tool results pass through the Phase 3 gate: the role permission and the data scope are applied there.
+- Alerts do not pass through the gate (monitoring runs on the whole company's tables). So they are filtered here:
+  the CFO sees all of them; a sales manager sees only the alerts of customers in their own scope and does not see
+  the alerts that have no customer (company level).
+- The report is built from tools called through the gate with the card of the session's user; the model has no
+  part in the report. The section of a tool the role cannot call does not appear in the report.
+- Demo state (clock copy, alert store, audit logs, scope copies) is kept in its own folder; the warehouse and
+  data/saat.json do not change. The clock cannot be turned back; to start over the folder is deleted.
 """
 
 from __future__ import annotations
@@ -30,23 +31,23 @@ from fastapi.responses import FileResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from sayman.tools.audit_log import DenetimKaydi
-from sayman.tools.identity import kart_uret
-from sayman.tools.server import KAPSAM_ADI, SaymanSunucusu
-from sayman.tools.permissions import YetkiTablosu
-from sayman.assistant.orchestrator import SISTEM_ISTEMI, Asistan, Ayar, arac_tanimlari
-from sayman.monitoring.scheduler import Depo, calistir
-from sayman.data.clock import Saat, saat_oku, saat_yaz
+from sayman.tools.audit_log import AuditLog
+from sayman.tools.identity import generate_card
+from sayman.tools.server import SCOPE_LABELS, SaymanServer
+from sayman.tools.permissions import PermissionTable
+from sayman.assistant.orchestrator import SYSTEM_PROMPT, Assistant, Settings, tool_definitions
+from sayman.monitoring.scheduler import AlertStore, run_scheduler
+from sayman.data.clock import Clock, read_clock, write_clock
 
-STATIK = Path(__file__).with_name("static")
-CEREZ = "sayman_oturum"
-KART_SURESI_S = 600          # bir tur en çok 300 sn sürer (orkestrator.Ayar.sure_s); kart turdan uzun yaşamalı
-EN_UZUN_SORU = 500
-EN_COK_ADIM_GUN = 31
-GOSTERILEN_UYARI = 20
-EN_COK_OTURUM = 50
-ADLAR = {"selin.aydin": "Selin Aydın", "murat.kaya": "Murat Kaya", "deniz.arslan": "Deniz Arslan"}  # kurgusal
-ORNEK_SORULAR = {
+STATIC_DIR = Path(__file__).with_name("static")
+COOKIE_NAME = "sayman_oturum"
+CARD_LIFETIME_S = 600          # a turn lasts at most 300 s (orchestrator.Settings.sure_s); the card must outlive the turn
+MAX_QUESTION_LENGTH = 500
+MAX_STEP_DAYS = 31
+SHOWN_ALERTS = 20
+MAX_SESSIONS = 50
+DISPLAY_NAMES = {"selin.aydin": "Selin Aydın", "murat.kaya": "Murat Kaya", "deniz.arslan": "Deniz Arslan"}  # fictional
+SAMPLE_QUESTIONS = {
     "cfo": ["Bankalarda toplam ne kadar nakit var?",
             "Önümüzdeki 7 günde tedarikçilere ne kadar ödeme yapacağız?",
             "Vadesi geçmiş alacaklarımızın toplamı ne kadar?",
@@ -57,299 +58,301 @@ ORNEK_SORULAR = {
               "Bekleyen çeklerimizin toplamı ne kadar?",
               "Bankalarda toplam ne kadar nakit var?"],
 }
-# Canlı provada (22-23 Kasım 2026, sayman-ayarli) bu sorular doğrulanmış cevap verdi; satış müdürünün nakit sorusu
-# bilerek "yetkiniz yok" ile biter. "Asgari nakit eşiği" sorusu ilk provada durdurulmuştu (politika "on iki ay"
-# yazıyor, doğrulayıcı yazıyla sayıyı okumuyordu); doğrulayıcı düzeltmesinden sonra canlı denendi ve geçti (README).
-UYARI_ALANLARI = ("uyari_id", "gun", "onem", "baslik", "aciklama", "musteri_id")
+# In the live rehearsal (22-23 November 2026, sayman-ayarli) these questions got verified answers; the sales
+# manager's cash question deliberately ends with "yetkiniz yok". The "asgari nakit eşiği" question had been stopped in
+# the first rehearsal (the policy says "on iki ay", the verifier did not read numbers in words); after the verifier
+# fix it was tried live and passed (README).
+ALERT_FIELDS = ("uyari_id", "gun", "onem", "baslik", "aciklama", "musteri_id")
 
 
-def kapsamli_aciklama(kural: str | None, aciklama: str, baslik: str) -> str:
-    """Satış müdürüne gösterilecek açıklama: yalnızca o müşterinin kendi kayıtlarından gelen kısım."""
-    if kural == "karsiliksiz_cek":       # "... karşılıksız çıktı; <şirketin çek eşiği>."
-        return aciklama.split(";")[0].rstrip(".") + "."
-    if kural == "musteri_gecikmesi":     # "<müşteri şirketin en büyük N müşterisinden biri>. <kendi faturaları>"
-        isaret = "müşterisinden biri. "  # müşteri adında da ". " olabilir (Ltd. Şti.): cümleye değil işarete bakılır
-        return aciklama.split(isaret, 1)[1] if isaret in aciklama else baslik + "."
-    return baslik + "."                  # bilinmeyen kural: ayrıntı verilmez
+def scoped_description(rule: str | None, description: str, title: str) -> str:
+    """The description shown to the sales manager: only the part that comes from that customer's own records."""
+    if rule == "karsiliksiz_cek":       # "... karşılıksız çıktı; <the company's cheque threshold>."
+        return description.split(";")[0].rstrip(".") + "."
+    if rule == "musteri_gecikmesi":     # "<customer is one of the company's N largest customers>. <its own invoices>"
+        marker = "müşterisinden biri. "  # the customer name may also contain ". " (Ltd. Şti.): look at the marker, not at the sentence
+        return description.split(marker, 1)[1] if marker in description else title + "."
+    return title + "."                  # unknown rule: no details are given
 
 
-class DemoHatasi(RuntimeError):
-    """Kullanıcıya gösterilecek, durumu değiştirmeyen bir red (ör. verinin sonuna gelindi)."""
+class DemoError(RuntimeError):
+    """A refusal to show the user that does not change the state (e.g. the end of the data was reached)."""
 
 
-def tl(deger) -> str:
-    """Araç biçimi "75826754.65" -> "75.826.754,65 TL"."""
-    d = Decimal(str(deger))
-    tam, kesir = f"{abs(d):.2f}".split(".")
-    return ("-" if d < 0 else "") + f"{int(tam):,}".replace(",", ".") + "," + kesir + " TL"
+def format_lira(value) -> str:
+    """Tool format "75826754.65" -> "75.826.754,65 TL"."""
+    d = Decimal(str(value))
+    whole, fraction = f"{abs(d):.2f}".split(".")
+    return ("-" if d < 0 else "") + f"{int(whole):,}".replace(",", ".") + "," + fraction + " TL"
 
 
-def _nakit(s):
-    return tl(s["toplam_tl"]), [(f"{h['banka']} · {h['para_birimi']}", tl(h["bakiye_tl"])) for h in s["hesaplar"]]
+def _cash(s):
+    return format_lira(s["toplam_tl"]), [(f"{h['banka']} · {h['para_birimi']}", format_lira(h["bakiye_tl"])) for h in s["hesaplar"]]
 
 
-def _odemeler(s):
-    return tl(s["toplam_tl"]), [("Fatura sayısı", str(s["fatura_sayisi"])),
-                                ("İçinde vadesi geçmiş", tl(s["vadesi_gecmis_tl"]))]
+def _payments(s):
+    return format_lira(s["toplam_tl"]), [("Fatura sayısı", str(s["fatura_sayisi"])),
+                                ("İçinde vadesi geçmiş", format_lira(s["vadesi_gecmis_tl"]))]
 
 
-def _alacaklar(s):
-    return tl(s["toplam_tl"]), ([("Vadesi geçmiş", tl(s["vadesi_gecmis_tl"])),
+def _receivables(s):
+    return format_lira(s["toplam_tl"]), ([("Vadesi geçmiş", format_lira(s["vadesi_gecmis_tl"])),
                                  ("Müşteri sayısı", str(s["musteri_sayisi"]))]
-                                + [(a["musteri"], tl(a["toplam_tl"])) for a in s["en_buyuk_alacaklar"][:3]])
+                                + [(a["musteri"], format_lira(a["toplam_tl"])) for a in s["en_buyuk_alacaklar"][:3]])
 
 
-def _cekler(s):
-    return tl(s["toplam_tl"]), ([("Çek sayısı", str(s["cek_sayisi"]))]
-                                + [(f"{c['musteri']} · {c['vade_tarihi']}", tl(c["tutar_tl"])) for c in s["cekler"][:3]])
+def _cheques(s):
+    return format_lira(s["toplam_tl"]), ([("Çek sayısı", str(s["cek_sayisi"]))]
+                                + [(f"{c['musteri']} · {c['vade_tarihi']}", format_lira(c["tutar_tl"])) for c in s["cekler"][:3]])
 
 
-# (başlık, araç, argümanlar, sonuç -> (özet, satırlar)); rolün çağıramadığı araçların bölümü atlanır
-RAPOR = [
-    ("Nakit pozisyonu", "nakit_pozisyonu", {}, _nakit),
-    ("Önümüzdeki 7 günün ödemeleri", "yaklasan_odemeler", {"gun_sayisi": 7}, _odemeler),
-    ("Açık alacaklar", "alacak_yaslandirma", {"en_fazla": 3}, _alacaklar),
-    ("7 gün içinde vadesi gelen çekler", "cek_portfoyu", {"vade_gun": 7, "en_fazla": 3}, _cekler),
+# (title, tool, arguments, result -> (summary, rows)); the sections of tools the role cannot call are skipped
+REPORT_SECTIONS = [
+    ("Nakit pozisyonu", "nakit_pozisyonu", {}, _cash),
+    ("Önümüzdeki 7 günün ödemeleri", "yaklasan_odemeler", {"gun_sayisi": 7}, _payments),
+    ("Açık alacaklar", "alacak_yaslandirma", {"en_fazla": 3}, _receivables),
+    ("7 gün içinde vadesi gelen çekler", "cek_portfoyu", {"vade_gun": 7, "en_fazla": 3}, _cheques),
 ]
 
 
-def ollama_isitici(model) -> Callable[[dt.date], None]:
-    """Modelin ön belleğini o günün sistem istemi ve araç listesiyle doldurur. Sistem istemi bugünün tarihiyle
-    başladığı için saat her ilerlediğinde ön bellek boşa düşer; ısıtılmazsa sonraki ilk soru ~100 sn sürer."""
-    def isit(bugun: dt.date) -> None:
-        model([{"role": "system", "content": SISTEM_ISTEMI.format(bugun=bugun.isoformat())},
-               {"role": "user", "content": "Merhaba"}], arac_tanimlari(), 600)
-    return isit
+def ollama_warmer(model) -> Callable[[dt.date], None]:
+    """Fills the model's cache with that day's system prompt and tool list. Since the system prompt starts with
+    today's date, the cache is wasted every time the clock advances; if it is not warmed up, the next first question
+    takes ~100 s."""
+    def warmer(today: dt.date) -> None:
+        model([{"role": "system", "content": SYSTEM_PROMPT.format(bugun=today.isoformat())},
+               {"role": "user", "content": "Merhaba"}], tool_definitions(), 600)
+    return warmer
 
 
 class Demo:
-    def __init__(self, *, ambar: Path, durum_klasoru: Path, baslangic: Saat, anahtar: bytes, yetki: YetkiTablosu,
-                 tablolar: dict[str, list[dict]], model, model_adi: str = "sahte", belge=None,
-                 belge_yontemi: str = "bm25", adim_gun: int = 7, zaman: Callable[[], float] = time.time,
-                 isit: Callable[[dt.date], None] | None = None):
-        """tablolar: izleme kurallarının okuduğu tablolar (data/uretilen). isit: verilirse model açılışta ve her
-        saat ilerleyişinde arka planda ısıtılır; verilmezse (sahte model) hazır sayılır."""
-        self.klasor = Path(durum_klasoru)
-        self.klasor.mkdir(parents=True, exist_ok=True)
-        self.saat_yolu = self.klasor / "saat.json"
-        self.saat = saat_oku(self.saat_yolu) if self.saat_yolu.exists() else baslangic
-        self.anahtar, self.yetki, self.tablolar, self.zaman = anahtar, yetki, tablolar, zaman
-        self.model_adi, self.adim_gun, self.isit = model_adi, adim_gun, isit
-        self.depo = Depo(self.klasor / "izleme")
-        durum = self.depo.durum()
-        if durum and dt.date.fromisoformat(durum["son_gun"]) > self.saat.simdi:
-            # Önceki çalışma depoyu yazıp saati yazamadan kesildi: saat depoya yetişir (geri alınamaz).
-            self.saat = Saat(dt.date.fromisoformat(durum["son_gun"]), self.saat.veri_bitis)
-        saat_yaz(self.saat, self.saat_yolu)
-        calistir(tablolar, self.saat, self.depo)  # bugüne kadarki uyarılar depoya; ileri sarış yalnızca yenileri getirir
-        self.sunucu = SaymanSunucusu(ambar=ambar, saat=lambda: self.saat, anahtar=anahtar, yetki=yetki,
-                                     kayit=DenetimKaydi(self.klasor / "denetim.jsonl"),
-                                     kapsam_klasoru=self.klasor / "kapsam", zaman=zaman, belge=belge,
-                                     belge_yontemi=belge_yontemi)
-        # Uyarı süzgeci, kapının kullandığı kaynaktan (ambardaki musteriler.yurtici) okunur.
-        self.yurtici = {m: bool(y) for m, y in
-                        self.sunucu.baglantilar["hepsi"].execute("SELECT musteri_id, yurtici FROM musteriler").fetchall()}
-        self._durum_kilit = threading.RLock()  # saat ilerlerken uyarı ve rapor okunmaz (yarım dosya, iki tarih)
-        # Aynı DuckDB bağlantıları hem sohbet turundan hem rapordan kullanılır: kapı çağrıları sıraya girer.
-        self._db_kilit = threading.RLock()
-        kapi = self.sunucu.kapi
+    def __init__(self, *, warehouse: Path, state_dir: Path, initial_clock: Clock, key: bytes, permissions: PermissionTable,
+                 tables: dict[str, list[dict]], model, model_name: str = "sahte", belge=None,
+                 search_method: str = "bm25", step_days: int = 7, time_fn: Callable[[], float] = time.time,
+                 warmer: Callable[[dt.date], None] | None = None):
+        """tables: the tables the monitoring rules read (data/uretilen). warmer: if given, the model is warmed up in the
+        background at start and every time the clock advances; if not given (fake model) it counts as ready."""
+        self.directory = Path(state_dir)
+        self.directory.mkdir(parents=True, exist_ok=True)
+        self.clock_path = self.directory / "saat.json"
+        self.clock = read_clock(self.clock_path) if self.clock_path.exists() else initial_clock
+        self.key, self.permissions, self.tables, self.time_fn = key, permissions, tables, time_fn
+        self.model_name, self.step_days, self.warmer = model_name, step_days, warmer
+        self.store = AlertStore(self.directory / "izleme")
+        status = self.store.status()
+        if status and dt.date.fromisoformat(status["son_gun"]) > self.clock.simdi:
+            # The previous run was interrupted after writing the store but before writing the clock: the clock catches up with the store (it cannot be turned back).
+            self.clock = Clock(dt.date.fromisoformat(status["son_gun"]), self.clock.veri_bitis)
+        write_clock(self.clock, self.clock_path)
+        run_scheduler(tables, self.clock, self.store)  # alerts up to today go to the store; advancing brings only the new ones
+        self.server = SaymanServer(warehouse=warehouse, clock=lambda: self.clock, key=key, permissions=permissions,
+                                     audit_log=AuditLog(self.directory / "denetim.jsonl"),
+                                     scope_dir=self.directory / "kapsam", time_fn=time_fn, belge=belge,
+                                     search_method=search_method)
+        # The alert filter is read from the same source the gate uses (musteriler.yurtici in the warehouse).
+        self.domestic = {m: bool(y) for m, y in
+                        self.server.connections["hepsi"].execute("SELECT musteri_id, yurtici FROM musteriler").fetchall()}
+        self._state_lock = threading.RLock()  # alerts and the report are not read while the clock advances (half-written file, two dates)
+        # The same DuckDB connections are used by both the chat turn and the report: gate calls are queued.
+        self._db_lock = threading.RLock()
+        gate = self.server.gate
 
-        def sirali_kapi(ad, argumanlar, kart):
-            with self._db_kilit:
-                return kapi(ad, argumanlar, kart)
-        self.sunucu.kapi = sirali_kapi
-        self.asistan = Asistan(self.sunucu, model, Ayar(), kayit=DenetimKaydi(self.klasor / "asistan.jsonl"))
-        self.kilit = threading.Lock()  # model turu ve saat ilerletme aynı anda çalışmaz
-        self.oturumlar: dict[str, str] = {}
-        self.model_hazir = isit is None
-        self._isit()
+        def serialized_gate(name, arguments, card):
+            with self._db_lock:
+                return gate(name, arguments, card)
+        self.server.gate = serialized_gate
+        self.assistant = Assistant(self.server, model, Settings(), audit_log=AuditLog(self.directory / "asistan.jsonl"))
+        self.lock = threading.Lock()  # a model turn and advancing the clock do not run at the same time
+        self.sessions: dict[str, str] = {}
+        self.model_ready = warmer is None
+        self._warm_up()
 
-    # -- kimlik ------------------------------------------------------------------------------------
+    # -- identity ----------------------------------------------------------------------------------
 
-    def ben(self, kullanici: str) -> dict:
-        rol = self.yetki.kullanicilar[kullanici]
-        r = self.yetki.roller[rol]
-        return {"kullanici": kullanici, "ad": ADLAR.get(kullanici, kullanici), "rol": rol, "rol_adi": r.ad,
-                "kapsam_adi": KAPSAM_ADI[r.kapsam]}
+    def profile(self, user: str) -> dict:
+        role = self.permissions.users[user]
+        r = self.permissions.roller[role]
+        return {"kullanici": user, "ad": DISPLAY_NAMES.get(user, user), "rol": role, "rol_adi": r.name,
+                "kapsam_adi": SCOPE_LABELS[r.scope]}
 
-    def kart(self, kullanici: str) -> str:
-        return kart_uret(kullanici, self.anahtar, KART_SURESI_S, self.zaman())
+    def card(self, user: str) -> str:
+        return generate_card(user, self.key, CARD_LIFETIME_S, self.time_fn())
 
-    # -- uyarılar ----------------------------------------------------------------------------------
+    # -- alerts ------------------------------------------------------------------------------------
 
-    def suz(self, kullanici: str, uyarilar: list[dict]) -> list[dict]:
-        """Kullanıcının görebileceği uyarılar, yalnızca gösterilecek alanlarla. Satış müdürüne giden açıklamadan
-        bütün şirketin verisinden hesaplanan kısım çıkarılır (karşılıksız çekte şirketin çek eşiği, gecikmede
-        müşterinin şirketteki sırası)."""
-        kapsam = self.yetki.roller[self.yetki.kullanicilar[kullanici]].kapsam
-        sonuc = [{k: u.get(k) for k in UYARI_ALANLARI} | {"kural": u.get("kural")} for u in uyarilar]
-        if kapsam != "hepsi":
-            istenen = kapsam == "yurtici"
-            sonuc = [u for u in sonuc if self.yurtici.get(u["musteri_id"]) is istenen]
-            for u in sonuc:
-                u["aciklama"] = kapsamli_aciklama(u["kural"], u["aciklama"] or "", u["baslik"])
-        for u in sonuc:
+    def filter_alerts(self, user: str, alerts: list[dict]) -> list[dict]:
+        """The alerts the user may see, with only the fields to be shown. From the description that goes to the sales
+        manager the part computed from the whole company's data is removed (the company's cheque threshold for a
+        bounced cheque, the customer's rank in the company for a delay)."""
+        scope = self.permissions.roller[self.permissions.users[user]].scope
+        result = [{k: u.get(k) for k in ALERT_FIELDS} | {"kural": u.get("kural")} for u in alerts]
+        if scope != "hepsi":
+            wanted_domestic = scope == "yurtici"
+            result = [u for u in result if self.domestic.get(u["musteri_id"]) is wanted_domestic]
+            for u in result:
+                u["aciklama"] = scoped_description(u["kural"], u["aciklama"] or "", u["baslik"])
+        for u in result:
             del u["kural"]
-        return sonuc
+        return result
 
-    def uyarilar(self, kullanici: str) -> list[dict]:
-        with self._durum_kilit:
-            gorunen = self.suz(kullanici, self.depo.uyarilar())
-        return sorted(gorunen, key=lambda u: (u["gun"], u["uyari_id"]), reverse=True)[:GOSTERILEN_UYARI]
+    def alerts(self, user: str) -> list[dict]:
+        with self._state_lock:
+            visible = self.filter_alerts(user, self.store.alerts())
+        return sorted(visible, key=lambda u: (u["gun"], u["uyari_id"]), reverse=True)[:SHOWN_ALERTS]
 
-    # -- rapor -------------------------------------------------------------------------------------
+    # -- report ------------------------------------------------------------------------------------
 
-    def rapor(self, kullanici: str) -> dict:
-        with self._durum_kilit:
-            return self._rapor(kullanici)
+    def report(self, user: str) -> dict:
+        with self._state_lock:
+            return self._report(user)
 
-    def _rapor(self, kullanici: str) -> dict:
-        rol = self.yetki.kullanicilar[kullanici]
-        kart = self.kart(kullanici)
-        bolumler = []
-        for baslik, arac, argumanlar, bicim in RAPOR:
-            if not self.yetki.izinli_mi(rol, arac):
+    def _report(self, user: str) -> dict:
+        role = self.permissions.users[user]
+        card = self.card(user)
+        sections = []
+        for title, tool, arguments, formatter in REPORT_SECTIONS:
+            if not self.permissions.is_allowed(role, tool):
                 continue
-            yanit, hata = self.sunucu.kapi(arac, argumanlar, kart)
-            if hata:
-                bolumler.append({"baslik": baslik, "ozet": "—", "satirlar": [["Durum", yanit.get("mesaj") or "alınamadı"]]})
+            response, is_error = self.server.gate(tool, arguments, card)
+            if is_error:
+                sections.append({"baslik": title, "ozet": "—", "satirlar": [["Durum", response.get("mesaj") or "alınamadı"]]})
                 continue
-            ozet, satirlar = bicim(yanit["sonuc"])
-            bolumler.append({"baslik": baslik, "ozet": ozet, "satirlar": [list(s) for s in satirlar]})
-        return {"tarih": self.saat.simdi.isoformat(), **self.ben(kullanici), "bolumler": bolumler}
+            summary, rows = formatter(response["sonuc"])
+            sections.append({"baslik": title, "ozet": summary, "satirlar": [list(s) for s in rows]})
+        return {"tarih": self.clock.simdi.isoformat(), **self.profile(user), "bolumler": sections}
 
-    # -- saat ve model -----------------------------------------------------------------------------
+    # -- clock and model ---------------------------------------------------------------------------
 
-    def ileri_sar(self, gun: int) -> dict:
-        """Saati ilerletir, yeni günlerin uyarılarını depoya ekler. Kilit çağıranda olmalı."""
-        if self.saat.simdi >= self.saat.veri_bitis:
-            raise DemoHatasi(f"Verinin sonuna gelindi ({self.saat.veri_bitis.isoformat()}). Baştan başlamak için "
+    def advance(self, days: int) -> dict:
+        """Advances the clock and adds the alerts of the new days to the store. The caller must hold the lock."""
+        if self.clock.simdi >= self.clock.veri_bitis:
+            raise DemoError(f"Verinin sonuna gelindi ({self.clock.veri_bitis.isoformat()}). Baştan başlamak için "
                              "demoyu sıfırlayın: scripts/phase10_demo.py sifirla")
-        onceki, yeni = self.saat, self.saat.ileri_sar(gun)
-        with self._durum_kilit:
-            sonuc = calistir(self.tablolar, yeni, self.depo)  # önce izleme: hata olursa saat ilerlemez
-            saat_yaz(yeni, self.saat_yolu)  # yazılamazsa açılışta saat depoya yetişir
-            self.saat = yeni
-        self._isit()
-        return {"onceki": onceki.simdi.isoformat(), "bugun": yeni.simdi.isoformat(), "yeni": sonuc["yeni"]}
+        previous, new_clock = self.clock, self.clock.advance(days)
+        with self._state_lock:
+            result = run_scheduler(self.tables, new_clock, self.store)  # monitoring first: if it fails, the clock does not advance
+            write_clock(new_clock, self.clock_path)  # if it cannot be written, the clock catches up with the store at startup
+            self.clock = new_clock
+        self._warm_up()
+        return {"onceki": previous.simdi.isoformat(), "bugun": new_clock.simdi.isoformat(), "yeni": result["yeni"]}
 
-    def _isit(self) -> None:
-        if self.isit is None:
+    def _warm_up(self) -> None:
+        if self.warmer is None:
             return
-        self.model_hazir = False
-        bugun = self.saat.simdi
+        self.model_ready = False
+        today = self.clock.simdi
 
-        def calis():
+        def work():
             try:
-                self.isit(bugun)
-            except Exception:  # ısınamazsa yalnızca ilk soru yavaş olur
+                self.warmer(today)
+            except Exception:  # if warming up fails only the first question is slow
                 pass
             finally:
-                if self.saat.simdi == bugun:
-                    self.model_hazir = True
-        threading.Thread(target=calis, daemon=True).start()
+                if self.clock.simdi == today:
+                    self.model_ready = True
+        threading.Thread(target=work, daemon=True).start()
 
-    def kapat(self) -> None:
+    def close(self) -> None:
         if not getattr(self, "_kapandi", False):
-            self.sunucu.kapat()
+            self.server.close()
             self._kapandi = True
 
 
-def uygulama_kur(demo: Demo) -> FastAPI:
+def build_app(demo: Demo) -> FastAPI:
     app = FastAPI(title="Sayman demo", docs_url=None, redoc_url=None, openapi_url=None)
-    # Yalnızca bu bilgisayardan: başka bir ad (DNS yeniden bağlama) ile gelen istek reddedilir
+    # Only from this computer: a request that arrives under another name (DNS rebinding) is rejected
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
-    app.mount("/static", StaticFiles(directory=STATIK), name="static")
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    def oturum(istek: Request) -> str:
-        kullanici = demo.oturumlar.get(istek.cookies.get(CEREZ, ""))
-        if kullanici is None:
+    def current_user(request: Request) -> str:
+        user = demo.sessions.get(request.cookies.get(COOKIE_NAME, ""))
+        if user is None:
             raise HTTPException(401, "Önce giriş yapın.")
-        return kullanici
+        return user
 
-    def kilitle():
-        if not demo.kilit.acquire(blocking=False):
+    def acquire_lock():
+        if not demo.lock.acquire(blocking=False):
             raise HTTPException(409, "Sayman başka bir işi bitiriyor; birazdan yeniden deneyin.")
 
     @app.get("/")
-    def ana_sayfa():
-        return FileResponse(STATIK / "index.html")
+    def home_page():
+        return FileResponse(STATIC_DIR / "index.html")
 
     @app.get("/api/kullanicilar")
-    def kullanicilar():
-        return {"kullanicilar": [demo.ben(k) for k in demo.yetki.kullanicilar]}
+    def users():
+        return {"kullanicilar": [demo.profile(k) for k in demo.permissions.users]}
 
     @app.post("/api/giris")
-    def giris(istek: Request, yanit: Response, govde: dict = Body(...)):
-        kullanici = govde.get("kullanici")
-        if not isinstance(kullanici, str) or kullanici not in demo.yetki.kullanicilar:
+    def login(request: Request, response: Response, body: dict = Body(...)):
+        user = body.get("kullanici")
+        if not isinstance(user, str) or user not in demo.permissions.users:
             raise HTTPException(400, "Bilinmeyen kullanıcı.")
-        demo.oturumlar.pop(istek.cookies.get(CEREZ, ""), None)  # eski oturum kapanır
-        while len(demo.oturumlar) >= EN_COK_OTURUM:
-            demo.oturumlar.pop(next(iter(demo.oturumlar)))
-        jeton = secrets.token_urlsafe(32)
-        demo.oturumlar[jeton] = kullanici
-        yanit.set_cookie(CEREZ, jeton, httponly=True, samesite="strict")
-        return demo.ben(kullanici)
+        demo.sessions.pop(request.cookies.get(COOKIE_NAME, ""), None)  # the old session is closed
+        while len(demo.sessions) >= MAX_SESSIONS:
+            demo.sessions.pop(next(iter(demo.sessions)))
+        token = secrets.token_urlsafe(32)
+        demo.sessions[token] = user
+        response.set_cookie(COOKIE_NAME, token, httponly=True, samesite="strict")
+        return demo.profile(user)
 
     @app.post("/api/cikis")
-    def cikis(istek: Request, yanit: Response):
-        demo.oturumlar.pop(istek.cookies.get(CEREZ, ""), None)
-        yanit.delete_cookie(CEREZ)
+    def logout(request: Request, response: Response):
+        demo.sessions.pop(request.cookies.get(COOKIE_NAME, ""), None)
+        response.delete_cookie(COOKIE_NAME)
         return {"tamam": True}
 
     @app.get("/api/ben")
-    def ben(istek: Request):
-        return demo.ben(oturum(istek))
+    def profile(request: Request):
+        return demo.profile(current_user(request))
 
     @app.get("/api/durum")
-    def durum():
-        return {"bugun": demo.saat.simdi.isoformat(), "veri_bitis": demo.saat.veri_bitis.isoformat(),
-                "adim_gun": demo.adim_gun, "model": demo.model_adi, "model_hazir": demo.model_hazir,
-                "mesgul": demo.kilit.locked()}
+    def status():
+        return {"bugun": demo.clock.simdi.isoformat(), "veri_bitis": demo.clock.veri_bitis.isoformat(),
+                "adim_gun": demo.step_days, "model": demo.model_name, "model_hazir": demo.model_ready,
+                "mesgul": demo.lock.locked()}
 
     @app.get("/api/ornek_sorular")
-    def ornek_sorular(istek: Request):
-        rol = demo.yetki.kullanicilar[oturum(istek)]
-        return {"sorular": ORNEK_SORULAR["cfo" if rol == "cfo" else "satis"]}
+    def sample_questions(request: Request):
+        role = demo.permissions.users[current_user(request)]
+        return {"sorular": SAMPLE_QUESTIONS["cfo" if role == "cfo" else "satis"]}
 
     @app.post("/api/sor")
-    def sor(istek: Request, govde: dict = Body(...)):
-        kullanici = oturum(istek)  # kimlik yalnızca oturumdan; gövdedeki başka alanlar yok sayılır
-        soru = govde.get("soru")
-        if not isinstance(soru, str) or not soru.strip() or len(soru) > EN_UZUN_SORU:
-            raise HTTPException(422, f"Soru 1 ile {EN_UZUN_SORU} karakter arasında olmalı.")
-        kilitle()
+    def ask(request: Request, body: dict = Body(...)):
+        user = current_user(request)  # identity only from the session; other fields in the body are ignored
+        question = body.get("soru")
+        if not isinstance(question, str) or not question.strip() or len(question) > MAX_QUESTION_LENGTH:
+            raise HTTPException(422, f"Soru 1 ile {MAX_QUESTION_LENGTH} karakter arasında olmalı.")
+        acquire_lock()
         try:
-            tur = demo.asistan.sor(soru.strip(), demo.kart(kullanici))
+            turn = demo.assistant.ask(question.strip(), demo.card(user))
         finally:
-            demo.kilit.release()
-        return {"durum": tur.durum, "cevap": tur.cevap, "sure_s": tur.sure_s,
-                "araclar": [{"arac": c.get("arac"), "hata": c["yanit"].get("hata") if c.get("hata_mi") else None} for c in tur.cagrilar],
-                "bugun": demo.saat.simdi.isoformat()}
+            demo.lock.release()
+        return {"durum": turn.status, "cevap": turn.answer, "sure_s": turn.sure_s,
+                "araclar": [{"arac": c.get("arac"), "hata": c["yanit"].get("hata") if c.get("hata_mi") else None} for c in turn.calls],
+                "bugun": demo.clock.simdi.isoformat()}
 
     @app.post("/api/ileri_sar")
-    def ileri_sar(istek: Request, govde: dict | None = Body(None)):
-        kullanici = oturum(istek)
-        gun = (govde or {}).get("gun", demo.adim_gun)
-        if not isinstance(gun, int) or isinstance(gun, bool) or not 1 <= gun <= EN_COK_ADIM_GUN:
-            raise HTTPException(422, f"Gün 1 ile {EN_COK_ADIM_GUN} arasında olmalı.")
-        kilitle()
+    def advance_time(request: Request, body: dict | None = Body(None)):
+        user = current_user(request)
+        days = (body or {}).get("gun", demo.step_days)
+        if not isinstance(days, int) or isinstance(days, bool) or not 1 <= days <= MAX_STEP_DAYS:
+            raise HTTPException(422, f"Gün 1 ile {MAX_STEP_DAYS} arasında olmalı.")
+        acquire_lock()
         try:
-            sonuc = demo.ileri_sar(gun)
-        except DemoHatasi as e:
+            result = demo.advance(days)
+        except DemoError as e:
             raise HTTPException(409, str(e)) from None
         finally:
-            demo.kilit.release()
-        return {"onceki": sonuc["onceki"], "bugun": sonuc["bugun"],
-                "yeni_uyarilar": demo.suz(kullanici, sonuc["yeni"]), "rapor": demo.rapor(kullanici)}
+            demo.lock.release()
+        return {"onceki": result["onceki"], "bugun": result["bugun"],
+                "yeni_uyarilar": demo.filter_alerts(user, result["yeni"]), "rapor": demo.report(user)}
 
     @app.get("/api/uyarilar")
-    def uyarilar(istek: Request):
-        return {"bugun": demo.saat.simdi.isoformat(), "uyarilar": demo.uyarilar(oturum(istek))}
+    def alerts(request: Request):
+        return {"bugun": demo.clock.simdi.isoformat(), "uyarilar": demo.alerts(current_user(request))}
 
     @app.get("/api/rapor")
-    def rapor(istek: Request):
-        return demo.rapor(oturum(istek))
+    def report(request: Request):
+        return demo.report(current_user(request))
 
     return app

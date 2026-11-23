@@ -1,14 +1,14 @@
-"""Sayman MCP sunucusu: araçları modele sunar; her çağrı tek bir kapıdan geçer.
+"""Sayman MCP server: exposes the tools to the model; every call goes through a single gate.
 
-Kapıdaki sıra: kimlik kartı -> araç var mı -> rol bu aracı çağırabilir mi -> argümanlar şemaya uyuyor mu ->
-tarih "bugün"ü geçiyor mu -> aracı rolün kapsamındaki salt okunur bağlantıda çalıştır. Sonuç ne olursa olsun
-(başarılı, reddedildi, hata) çağrı denetim kaydına yazılır; kimlik kartı yazılmaz.
+Gate order: identity card -> does the tool exist -> may the role call this tool -> do the arguments match the
+schema -> is the date later than "today" -> run the tool on the read-only connection in the role's scope.
+Whatever the outcome (success, refusal, error), the call is written to the audit log; the identity card is not.
 
-MCP kütüphanesinin kendi girdi kontrolü kapalıdır (validate_input=False): açık olsaydı hatalı argümanlı
-bir istek kimlik kontrolüne ve denetim kaydına uğramadan geri dönerdi. Kontrolü kapı yapar.
+The MCP library's own input validation is turned off (validate_input=False): if it were on, a request with bad
+arguments would return without going through the identity check and the audit log. The gate does the check.
 
-Çalıştırma (stdio, proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz3_sunucu.py
+Running (stdio, from the project root):
+    .venv\\Scripts\\python -I scripts\\phase03_server.py
 """
 
 from __future__ import annotations
@@ -25,171 +25,171 @@ import jsonschema
 from mcp import types
 from mcp.server.lowlevel import Server
 
-from sayman.tools import scope as kapsam_modulu
-from sayman.tools.catalog import ARACLAR, ARACLAR_ADA_GORE, AracHatasi, AracKullanilamaz, Baglam
-from sayman.tools.audit_log import DenetimKaydi
-from sayman.tools.identity import KimlikHatasi, karti_dogrula, metadan_kart
-from sayman.tools.permissions import YetkiTablosu
-from sayman.data.clock import Saat
+from sayman.tools import scope as scope_module
+from sayman.tools.catalog import TOOLS, TOOLS_BY_NAME, ToolError, ToolUnavailable, Context
+from sayman.tools.audit_log import AuditLog
+from sayman.tools.identity import IdentityError, verify_card, card_from_meta
+from sayman.tools.permissions import PermissionTable
+from sayman.data.clock import Clock
 
-KAPSAM_ADI = {"hepsi": "tüm şirket", "yurtici": "yalnızca yurtiçi müşteriler", "ihracat": "yalnızca yurt dışı müşteriler"}
-MESAJLAR = {
+SCOPE_LABELS = {"hepsi": "tüm şirket", "yurtici": "yalnızca yurtiçi müşteriler", "ihracat": "yalnızca yurt dışı müşteriler"}
+MESSAGES = {
     "kimlik_gecersiz": "Kimlik doğrulanamadı.",
     "bilinmeyen_arac": "Böyle bir araç yok.",
     "yetki_yok": "Bu bilgiyi görme yetkiniz yok.",
     "hata": "Araç çalışırken bir hata oluştu.",
     "kullanilamaz": "Bu araç şu an kullanılamıyor.",
 }
-EN_UZUN_ARGUMAN = 2000  # denetim kaydına yazılan argüman metninin üst sınırı
+MAX_ARGUMENT_LENGTH = 2000  # upper limit on the argument text written to the audit log
 
 
-class Ret(Exception):
-    def __init__(self, kod: str, mesaj: str | None = None, neden: str | None = None):
-        super().__init__(kod)
-        self.kod, self.mesaj, self.neden = kod, mesaj or MESAJLAR[kod], neden or kod
+class Refusal(Exception):
+    def __init__(self, code: str, message: str | None = None, reason: str | None = None):
+        super().__init__(code)
+        self.code, self.message, self.reason = code, message or MESSAGES[code], reason or code
 
 
-def _kayda_uygun(argumanlar) -> object:
-    metin = json.dumps(argumanlar, ensure_ascii=False, default=str)
-    return argumanlar if len(metin) <= EN_UZUN_ARGUMAN else metin[:EN_UZUN_ARGUMAN] + "…"
+def _loggable(arguments) -> object:
+    text = json.dumps(arguments, ensure_ascii=False, default=str)
+    return arguments if len(text) <= MAX_ARGUMENT_LENGTH else text[:MAX_ARGUMENT_LENGTH] + "…"
 
 
-TIPLER = {"string": "metin", "integer": "tam sayı"}
+TYPE_NAMES = {"string": "metin", "integer": "tam sayı"}
 
 
-def arguman_mesaji(hata: jsonschema.ValidationError, sema: dict) -> str:
-    """Şema hatasını yalnızca şemadaki adlarla anlatır; kullanıcının girdisini geri yansıtmaz (cevap kısa kalır)."""
-    ozellikler = sema["properties"]
-    alan = hata.path[0] if hata.path and hata.path[0] in ozellikler else None
-    v = hata.validator
+def argument_message(error: jsonschema.ValidationError, schema: dict) -> str:
+    """Describes a schema error using only names from the schema; does not echo the user's input back (keeps the answer short)."""
+    properties = schema["properties"]
+    field_name = error.path[0] if error.path and error.path[0] in properties else None
+    v = error.validator
     if v == "additionalProperties":
-        return "Bilinmeyen argüman. Geçerli argümanlar: " + ", ".join(ozellikler) + "."
+        return "Bilinmeyen argüman. Geçerli argümanlar: " + ", ".join(properties) + "."
     if v == "required":
-        return "Eksik argüman: " + ", ".join(a for a in sema["required"] if a not in hata.instance) + "."
-    if alan is None:
+        return "Eksik argüman: " + ", ".join(a for a in schema["required"] if a not in error.instance) + "."
+    if field_name is None:
         return "Argümanlar geçersiz."
-    o = ozellikler[alan]
+    o = properties[field_name]
     if v == "format":
-        return f"{alan} YYYY-MM-DD biçiminde geçerli bir tarih olmalı."
+        return f"{field_name} YYYY-MM-DD biçiminde geçerli bir tarih olmalı."
     if v == "enum":
-        return f"{alan} şunlardan biri olmalı: {', '.join(o['enum'])}."
-    if v == "maximum":  # Faz 9 üçüncü kol: sınırı aşan model ne yapacağını bilsin
-        return f"{alan} en çok {o['maximum']} olabilir; {o['maximum']} ile yeniden deneyin."
+        return f"{field_name} şunlardan biri olmalı: {', '.join(o['enum'])}."
+    if v == "maximum":  # Phase 9 third arm: a model that exceeds the limit should know what to do
+        return f"{field_name} en çok {o['maximum']} olabilir; {o['maximum']} ile yeniden deneyin."
     if v == "minimum":
-        return f"{alan} {o['minimum']} ile {o['maximum']} arasında olmalı."
+        return f"{field_name} {o['minimum']} ile {o['maximum']} arasında olmalı."
     if v == "maxLength":
-        return f"{alan} en çok {o['maxLength']} karakter olabilir."
+        return f"{field_name} en çok {o['maxLength']} karakter olabilir."
     if v == "minLength":
-        return f"{alan} en az {o['minLength']} karakter olmalı."
+        return f"{field_name} en az {o['minLength']} karakter olmalı."
     if v == "type":
-        return f"{alan} {TIPLER.get(o.get('type'), 'geçerli bir değer')} olmalı."
-    return f"{alan} geçersiz."
+        return f"{field_name} {TYPE_NAMES.get(o.get('type'), 'geçerli bir değer')} olmalı."
+    return f"{field_name} geçersiz."
 
 
-def _gelecek_mi(deger, simdi: dt.date) -> bool:
-    return isinstance(deger, str) and dt.date.fromisoformat(deger) > simdi
+def _is_future(value, today: dt.date) -> bool:
+    return isinstance(value, str) and dt.date.fromisoformat(value) > today
 
 
-class SaymanSunucusu:
-    def __init__(self, ambar: Path, saat: Callable[[], Saat], anahtar: bytes, yetki: YetkiTablosu,
-                 kayit: DenetimKaydi, kapsam_klasoru: Path | None = None, zaman: Callable[[], float] = time.time,
-                 belge=None, belge_yontemi: str = "anlam"):
-        """belge: belge arayıcısı (verilmezse belge_ara "kullanilamaz" ile reddedilir). belge_yontemi: "anlam"
-        (varsayılan), "bm25", "karma" ya da "karma_sirala" (sıralayıcı; daha güçlü bir bilgisayar için)."""
-        if not anahtar:
+class SaymanServer:
+    def __init__(self, warehouse: Path, clock: Callable[[], Clock], key: bytes, permissions: PermissionTable,
+                 audit_log: AuditLog, scope_dir: Path | None = None, time_fn: Callable[[], float] = time.time,
+                 belge=None, search_method: str = "anlam"):
+        """belge: document searcher (if not given, belge_ara is refused with "kullanilamaz"). search_method:
+        "anlam" (default), "bm25", "karma" or "karma_sirala" (reranker; for a more powerful computer)."""
+        if not key:
             raise RuntimeError("imza anahtarı olmadan sunucu açılmaz")
-        self.saat, self.anahtar, self.yetki, self.kayit, self.zaman = saat, anahtar, yetki, kayit, zaman
-        self.belge, self.belge_yontemi = belge, belge_yontemi
-        klasor = Path(kapsam_klasoru) if kapsam_klasoru else Path(tempfile.mkdtemp(prefix="sayman_kapsam_"))
-        self.baglantilar = kapsam_modulu.baglantilar(ambar, klasor, {r.kapsam for r in yetki.roller.values()})
-        self.dogrulayicilar = {a.ad: jsonschema.Draft202012Validator(a.sema, format_checker=jsonschema.FormatChecker())
-                               for a in ARACLAR}
+        self.clock, self.key, self.permissions, self.audit_log, self.time_fn = clock, key, permissions, audit_log, time_fn
+        self.belge, self.search_method = belge, search_method
+        directory = Path(scope_dir) if scope_dir else Path(tempfile.mkdtemp(prefix="sayman_kapsam_"))
+        self.connections = scope_module.connections(warehouse, directory, {r.scope for r in permissions.roller.values()})
+        self.validators = {a.name: jsonschema.Draft202012Validator(a.schema, format_checker=jsonschema.FormatChecker())
+                               for a in TOOLS}
         self.mcp = Server("sayman")
-        self.mcp.list_tools()(self._listele)
-        self.mcp.call_tool(validate_input=False)(self._cagir)
+        self.mcp.list_tools()(self._list_tools)
+        self.mcp.call_tool(validate_input=False)(self._call_tool)
 
-    # -- MCP uçları -------------------------------------------------------------------------------
+    # -- MCP endpoints ----------------------------------------------------------------------------
 
     @staticmethod
-    def araclar() -> list[types.Tool]:
-        return [types.Tool(name=a.ad, description=a.aciklama, inputSchema=a.sema,
+    def tools() -> list[types.Tool]:
+        return [types.Tool(name=a.name, description=a.description, inputSchema=a.schema,
                            annotations=types.ToolAnnotations(readOnlyHint=True, destructiveHint=False,
                                                              idempotentHint=True, openWorldHint=False))
-                for a in ARACLAR]
+                for a in TOOLS]
 
-    async def _listele(self) -> list[types.Tool]:
-        return self.araclar()
+    async def _list_tools(self) -> list[types.Tool]:
+        return self.tools()
 
-    async def _cagir(self, ad: str, argumanlar: dict) -> types.CallToolResult:
+    async def _call_tool(self, name: str, arguments: dict) -> types.CallToolResult:
         try:
             meta = self.mcp.request_context.meta
         except LookupError:
             meta = None
-        yanit, hata = self.kapi(ad, argumanlar, metadan_kart(meta))
-        return types.CallToolResult(content=[types.TextContent(type="text", text=json.dumps(yanit, ensure_ascii=False))],
-                                    structuredContent=yanit, isError=hata)
+        response, error = self.gate(name, arguments, card_from_meta(meta))
+        return types.CallToolResult(content=[types.TextContent(type="text", text=json.dumps(response, ensure_ascii=False))],
+                                    structuredContent=response, isError=error)
 
-    # -- kapı ---------------------------------------------------------------------------------------
+    # -- gate ---------------------------------------------------------------------------------------
 
-    def kapi(self, ad, argumanlar, kart) -> tuple[dict, bool]:
-        """Tek kapı. (yanıt, hata_mı) döner; her durumda denetim kaydına bir satır yazar."""
-        cagri_id = "C" + secrets.token_hex(6)
-        bas = time.perf_counter()
-        satir = {"cagri_id": cagri_id, "arac": (ad if isinstance(ad, str) else repr(ad))[:100],
-                 "argumanlar": _kayda_uygun(argumanlar), "kullanici": None, "rol": None}
+    def gate(self, name, arguments, card) -> tuple[dict, bool]:
+        """The single gate. Returns (response, is_error); in every case writes one row to the audit log."""
+        call_id = "C" + secrets.token_hex(6)
+        started = time.perf_counter()
+        row = {"cagri_id": call_id, "arac": (name if isinstance(name, str) else repr(name))[:100],
+                 "argumanlar": _loggable(arguments), "kullanici": None, "rol": None}
         try:
             try:
-                kimlik = karti_dogrula(kart, self.anahtar, self.yetki.kullanicilar, self.zaman())
-            except KimlikHatasi as e:
-                raise Ret("kimlik_gecersiz", neden=e.neden) from None
-            satir.update(kullanici=kimlik.kullanici, rol=kimlik.rol)
-            arac = ARACLAR_ADA_GORE.get(ad)
-            if arac is None:
-                raise Ret("bilinmeyen_arac")
-            if not self.yetki.izinli_mi(kimlik.rol, ad):
-                raise Ret("yetki_yok")
-            if not isinstance(argumanlar, dict):
-                raise Ret("gecersiz_arguman", "Argümanlar bir nesne olmalı.")
-            hata = next(iter(sorted(self.dogrulayicilar[ad].iter_errors(argumanlar), key=lambda e: list(e.path))), None)
-            if hata is not None:
-                raise Ret("gecersiz_arguman", "Argüman hatası: " + arguman_mesaji(hata, arac.sema))
-            # JSON şeması 5.0'ı da tam sayı sayar; araçlar gerçek int alsın.
-            argumanlar = {k: int(v) if isinstance(v, float) and arac.ozellikler[k].get("type") == "integer" else v
-                          for k, v in argumanlar.items()}
-            simdi = self.saat().simdi
-            satir["simdi"] = simdi.isoformat()  # simülasyon günü: çağrı bu satırdan aynen yeniden üretilebilir
-            for alan in arac.tarih_alanlari:
-                if _gelecek_mi(argumanlar.get(alan), simdi):
-                    raise Ret("gelecek_tarih", f"Bugünden ({simdi.isoformat()}) sonraki günler için veri yok.")
-            kapsam = self.yetki.roller[kimlik.rol].kapsam
-            baglam = Baglam(self.baglantilar[kapsam], simdi, kimlik.rol, self.belge, self.belge_yontemi)
+                identity = verify_card(card, self.key, self.permissions.users, self.time_fn())
+            except IdentityError as e:
+                raise Refusal("kimlik_gecersiz", reason=e.reason) from None
+            row.update(kullanici=identity.user, rol=identity.role)
+            tool = TOOLS_BY_NAME.get(name)
+            if tool is None:
+                raise Refusal("bilinmeyen_arac")
+            if not self.permissions.is_allowed(identity.role, name):
+                raise Refusal("yetki_yok")
+            if not isinstance(arguments, dict):
+                raise Refusal("gecersiz_arguman", "Argümanlar bir nesne olmalı.")
+            error = next(iter(sorted(self.validators[name].iter_errors(arguments), key=lambda e: list(e.path))), None)
+            if error is not None:
+                raise Refusal("gecersiz_arguman", "Argüman hatası: " + argument_message(error, tool.schema))
+            # JSON Schema also counts 5.0 as an integer; the tools should receive a real int.
+            arguments = {k: int(v) if isinstance(v, float) and tool.properties[k].get("type") == "integer" else v
+                          for k, v in arguments.items()}
+            today = self.clock().simdi
+            row["simdi"] = today.isoformat()  # simulation day: the call can be reproduced exactly from this row
+            for field_name in tool.date_fields:
+                if _is_future(arguments.get(field_name), today):
+                    raise Refusal("gelecek_tarih", f"Bugünden ({today.isoformat()}) sonraki günler için veri yok.")
+            scope = self.permissions.roller[identity.role].scope
+            context = Context(self.connections[scope], today, identity.role, self.belge, self.search_method)
             try:
-                tarih, sonuc, kaynak = arac.calistir(baglam, argumanlar)
-            except AracHatasi as e:
-                raise Ret("gecersiz_arguman", str(e)) from None
-            except AracKullanilamaz as e:
-                raise Ret("kullanilamaz", str(e)) from None
-            yanit = {"cagri_id": cagri_id, "arac": ad, "tarih": tarih.isoformat(), "kapsam": KAPSAM_ADI[kapsam],
-                     "sonuc": sonuc, "kaynak": kaynak}
-            satir.update(sonuc="tamam", tarih=tarih.isoformat(), kayit_sayisi=sum(len(v) for v in kaynak.values()))
-            return yanit, False
-        except Ret as r:
-            satir.update(sonuc="reddedildi", neden=r.neden)
-            return {"cagri_id": cagri_id, "hata": r.kod, "mesaj": r.mesaj}, True
-        except Exception as e:  # beklenmeyen hata: ayrıntı yalnızca kayda
-            satir.update(sonuc="hata", neden=f"{type(e).__name__}: {str(e)[:300]}")
-            return {"cagri_id": cagri_id, "hata": "hata", "mesaj": MESAJLAR["hata"]}, True
+                result_date, result, sources = tool.run(context, arguments)
+            except ToolError as e:
+                raise Refusal("gecersiz_arguman", str(e)) from None
+            except ToolUnavailable as e:
+                raise Refusal("kullanilamaz", str(e)) from None
+            response = {"cagri_id": call_id, "arac": name, "tarih": result_date.isoformat(), "kapsam": SCOPE_LABELS[scope],
+                     "sonuc": result, "kaynak": sources}
+            row.update(sonuc="tamam", tarih=result_date.isoformat(), kayit_sayisi=sum(len(v) for v in sources.values()))
+            return response, False
+        except Refusal as r:
+            row.update(sonuc="reddedildi", neden=r.reason)
+            return {"cagri_id": call_id, "hata": r.code, "mesaj": r.message}, True
+        except Exception as e:  # unexpected error: the details go only to the log
+            row.update(sonuc="hata", neden=f"{type(e).__name__}: {str(e)[:300]}")
+            return {"cagri_id": call_id, "hata": "hata", "mesaj": MESSAGES["hata"]}, True
         finally:
-            satir["sure_ms"] = round((time.perf_counter() - bas) * 1000, 1)
-            self.kayit.yaz(**satir)
+            row["sure_ms"] = round((time.perf_counter() - started) * 1000, 1)
+            self.audit_log.write(**row)
 
-    def kapat(self) -> None:
-        for con in self.baglantilar.values():
+    def close(self) -> None:
+        for con in self.connections.values():
             con.close()
 
 
 def main(argv: list[str] | None = None) -> None:
-    """stdio sunucusu. Anahtar önce ortam değişkeninden, yoksa proje kökündeki .env dosyasından okunur."""
+    """stdio server. The key is read first from the environment variable, otherwise from the .env file in the project root."""
     import argparse
     import os
 
@@ -197,36 +197,36 @@ def main(argv: list[str] | None = None) -> None:
     from dotenv import dotenv_values
     from mcp.server.stdio import stdio_server
 
-    from sayman.tools.identity import ANAHTAR_DEGISKENI, anahtar_oku
-    from sayman.tools.permissions import yetki_oku
-    from sayman.documents.search import YONTEMLER, arayici_kur
-    from sayman.data.clock import saat_oku
+    from sayman.tools.identity import KEY_ENV_VAR, read_key
+    from sayman.tools.permissions import read_permissions
+    from sayman.documents.search import METHODS, build_searcher
+    from sayman.data.clock import read_clock
 
-    kok = Path(__file__).resolve().parents[3]
+    root = Path(__file__).resolve().parents[3]
     ap = argparse.ArgumentParser(description="Sayman MCP sunucusu (stdio)")
-    ap.add_argument("--ambar", type=Path, default=kok / "data" / "ambar" / "sayman.duckdb")
-    ap.add_argument("--saat", type=Path, default=kok / "data" / "saat.json")
-    ap.add_argument("--kayit", type=Path, default=kok / "data" / "denetim" / "kayit.jsonl")
-    ap.add_argument("--kapsam-klasoru", type=Path, default=kok / "data" / "ambar" / "kapsam")
+    ap.add_argument("--ambar", type=Path, default=root / "data" / "ambar" / "sayman.duckdb")
+    ap.add_argument("--saat", type=Path, default=root / "data" / "saat.json")
+    ap.add_argument("--kayit", type=Path, default=root / "data" / "denetim" / "kayit.jsonl")
+    ap.add_argument("--kapsam-klasoru", type=Path, default=root / "data" / "ambar" / "kapsam")
     ap.add_argument("--belge", type=Path, default=None,
                     help="Faz 5 belge kütüphanesi klasörü (ör. data/belge); verilmezse belge_ara kapalıdır")
-    ap.add_argument("--belge-yontemi", choices=YONTEMLER, default="anlam",
+    ap.add_argument("--belge-yontemi", choices=METHODS, default="anlam",
                     help="karma_sirala sıralayıcı modeli yükler; daha güçlü bir bilgisayar için")
-    ap.add_argument("--siralayici-modeli", type=Path, default=kok / "data" / "modeller" / "bge-reranker-v2-m3")
+    ap.add_argument("--siralayici-modeli", type=Path, default=root / "data" / "modeller" / "bge-reranker-v2-m3")
     a = ap.parse_args(argv)
-    belge = arayici_kur(a.belge, a.belge_yontemi, a.siralayici_modeli) if a.belge else None
-    ortam = dict(dotenv_values(kok / ".env"))
-    if os.environ.get(ANAHTAR_DEGISKENI):
-        ortam[ANAHTAR_DEGISKENI] = os.environ[ANAHTAR_DEGISKENI]
-    sunucu = SaymanSunucusu(ambar=a.ambar, saat=lambda: saat_oku(a.saat), anahtar=anahtar_oku(ortam),
-                            yetki=yetki_oku(), kayit=DenetimKaydi(a.kayit), kapsam_klasoru=a.kapsam_klasoru,
-                            belge=belge, belge_yontemi=a.belge_yontemi)
+    belge = build_searcher(a.belge, a.belge_yontemi, a.siralayici_modeli) if a.belge else None
+    env = dict(dotenv_values(root / ".env"))
+    if os.environ.get(KEY_ENV_VAR):
+        env[KEY_ENV_VAR] = os.environ[KEY_ENV_VAR]
+    server = SaymanServer(warehouse=a.ambar, clock=lambda: read_clock(a.saat), key=read_key(env),
+                            permissions=read_permissions(), audit_log=AuditLog(a.kayit), scope_dir=a.kapsam_klasoru,
+                            belge=belge, search_method=a.belge_yontemi)
 
-    async def calistir():
-        async with stdio_server() as (oku, yaz):
-            await sunucu.mcp.run(oku, yaz, sunucu.mcp.create_initialization_options())
+    async def serve():
+        async with stdio_server() as (read_stream, write_stream):
+            await server.mcp.run(read_stream, write_stream, server.mcp.create_initialization_options())
 
     try:
-        anyio.run(calistir)
+        anyio.run(serve)
     finally:
-        sunucu.kapat()
+        server.close()

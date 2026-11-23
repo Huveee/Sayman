@@ -1,7 +1,7 @@
-"""Faz 2 metriklerinin pandas ile ikinci, bağımsız hesabı (yalnızca testler kullanır).
+"""A second, independent pandas computation of the Phase 2 metrics (used only by tests).
 
-DuckDB tarafıyla ortak kod paylaşmaz: CSV'leri kendisi okur, tipleri kendisi kurar, yuvarlamayı kendisi
-yapar. Tanımlar sayman/ambar/metrikler.py'nin belgesindeki tanımlardır; iki hesap aynı sonucu vermelidir.
+It shares no code with the DuckDB side: it reads the CSVs itself, builds the types itself and does its own rounding.
+The definitions are those in the docstring of `sayman/warehouse/metrics.py`; the two computations must give the same results.
 """
 
 from __future__ import annotations
@@ -13,340 +13,340 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-TABLOLAR = ("musteriler", "faturalar", "pos_islemleri", "tahsilatlar", "cekler", "cek_hareketleri", "tedarikciler",
+TABLES = ("musteriler", "faturalar", "pos_islemleri", "tahsilatlar", "cekler", "cek_hareketleri", "tedarikciler",
             "alis_faturalari", "odemeler", "banka_hesaplari", "banka_hareketleri", "doviz_kurlari")
-DILIMLER = (("vadesi_gelmemis", -10**9, 0), ("gecikme_1_30", 1, 30), ("gecikme_31_60", 31, 60),
+BUCKETS = (("vadesi_gelmemis", -10**9, 0), ("gecikme_1_30", 1, 30), ("gecikme_31_60", 31, 60),
             ("gecikme_61_90", 61, 90), ("gecikme_91_180", 91, 180), ("gecikme_180_ustu", 181, 10**9))
 
 
-def _tur(sutun: str) -> str:
-    if sutun.endswith("_kurus") or sutun in ("vade_gun", "kalem_sayisi"):
+def _kind(column: str) -> str:
+    if column.endswith("_kurus") or column in ("vade_gun", "kalem_sayisi"):
         return "int"
-    if sutun == "yurtici":
+    if column == "yurtici":
         return "bool"
-    if sutun in ("kur", "alis"):
+    if column in ("kur", "alis"):
         return "ondalik"
-    if sutun == "tarih" or sutun.endswith("tarihi"):
+    if column == "tarih" or column.endswith("tarihi"):
         return "gun"
     return "metin"
 
 
-def oku(klasor: Path) -> dict[str, pd.DataFrame]:
+def read_tables(directory: Path) -> dict[str, pd.DataFrame]:
     T = {}
-    for ad in TABLOLAR:
-        df = pd.read_csv(Path(klasor) / f"{ad}.csv", dtype=str, keep_default_na=False, encoding="utf-8")
+    for name in TABLES:
+        df = pd.read_csv(Path(directory) / f"{name}.csv", dtype=str, keep_default_na=False, encoding="utf-8")
         for s in df.columns:
-            bos = df[s] == ""
-            tur = _tur(s)
-            if tur == "int":
-                df[s] = pd.array([None if b else int(v) for v, b in zip(df[s], bos)], dtype="Int64")
-            elif tur == "bool":
+            blank_mask = df[s] == ""
+            kind = _kind(s)
+            if kind == "int":
+                df[s] = pd.array([None if b else int(v) for v, b in zip(df[s], blank_mask)], dtype="Int64")
+            elif kind == "bool":
                 df[s] = df[s] == "1"
-            elif tur == "ondalik":
-                df[s] = [None if b else Decimal(v) for v, b in zip(df[s], bos)]
-            elif tur == "gun":
-                df[s] = pd.to_datetime(df[s].where(~bos, None), format="%Y-%m-%d")
+            elif kind == "ondalik":
+                df[s] = [None if b else Decimal(v) for v, b in zip(df[s], blank_mask)]
+            elif kind == "gun":
+                df[s] = pd.to_datetime(df[s].where(~blank_mask, None), format="%Y-%m-%d")
             else:
-                df[s] = df[s].where(~bos, None)
-        T[ad] = df
+                df[s] = df[s].where(~blank_mask, None)
+        T[name] = df
     return T
 
 
-def kur_carp(kurus, kur: Decimal) -> int:
-    return int((Decimal(int(kurus)) * kur).to_integral_value(rounding=ROUND_HALF_EVEN))
+def apply_rate(cents, rate: Decimal) -> int:
+    return int((Decimal(int(cents)) * rate).to_integral_value(rounding=ROUND_HALF_EVEN))
 
 
-def _ts(tarih: dt.date) -> pd.Timestamp:
+def _timestamp(tarih: dt.date) -> pd.Timestamp:
     return pd.Timestamp(tarih)
 
 
-def _gun(x) -> dt.date:
+def _to_date(x) -> dt.date:
     return pd.Timestamp(x).date()
 
 
-def _kurlar(T, d: pd.Timestamp) -> dict[str, Decimal]:
+def _rates(T, d: pd.Timestamp) -> dict[str, Decimal]:
     k = T["doviz_kurlari"]
     k = k[k["tarih"] <= d].sort_values(["para_birimi", "tarih"])
-    kurlar = {pb: g["alis"].iloc[-1] for pb, g in k.groupby("para_birimi")}
-    kurlar["TRY"] = Decimal(1)
-    return kurlar
+    rates = {currency: g["alis"].iloc[-1] for currency, g in k.groupby("para_birimi")}
+    rates["TRY"] = Decimal(1)
+    return rates
 
 
-def _kur(kurlar: dict, pb: str) -> Decimal:
-    if pb not in kurlar:
-        raise LookupError(f"kur bulunamadı: {pb}")
-    return kurlar[pb]
+def _rate(rates: dict, currency: str) -> Decimal:
+    if currency not in rates:
+        raise LookupError(f"kur bulunamadı: {currency}")
+    return rates[currency]
 
 
-def _acik(T, d: pd.Timestamp) -> pd.DataFrame:
+def _open_receivables(T, d: pd.Timestamp) -> pd.DataFrame:
     f = T["faturalar"]
-    sat = f[(f["tur"] == "satis") & (f["fatura_tarihi"] <= d)].copy()
+    sales_rows = f[(f["tur"] == "satis") & (f["fatura_tarihi"] <= d)].copy()
     t = T["tahsilatlar"]
     t = t[(t["tarih"] <= d) & t["fatura_id"].notna()]
-    tah = {k: int(v) for k, v in t.groupby("fatura_id")["tutar_kurus"].sum().items()}
+    collected = {k: int(v) for k, v in t.groupby("fatura_id")["tutar_kurus"].sum().items()}
     i = f[(f["tur"] == "iade") & (f["fatura_tarihi"] <= d) & f["iliskili_fatura_id"].notna()]
-    iad = {k: int(v) for k, v in i.assign(u=i["uygulanan_kurus"].fillna(0)).groupby("iliskili_fatura_id")["u"].sum().items()}
-    sat["acik_kurus"] = [int(a) - tah.get(fid, 0) - iad.get(fid, 0)
-                         for a, fid in zip(sat["tutar_kurus"], sat["fatura_id"])]
-    sat["gecikme_gun"] = (d - sat["vade_tarihi"]).dt.days.astype(int)
-    poz = sat[sat["acik_kurus"] > 0].copy()
-    poz["acik_try_kurus"] = [kur_carp(a, k) for a, k in zip(poz["acik_kurus"], poz["kur"])]
-    return poz
+    returned_amounts = {k: int(v) for k, v in i.assign(u=i["uygulanan_kurus"].fillna(0)).groupby("iliskili_fatura_id")["u"].sum().items()}
+    sales_rows["acik_kurus"] = [int(a) - collected.get(invoice_id, 0) - returned_amounts.get(invoice_id, 0)
+                         for a, invoice_id in zip(sales_rows["tutar_kurus"], sales_rows["fatura_id"])]
+    sales_rows["gecikme_gun"] = (d - sales_rows["vade_tarihi"]).dt.days.astype(int)
+    open_rows = sales_rows[sales_rows["acik_kurus"] > 0].copy()
+    open_rows["acik_try_kurus"] = [apply_rate(a, k) for a, k in zip(open_rows["acik_kurus"], open_rows["kur"])]
+    return open_rows
 
 
-def _eslesmemis(T, d: pd.Timestamp) -> pd.DataFrame:
+def _unmatched(T, d: pd.Timestamp) -> pd.DataFrame:
     t = T["tahsilatlar"]
     t = t[t["fatura_id"].isna() & (t["tarih"] <= d)].copy()
     if t.empty:
         return t.assign(try_kurus=pd.Series(dtype=object))
-    kurlar = T["doviz_kurlari"].sort_values("tarih")[["tarih", "para_birimi", "alis"]]
-    t = pd.merge_asof(t.sort_values("tarih"), kurlar, on="tarih", by="para_birimi", direction="backward")
-    deger = []
-    for pb, tutar, alis in zip(t["para_birimi"], t["tutar_kurus"], t["alis"]):
-        if pb == "TRY":
-            deger.append(int(tutar))
-        elif alis is None or (isinstance(alis, float) and np.isnan(alis)):
-            raise LookupError(f"kur bulunamadı: {pb}")
+    rates = T["doviz_kurlari"].sort_values("tarih")[["tarih", "para_birimi", "alis"]]
+    t = pd.merge_asof(t.sort_values("tarih"), rates, on="tarih", by="para_birimi", direction="backward")
+    computed = []
+    for currency, amount, buy_rate in zip(t["para_birimi"], t["tutar_kurus"], t["alis"]):
+        if currency == "TRY":
+            computed.append(int(amount))
+        elif buy_rate is None or (isinstance(buy_rate, float) and np.isnan(buy_rate)):
+            raise LookupError(f"kur bulunamadı: {currency}")
         else:
-            deger.append(kur_carp(tutar, alis))
-    return t.assign(try_kurus=deger)
+            computed.append(apply_rate(amount, buy_rate))
+    return t.assign(try_kurus=computed)
 
 
-def _bakiyeler(T, d: pd.Timestamp) -> pd.DataFrame:
+def _balances(T, d: pd.Timestamp) -> pd.DataFrame:
     h = T["banka_hesaplari"]
     h = h[h["acilis_tarihi"] <= d].copy()
-    hr = T["banka_hareketleri"]
-    toplam = hr[hr["tarih"] <= d].groupby("hesap_id")["tutar_kurus"].sum()
-    h["bakiye_kurus"] = [int(a) + int(toplam.get(i, 0)) for a, i in zip(h["acilis_bakiye_kurus"], h["hesap_id"])]
+    bank_transactions = T["banka_hareketleri"]
+    total = bank_transactions[bank_transactions["tarih"] <= d].groupby("hesap_id")["tutar_kurus"].sum()
+    h["bakiye_kurus"] = [int(a) + int(total.get(i, 0)) for a, i in zip(h["acilis_bakiye_kurus"], h["hesap_id"])]
     return h
 
 
-def _acik_borc(T, d: pd.Timestamp) -> pd.DataFrame:
+def _open_payables(T, d: pd.Timestamp) -> pd.DataFrame:
     a = T["alis_faturalari"]
     a = a[a["tarih"] <= d].copy()
     o = T["odemeler"]
-    od = o[(o["tarih"] <= d) & o["alis_fatura_id"].notna()].groupby("alis_fatura_id")["tutar_kurus"].sum()
-    a["acik_kurus"] = [int(t) - int(od.get(i, 0)) for t, i in zip(a["tutar_kurus"], a["alis_fatura_id"])]
+    paid = o[(o["tarih"] <= d) & o["alis_fatura_id"].notna()].groupby("alis_fatura_id")["tutar_kurus"].sum()
+    a["acik_kurus"] = [int(t) - int(paid.get(i, 0)) for t, i in zip(a["tutar_kurus"], a["alis_fatura_id"])]
     return a
 
 
-# ---------------------------------------------------------------- metrikler
+# ---------------------------------------------------------------- metrics
 
 
-def nakit_pozisyonu(T, tarih: dt.date) -> dict:
-    d = _ts(tarih)
-    kurlar = _kurlar(T, d)
-    hesaplar = []
-    for _, h in _bakiyeler(T, d).sort_values("hesap_id").iterrows():
-        kur = _kur(kurlar, h["para_birimi"])
-        hesaplar.append({"hesap_id": h["hesap_id"], "banka": h["banka"], "para_birimi": h["para_birimi"],
-                         "bakiye_kurus": h["bakiye_kurus"], "kur": kur, "bakiye_try_kurus": kur_carp(h["bakiye_kurus"], kur)})
-    return {"tarih": tarih, "hesaplar": hesaplar, "toplam_try_kurus": sum(h["bakiye_try_kurus"] for h in hesaplar)}
+def cash_position(T, tarih: dt.date) -> dict:
+    d = _timestamp(tarih)
+    rates = _rates(T, d)
+    accounts = []
+    for _, h in _balances(T, d).sort_values("hesap_id").iterrows():
+        rate = _rate(rates, h["para_birimi"])
+        accounts.append({"hesap_id": h["hesap_id"], "banka": h["banka"], "para_birimi": h["para_birimi"],
+                         "bakiye_kurus": h["bakiye_kurus"], "kur": rate, "bakiye_try_kurus": apply_rate(h["bakiye_kurus"], rate)})
+    return {"tarih": tarih, "hesaplar": accounts, "toplam_try_kurus": sum(h["bakiye_try_kurus"] for h in accounts)}
 
 
-def yaslandirma(T, tarih: dt.date) -> dict:
-    d = _ts(tarih)
-    poz = _acik(T, d)
-    esl = _eslesmemis(T, d)
-    sutunlar = [f"{ad}_kurus" for ad, _, _ in DILIMLER]
-    satir = {}
-    for m, g, tutar in zip(poz["musteri_id"], poz["gecikme_gun"], poz["acik_try_kurus"]):
-        kayit = satir.setdefault(m, dict.fromkeys(sutunlar + ["eslesmemis_tahsilat_kurus"], 0))
-        dilim = next(ad for ad, alt, ust in DILIMLER if alt <= g <= ust)
-        kayit[f"{dilim}_kurus"] += tutar
-    for m, tutar in zip(esl["musteri_id"], esl["try_kurus"]):
-        kayit = satir.setdefault(m, dict.fromkeys(sutunlar + ["eslesmemis_tahsilat_kurus"], 0))
-        kayit["eslesmemis_tahsilat_kurus"] -= tutar
-    ad = dict(zip(T["musteriler"]["musteri_id"], T["musteriler"]["ad"]))
-    musteriler = []
-    for m, kayit in satir.items():
-        musteriler.append({"musteri_id": m, "ad": ad.get(m), **kayit, "toplam_kurus": sum(kayit.values())})
-    musteriler.sort(key=lambda r: (-r["toplam_kurus"], r["musteri_id"]))
-    hepsi = sutunlar + ["eslesmemis_tahsilat_kurus", "toplam_kurus"]
-    return {"tarih": tarih, "musteriler": musteriler, "toplam": {s: sum(r[s] for r in musteriler) for s in hepsi}}
+def aging(T, tarih: dt.date) -> dict:
+    d = _timestamp(tarih)
+    open_rows = _open_receivables(T, d)
+    unmatched = _unmatched(T, d)
+    columns = [f"{name}_kurus" for name, _, _ in BUCKETS]
+    by_customer = {}
+    for m, g, amount in zip(open_rows["musteri_id"], open_rows["gecikme_gun"], open_rows["acik_try_kurus"]):
+        customer_row = by_customer.setdefault(m, dict.fromkeys(columns + ["eslesmemis_tahsilat_kurus"], 0))
+        bucket = next(name for name, low, high in BUCKETS if low <= g <= high)
+        customer_row[f"{bucket}_kurus"] += amount
+    for m, amount in zip(unmatched["musteri_id"], unmatched["try_kurus"]):
+        customer_row = by_customer.setdefault(m, dict.fromkeys(columns + ["eslesmemis_tahsilat_kurus"], 0))
+        customer_row["eslesmemis_tahsilat_kurus"] -= amount
+    name = dict(zip(T["musteriler"]["musteri_id"], T["musteriler"]["ad"]))
+    customers = []
+    for m, customer_row in by_customer.items():
+        customers.append({"musteri_id": m, "ad": name.get(m), **customer_row, "toplam_kurus": sum(customer_row.values())})
+    customers.sort(key=lambda r: (-r["toplam_kurus"], r["musteri_id"]))
+    all_values = columns + ["eslesmemis_tahsilat_kurus", "toplam_kurus"]
+    return {"tarih": tarih, "musteriler": customers, "toplam": {s: sum(r[s] for r in customers) for s in all_values}}
 
 
 def dso(T, tarih: dt.date, gun: int = 365) -> dict:
-    alacak = yaslandirma(T, tarih)["toplam"]["toplam_kurus"]
-    bas, bit = _ts(tarih - dt.timedelta(days=gun - 1)), _ts(tarih)
+    receivable = aging(T, tarih)["toplam"]["toplam_kurus"]
+    start, end = _timestamp(tarih - dt.timedelta(days=gun - 1)), _timestamp(tarih)
     f, p = T["faturalar"], T["pos_islemleri"]
-    satis = int(f[(f["fatura_tarihi"] >= bas) & (f["fatura_tarihi"] <= bit)]["tutar_try_kurus"].sum()) + int(
-        p[(p["islem_tarihi"] >= bas) & (p["islem_tarihi"] <= bit)]["tutar_kurus"].sum())
-    deger = None
-    if satis > 0:
-        deger = (Decimal(gun) * Decimal(alacak) / Decimal(satis)).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
-    return {"tarih": tarih, "gun": gun, "alacak_kurus": alacak, "satis_kurus": satis, "dso_gun": deger}
+    sales = int(f[(f["fatura_tarihi"] >= start) & (f["fatura_tarihi"] <= end)]["tutar_try_kurus"].sum()) + int(
+        p[(p["islem_tarihi"] >= start) & (p["islem_tarihi"] <= end)]["tutar_kurus"].sum())
+    computed = None
+    if sales > 0:
+        computed = (Decimal(gun) * Decimal(receivable) / Decimal(sales)).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+    return {"tarih": tarih, "gun": gun, "alacak_kurus": receivable, "satis_kurus": sales, "dso_gun": computed}
 
 
-def geciken_alacaklar(T, tarih: dt.date, en_az_gun: int = 1) -> dict:
-    poz = _acik(T, _ts(tarih))
-    poz = poz[poz["gecikme_gun"] >= en_az_gun]
-    ad = dict(zip(T["musteriler"]["musteri_id"], T["musteriler"]["ad"]))
-    faturalar = [{"fatura_id": r["fatura_id"], "musteri_id": r["musteri_id"], "ad": ad.get(r["musteri_id"]),
-                  "fatura_tarihi": _gun(r["fatura_tarihi"]), "vade_tarihi": _gun(r["vade_tarihi"]),
+def overdue_receivables(T, tarih: dt.date, en_az_gun: int = 1) -> dict:
+    open_rows = _open_receivables(T, _timestamp(tarih))
+    open_rows = open_rows[open_rows["gecikme_gun"] >= en_az_gun]
+    name = dict(zip(T["musteriler"]["musteri_id"], T["musteriler"]["ad"]))
+    invoices = [{"fatura_id": r["fatura_id"], "musteri_id": r["musteri_id"], "ad": name.get(r["musteri_id"]),
+                  "fatura_tarihi": _to_date(r["fatura_tarihi"]), "vade_tarihi": _to_date(r["vade_tarihi"]),
                   "gecikme_gun": int(r["gecikme_gun"]), "para_birimi": r["para_birimi"],
                   "acik_kurus": int(r["acik_kurus"]), "acik_try_kurus": int(r["acik_try_kurus"])}
-                 for _, r in poz.iterrows()]
-    faturalar.sort(key=lambda r: (-r["acik_try_kurus"], r["fatura_id"]))
-    return {"tarih": tarih, "en_az_gun": en_az_gun, "faturalar": faturalar,
-            "toplam_try_kurus": sum(r["acik_try_kurus"] for r in faturalar)}
+                 for _, r in open_rows.iterrows()]
+    invoices.sort(key=lambda r: (-r["acik_try_kurus"], r["fatura_id"]))
+    return {"tarih": tarih, "en_az_gun": en_az_gun, "faturalar": invoices,
+            "toplam_try_kurus": sum(r["acik_try_kurus"] for r in invoices)}
 
 
-def yaklasan_odemeler(T, tarih: dt.date, gun: int = 30) -> dict:
-    d = _ts(tarih)
-    a = _acik_borc(T, d)
+def upcoming_payments(T, tarih: dt.date, gun: int = 30) -> dict:
+    d = _timestamp(tarih)
+    a = _open_payables(T, d)
     a = a[(a["acik_kurus"] > 0) & (a["vade_tarihi"] <= d + pd.Timedelta(days=gun))]
-    ad = dict(zip(T["tedarikciler"]["tedarikci_id"], T["tedarikciler"]["ad"]))
-    odemeler = [{"alis_fatura_id": r["alis_fatura_id"], "tedarikci_id": r["tedarikci_id"], "ad": ad.get(r["tedarikci_id"]),
-                 "kategori": r["kategori"], "tarih": _gun(r["tarih"]), "vade_tarihi": _gun(r["vade_tarihi"]),
+    name = dict(zip(T["tedarikciler"]["tedarikci_id"], T["tedarikciler"]["ad"]))
+    payments = [{"alis_fatura_id": r["alis_fatura_id"], "tedarikci_id": r["tedarikci_id"], "ad": name.get(r["tedarikci_id"]),
+                 "kategori": r["kategori"], "tarih": _to_date(r["tarih"]), "vade_tarihi": _to_date(r["vade_tarihi"]),
                  "kalan_gun": (r["vade_tarihi"] - d).days, "acik_kurus": int(r["acik_kurus"])}
                 for _, r in a.iterrows()]
-    odemeler.sort(key=lambda r: (r["vade_tarihi"], r["alis_fatura_id"]))
-    return {"tarih": tarih, "gun": gun, "odemeler": odemeler, "toplam_kurus": sum(r["acik_kurus"] for r in odemeler)}
+    payments.sort(key=lambda r: (r["vade_tarihi"], r["alis_fatura_id"]))
+    return {"tarih": tarih, "gun": gun, "odemeler": payments, "toplam_kurus": sum(r["acik_kurus"] for r in payments)}
 
 
-def kur_riski(T, tarih: dt.date) -> dict:
-    d = _ts(tarih)
-    kurlar = _kurlar(T, d)
+def fx_risk(T, tarih: dt.date) -> dict:
+    d = _timestamp(tarih)
+    rates = _rates(T, d)
     m, h = T["musteriler"], T["banka_hesaplari"]
-    pbler = sorted((set(m[m["ilk_islem_tarihi"] <= d]["para_birimi"]) | set(h[h["acilis_tarihi"] <= d]["para_birimi"]))
+    currency_codes = sorted((set(m[m["ilk_islem_tarihi"] <= d]["para_birimi"]) | set(h[h["acilis_tarihi"] <= d]["para_birimi"]))
                    - {"TRY"})
-    poz = _acik(T, d)
+    open_rows = _open_receivables(T, d)
     t = T["tahsilatlar"]
-    esl = t[t["fatura_id"].isna() & (t["tarih"] <= d)]
-    bak = _bakiyeler(T, d)
-    dovizler = []
-    for pb in pbler:
-        kur = _kur(kurlar, pb)
-        p = poz[poz["para_birimi"] == pb]
-        alacak = int(p["acik_kurus"].sum()) - int(esl[esl["para_birimi"] == pb]["tutar_kurus"].sum())
-        fark = sum(kur_carp(a, kur) - kur_carp(a, k) for a, k in zip(p["acik_kurus"], p["kur"]))
-        banka = int(bak[bak["para_birimi"] == pb]["bakiye_kurus"].sum())
-        toplam = alacak + banka
-        dovizler.append({
-            "para_birimi": pb, "alacak_doviz_kurus": alacak, "banka_doviz_kurus": banka, "toplam_doviz_kurus": toplam,
-            "kur": kur, "toplam_try_kurus": kur_carp(toplam, kur),
-            "yuzde_10_etki_kurus": int((Decimal(toplam) * kur * Decimal("0.1")).to_integral_value(rounding=ROUND_HALF_EVEN)),
-            "alacak_kur_farki_kurus": fark,
+    unmatched = t[t["fatura_id"].isna() & (t["tarih"] <= d)]
+    balances = _balances(T, d)
+    currencies = []
+    for currency in currency_codes:
+        rate = _rate(rates, currency)
+        p = open_rows[open_rows["para_birimi"] == currency]
+        receivable = int(p["acik_kurus"].sum()) - int(unmatched[unmatched["para_birimi"] == currency]["tutar_kurus"].sum())
+        difference = sum(apply_rate(a, rate) - apply_rate(a, k) for a, k in zip(p["acik_kurus"], p["kur"]))
+        bank_balance = int(balances[balances["para_birimi"] == currency]["bakiye_kurus"].sum())
+        total = receivable + bank_balance
+        currencies.append({
+            "para_birimi": currency, "alacak_doviz_kurus": receivable, "banka_doviz_kurus": bank_balance, "toplam_doviz_kurus": total,
+            "kur": rate, "toplam_try_kurus": apply_rate(total, rate),
+            "yuzde_10_etki_kurus": int((Decimal(total) * rate * Decimal("0.1")).to_integral_value(rounding=ROUND_HALF_EVEN)),
+            "alacak_kur_farki_kurus": difference,
         })
-    return {"tarih": tarih, "dovizler": dovizler, "toplam_try_kurus": sum(x["toplam_try_kurus"] for x in dovizler)}
+    return {"tarih": tarih, "dovizler": currencies, "toplam_try_kurus": sum(x["toplam_try_kurus"] for x in currencies)}
 
 
-def _kapanan_gecikmeler(T, d: pd.Timestamp, gun: int = 365) -> dict[str, list[int]]:
-    """Müşteri -> D'de biten `gun` günde kapanan satış faturalarının gecikmeleri (0'ın altı 0)."""
+def _closed_delays(T, d: pd.Timestamp, gun: int = 365) -> dict[str, list[int]]:
+    """Customer -> delays of the sales invoices closed in the `gun` days ending at D (a delay below 0 counts as 0)."""
     f = T["faturalar"]
     t = T["tahsilatlar"]
     t = t[t["fatura_id"].notna() & (t["tarih"] <= d)][["fatura_id", "tarih", "tutar_kurus"]]
     i = f[(f["tur"] == "iade") & f["iliskili_fatura_id"].notna() & (f["fatura_tarihi"] <= d)]
     i = pd.DataFrame({"fatura_id": i["iliskili_fatura_id"], "tarih": i["fatura_tarihi"],
                       "tutar_kurus": i["uygulanan_kurus"].fillna(0)})
-    olgu = pd.concat([t, i]).groupby(["fatura_id", "tarih"], as_index=False)["tutar_kurus"].sum()
-    olgu = olgu.sort_values(["fatura_id", "tarih"])
-    olgu["kumulatif"] = olgu.groupby("fatura_id")["tutar_kurus"].cumsum()
-    sat = f[(f["tur"] == "satis") & (f["fatura_tarihi"] <= d)]
-    tutar = dict(zip(sat["fatura_id"], sat["tutar_kurus"]))
-    ilk = {}
-    for fid, olgu_gunu, kum in zip(olgu["fatura_id"], olgu["tarih"], olgu["kumulatif"]):
-        if fid in tutar and fid not in ilk and kum >= tutar[fid]:
-            ilk[fid] = olgu_gunu
-    gecikmeler: dict[str, list[int]] = {}
-    alt = d - pd.Timedelta(days=gun - 1)
-    for fid, m, vade, ft, tt in zip(sat["fatura_id"], sat["musteri_id"], sat["vade_tarihi"], sat["fatura_tarihi"],
-                                   sat["tutar_kurus"]):
-        kapanis = ft if tt <= 0 else ilk.get(fid)
-        if kapanis is None or not (alt <= kapanis <= d):
+    credit_events = pd.concat([t, i]).groupby(["fatura_id", "tarih"], as_index=False)["tutar_kurus"].sum()
+    credit_events = credit_events.sort_values(["fatura_id", "tarih"])
+    credit_events["kumulatif"] = credit_events.groupby("fatura_id")["tutar_kurus"].cumsum()
+    sales_rows = f[(f["tur"] == "satis") & (f["fatura_tarihi"] <= d)]
+    amount = dict(zip(sales_rows["fatura_id"], sales_rows["tutar_kurus"]))
+    first_close = {}
+    for invoice_id, event_day, cumulative in zip(credit_events["fatura_id"], credit_events["tarih"], credit_events["kumulatif"]):
+        if invoice_id in amount and invoice_id not in first_close and cumulative >= amount[invoice_id]:
+            first_close[invoice_id] = event_day
+    delays: dict[str, list[int]] = {}
+    low = d - pd.Timedelta(days=gun - 1)
+    for invoice_id, m, due, invoice_date, invoice_total in zip(sales_rows["fatura_id"], sales_rows["musteri_id"], sales_rows["vade_tarihi"], sales_rows["fatura_tarihi"],
+                                   sales_rows["tutar_kurus"]):
+        closing = invoice_date if invoice_total <= 0 else first_close.get(invoice_id)
+        if closing is None or not (low <= closing <= d):
             continue
-        gecikmeler.setdefault(m, []).append(max(0, (kapanis - vade).days))
-    return gecikmeler
+        delays.setdefault(m, []).append(max(0, (closing - due).days))
+    return delays
 
 
-def _ortalama_gecikmeler(T, d: pd.Timestamp) -> tuple[dict[str, int], int]:
-    g = _kapanan_gecikmeler(T, d)
-    hepsi = [x for v in g.values() for x in v]
-    sirket = sum(hepsi) // len(hepsi) if hepsi else 0
-    return {m: sum(v) // len(v) for m, v in g.items()}, sirket
+def _average_delays(T, d: pd.Timestamp) -> tuple[dict[str, int], int]:
+    g = _closed_delays(T, d)
+    all_values = [x for v in g.values() for x in v]
+    company_average = sum(all_values) // len(all_values) if all_values else 0
+    return {m: sum(v) // len(v) for m, v in g.items()}, company_average
 
 
-def odeme_gecmisi(T, tarih: dt.date, gun: int = 365) -> dict:
-    g = _kapanan_gecikmeler(T, _ts(tarih), gun)
-    musteriler = {m: {"fatura_sayisi": len(v), "gec_kapanan": sum(1 for x in v if x > 0),
+def payment_history(T, tarih: dt.date, gun: int = 365) -> dict:
+    g = _closed_delays(T, _timestamp(tarih), gun)
+    customers = {m: {"fatura_sayisi": len(v), "gec_kapanan": sum(1 for x in v if x > 0),
                       "ortalama_gecikme_gun": sum(v) // len(v)} for m, v in sorted(g.items())}
-    return {"tarih": tarih, "gun": gun, "musteriler": musteriler,
-            "kapanan_fatura": sum(m["fatura_sayisi"] for m in musteriler.values())}
+    return {"tarih": tarih, "gun": gun, "musteriler": customers,
+            "kapanan_fatura": sum(m["fatura_sayisi"] for m in customers.values())}
 
 
-def nakit_akis_tahmini(T, tarih: dt.date, hafta: int = 13) -> dict:
-    d = _ts(tarih)
-    kurlar = _kurlar(T, d)
-    yarin = d + pd.Timedelta(days=1)
-    pb = dict(zip(T["musteriler"]["musteri_id"], T["musteriler"]["para_birimi"]))
+def cash_flow_forecast(T, tarih: dt.date, hafta: int = 13) -> dict:
+    d = _timestamp(tarih)
+    rates = _rates(T, d)
+    tomorrow = d + pd.Timedelta(days=1)
+    currency = dict(zip(T["musteriler"]["musteri_id"], T["musteriler"]["para_birimi"]))
 
-    ch = T["cek_hareketleri"]
-    ch = ch[ch["tarih"] <= d].sort_values(["cek_id", "tarih", "cek_hareket_id"])
-    son = ch.groupby("cek_id")["durum"].last()
+    cheque_moves = T["cek_hareketleri"]
+    cheque_moves = cheque_moves[cheque_moves["tarih"] <= d].sort_values(["cek_id", "tarih", "cek_hareket_id"])
+    last_status = cheque_moves.groupby("cek_id")["durum"].last()
     c = T["cekler"]
-    c = c[(c["alis_tarihi"] <= d) & c["cek_id"].map(son).isin(["portfoyde", "tahsilde"])]
+    c = c[(c["alis_tarihi"] <= d) & c["cek_id"].map(last_status).isin(["portfoyde", "tahsilde"])]
     t = T["tahsilatlar"]
-    esl = t[t["fatura_id"].isna() & (t["tarih"] <= d)]
-    havuz = pd.concat([c[["musteri_id", "tutar_kurus"]], esl[["musteri_id", "tutar_kurus"]]]
+    unmatched = t[t["fatura_id"].isna() & (t["tarih"] <= d)]
+    pool = pd.concat([c[["musteri_id", "tutar_kurus"]], unmatched[["musteri_id", "tutar_kurus"]]]
                       ).groupby("musteri_id")["tutar_kurus"].sum()
 
-    poz = _acik(T, d).sort_values(["musteri_id", "vade_tarihi", "fatura_id"])
-    poz["onceki"] = poz.groupby("musteri_id")["acik_kurus"].cumsum() - poz["acik_kurus"]
-    ort, sirket = _ortalama_gecikmeler(T, d)
+    open_rows = _open_receivables(T, d).sort_values(["musteri_id", "vade_tarihi", "fatura_id"])
+    open_rows["onceki"] = open_rows.groupby("musteri_id")["acik_kurus"].cumsum() - open_rows["acik_kurus"]
+    averages, company_average = _average_delays(T, d)
 
-    kalemler = []  # (tür, gün ya da None, tutar)
-    for m, a, onceki, g, vade, p in zip(poz["musteri_id"], poz["acik_kurus"], poz["onceki"], poz["gecikme_gun"],
-                                        poz["vade_tarihi"], poz["para_birimi"]):
-        kalan = int(a) - min(int(a), max(0, int(havuz.get(m, 0)) - int(onceki)))
-        if kalan <= 0:
+    items = []  # (kind, day or None, amount)
+    for m, a, previous, g, due, p in zip(open_rows["musteri_id"], open_rows["acik_kurus"], open_rows["onceki"], open_rows["gecikme_gun"],
+                                        open_rows["vade_tarihi"], open_rows["para_birimi"]):
+        remaining = int(a) - min(int(a), max(0, int(pool.get(m, 0)) - int(previous)))
+        if remaining <= 0:
             continue
-        gun = None if g > 90 else max(vade + pd.Timedelta(days=ort.get(m, sirket)), yarin)
-        kalemler.append(("alacak", gun, kur_carp(kalan, _kur(kurlar, p))))
-    for m, vade, tutar in zip(c["musteri_id"], c["vade_tarihi"], c["tutar_kurus"]):
-        kalemler.append(("cek", max(vade, yarin), kur_carp(tutar, _kur(kurlar, pb[m]))))
+        gun = None if g > 90 else max(due + pd.Timedelta(days=averages.get(m, company_average)), tomorrow)
+        items.append(("alacak", gun, apply_rate(remaining, _rate(rates, p))))
+    for m, due, amount in zip(c["musteri_id"], c["vade_tarihi"], c["tutar_kurus"]):
+        items.append(("cek", max(due, tomorrow), apply_rate(amount, _rate(rates, currency[m]))))
     p = T["pos_islemleri"]
     p = p[(p["islem_tarihi"] <= d) & (p["valor_tarihi"] > d)]
-    for valor, tutar, kom in zip(p["valor_tarihi"], p["tutar_kurus"], p["komisyon_kurus"]):
-        kalemler.append(("pos", valor, int(tutar) - int(kom)))
-    b = _acik_borc(T, d)
+    for value_date, amount, commission in zip(p["valor_tarihi"], p["tutar_kurus"], p["komisyon_kurus"]):
+        items.append(("pos", value_date, int(amount) - int(commission)))
+    b = _open_payables(T, d)
     b = b[b["acik_kurus"] > 0]
-    for vade, tutar in zip(b["vade_tarihi"], b["acik_kurus"]):
-        kalemler.append(("tedarikci", max(vade, yarin), int(tutar)))
+    for due, amount in zip(b["vade_tarihi"], b["acik_kurus"]):
+        items.append(("tedarikci", max(due, tomorrow), int(amount)))
 
-    kova: dict[tuple, int] = {}
-    for tur, gun, tutar in kalemler:
+    buckets: dict[tuple, int] = {}
+    for kind, gun, amount in items:
         if gun is None:
             k = -1
         else:
             k = ((gun - d).days - 1) // 7 + 1
             k = 0 if k > hafta else k
-        kova[(tur, k)] = kova.get((tur, k), 0) + tutar
+        buckets[(kind, k)] = buckets.get((kind, k), 0) + amount
 
-    acilis = nakit_pozisyonu(T, tarih)["toplam_try_kurus"]
-    haftalar, bakiye = [], acilis
+    opening = cash_position(T, tarih)["toplam_try_kurus"]
+    weeks, balance = [], opening
     for k in range(1, hafta + 1):
-        giris = {tur: kova.get((tur, k), 0) for tur in ("alacak", "cek", "pos")}
-        cikis = kova.get(("tedarikci", k), 0)
-        net = sum(giris.values()) - cikis
-        bakiye += net
-        haftalar.append({"hafta": k, "bas": tarih + dt.timedelta(days=7 * (k - 1) + 1), "bit": tarih + dt.timedelta(days=7 * k),
-                         "alacak_girisi_kurus": giris["alacak"], "cek_girisi_kurus": giris["cek"],
-                         "pos_girisi_kurus": giris["pos"], "tedarikci_cikisi_kurus": cikis, "net_kurus": net,
-                         "bilinen_kalemlerle_bakiye_kurus": bakiye})
-    return {"tarih": tarih, "hafta_sayisi": hafta, "acilis_kurus": acilis, "haftalar": haftalar,
-            "ufuk_disi_giris_kurus": sum(kova.get((tur, 0), 0) for tur in ("alacak", "cek", "pos")),
-            "ufuk_disi_cikis_kurus": kova.get(("tedarikci", 0), 0),
-            "supheli_alacak_kurus": kova.get(("alacak", -1), 0)}
+        inflow = {kind: buckets.get((kind, k), 0) for kind in ("alacak", "cek", "pos")}
+        outflow = buckets.get(("tedarikci", k), 0)
+        net = sum(inflow.values()) - outflow
+        balance += net
+        weeks.append({"hafta": k, "bas": tarih + dt.timedelta(days=7 * (k - 1) + 1), "bit": tarih + dt.timedelta(days=7 * k),
+                         "alacak_girisi_kurus": inflow["alacak"], "cek_girisi_kurus": inflow["cek"],
+                         "pos_girisi_kurus": inflow["pos"], "tedarikci_cikisi_kurus": outflow, "net_kurus": net,
+                         "bilinen_kalemlerle_bakiye_kurus": balance})
+    return {"tarih": tarih, "hafta_sayisi": hafta, "acilis_kurus": opening, "haftalar": weeks,
+            "ufuk_disi_giris_kurus": sum(buckets.get((kind, 0), 0) for kind in ("alacak", "cek", "pos")),
+            "ufuk_disi_cikis_kurus": buckets.get(("tedarikci", 0), 0),
+            "supheli_alacak_kurus": buckets.get(("alacak", -1), 0)}
 
 
-METRIKLER = {
-    "nakit_pozisyonu": nakit_pozisyonu,
-    "yaslandirma": yaslandirma,
+METRICS = {
+    "nakit_pozisyonu": cash_position,
+    "yaslandirma": aging,
     "dso": dso,
-    "geciken_alacaklar": geciken_alacaklar,
-    "yaklasan_odemeler": yaklasan_odemeler,
-    "kur_riski": kur_riski,
-    "nakit_akis_tahmini": nakit_akis_tahmini,
-    "odeme_gecmisi": odeme_gecmisi,
+    "geciken_alacaklar": overdue_receivables,
+    "yaklasan_odemeler": upcoming_payments,
+    "kur_riski": fx_risk,
+    "nakit_akis_tahmini": cash_flow_forecast,
+    "odeme_gecmisi": payment_history,
 }

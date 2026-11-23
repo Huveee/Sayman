@@ -1,19 +1,20 @@
-"""Faz 5: belge kütüphanesini ve soru setini üretir, özetlerini rapora yazar.
+"""Phase 5: generates the document library and the question set, and writes their digests to the report.
 
-Sentetik belgeler şirket verisinden (data/uretilen) türetilir: tedarikçi ve müşteri sözleşmelerindeki vade, kredi
-limiti, çek gibi bilgiler veriyle tutarlıdır. Sorular tests/faz5_sorular.py'deki kalıplardan üretilir. Kütüphaneye
-ayrıca üç kanun karıştırıcı belge olarak eklenir (soru almazlar).
+The synthetic documents are derived from the company data (data/uretilen): information such as due date, credit limit
+and cheque in the supplier and customer contracts is consistent with the data. The questions are generated from the
+templates in tests/support/phase05_questions.py. The three laws are also added to the library as distractor documents
+(they receive no questions).
 
-Rapordaki özetler (belge_ozeti: sentetik belgeler, soru_ozeti, kutuphane_ozeti: kanunlar dahil) soru seti
-dondurulduğunda kaydedildi; testler yeniden üretilen setin özetini bununla karşılaştırır. Belge üreticisi ya da soru
-kalıpları değişirse bu rapor da değişir ve fark git'te görünür.
+The digests in the report (`belge_ozeti`: synthetic documents, `soru_ozeti`, `kutuphane_ozeti`: laws included) were
+recorded when the question set was frozen; the tests compare the digest of the regenerated set with them. If the
+document generator or the question templates change, this report changes too and the difference shows up in git.
 
-Girdi:  data/uretilen/*.csv (scripts/faz1_veri_uret.py)
-        data/ham/mevzuat/5941.pdf, 6098.pdf, 6102.pdf (scripts/faz5_indir.py)
-Çıktı:  data/belge/belgeler.jsonl (kanunlar dahil), data/belge/sorular.json, reports/faz5_soru_seti.json
+Input:  data/uretilen/*.csv (scripts/phase01_generate_data.py)
+        data/ham/mevzuat/5941.pdf, 6098.pdf, 6102.pdf (scripts/phase05_download_legislation.py)
+Output: data/belge/belgeler.jsonl (laws included), data/belge/sorular.json, reports/faz5_soru_seti.json
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz5_belge_uret.py
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase05_generate_documents.py
 """
 
 from __future__ import annotations
@@ -24,55 +25,55 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
-sys.path.insert(0, str(KOK / "tests"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests"))
 
 import support.phase05_questions as fs  # noqa: E402
 
 from sayman.documents import library  # noqa: E402
-from sayman.documents.legislation import KANUNLAR, kanunlar  # noqa: E402
-from sayman.documents.synthetic import uret  # noqa: E402
-from sayman.data.table_io import csv_oku  # noqa: E402
+from sayman.documents.legislation import LAWS, laws  # noqa: E402
+from sayman.documents.synthetic import generate  # noqa: E402
+from sayman.data.table_io import read_csv  # noqa: E402
 
-URETILEN = KOK / "data" / "uretilen"
-MEVZUAT = KOK / "data" / "ham" / "mevzuat"
-CIKTI = KOK / "data" / "belge"
-RAPOR = KOK / "reports" / "faz5_soru_seti.json"
+GENERATED = ROOT / "data" / "uretilen"
+LEGISLATION = ROOT / "data" / "ham" / "mevzuat"
+OUTPUT = ROOT / "data" / "belge"
+REPORT = ROOT / "reports" / "faz5_soru_seti.json"
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    belgeler = uret(csv_oku(URETILEN))
-    kanun = kanunlar(MEVZUAT)
-    if len(kanun) != len(KANUNLAR):
-        raise SystemExit(f"{MEVZUAT} içinde {len(KANUNLAR)} kanun PDF'i bekleniyordu, {len(kanun)} bulundu")
-    library.yaz(belgeler + kanun, CIKTI / "belgeler.jsonl")
-    sorular = fs.soru_seti(belgeler)
-    (CIKTI / "sorular.json").write_text(json.dumps(sorular, ensure_ascii=False, indent=1), encoding="utf-8")
+    documents = generate(read_csv(GENERATED))
+    law_documents = laws(LEGISLATION)
+    if len(law_documents) != len(LAWS):
+        raise SystemExit(f"{LEGISLATION} içinde {len(LAWS)} kanun PDF'i bekleniyordu, {len(law_documents)} bulundu")
+    library.write_documents(documents + law_documents, OUTPUT / "belgeler.jsonl")
+    questions = fs.question_set(documents)
+    (OUTPUT / "sorular.json").write_text(json.dumps(questions, ensure_ascii=False, indent=1), encoding="utf-8")
 
-    def set_ozeti(s):
+    def set_digest(s):
         return {"soru": len(s), "ture_gore": dict(sorted(Counter(x["tur"] for x in s).items())),
                 "stile_gore": dict(sorted(Counter(x["stil"] for x in s).items())),
                 "belge": len({x["belge_id"] for x in s}),
-                "sans_tabani_isabet@5": fs.sans_tabani(s, belgeler)}
+                "sans_tabani_isabet@5": fs.chance_baseline(s, documents)}
 
-    rapor = {
+    report = {
         "aciklama": "Faz 5 belge kütüphanesi ve soru seti. Özetler soru seti dondurulduğunda kaydedildi.",
-        "belge": len(belgeler), "madde": sum(len(b.maddeler) for b in belgeler),
-        "ture_gore": dict(sorted(Counter(b.tur for b in belgeler).items())),
-        "belge_ozeti": fs.belge_ozeti(belgeler), "soru_ozeti": fs.ozet(sorular),
+        "belge": len(documents), "madde": sum(len(b.maddeler) for b in documents),
+        "ture_gore": dict(sorted(Counter(b.tur for b in documents).items())),
+        "belge_ozeti": fs.documents_digest(documents), "soru_ozeti": fs.digest(questions),
         "karistirici_kanunlar": {b.belge_id: {"ad": b.baslik, "madde": len(b.maddeler), "pdf_sha256": hashlib.sha256(
-            (MEVZUAT / f"{b.belge_id.split('-')[1]}.pdf").read_bytes()).hexdigest()} for b in kanun},
-        "kutuphane": {"belge": len(belgeler) + len(kanun),
-                      "madde": sum(len(b.maddeler) for b in belgeler + kanun)},
-        "kutuphane_ozeti": fs.belge_ozeti(belgeler + kanun),
-        "setler": {ad: set_ozeti(s) for ad, s in sorular.items()},
+            (LEGISLATION / f"{b.belge_id.split('-')[1]}.pdf").read_bytes()).hexdigest()} for b in law_documents},
+        "kutuphane": {"belge": len(documents) + len(law_documents),
+                      "madde": sum(len(b.maddeler) for b in documents + law_documents)},
+        "kutuphane_ozeti": fs.documents_digest(documents + law_documents),
+        "setler": {name: set_digest(s) for name, s in questions.items()},
         "sans_tabani_aciklama": "Sözleşme sorularında arama yalnızca doğru sözleşmeyi bulup maddelerini rastgele "
                                 "sıralasa beklenen isabet@5. Politika soruları dahil değildir.",
     }
-    RAPOR.write_text(json.dumps(rapor, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(rapor, ensure_ascii=False, indent=2))
+    REPORT.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

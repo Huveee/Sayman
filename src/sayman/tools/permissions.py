@@ -1,13 +1,14 @@
-"""Yetki: hangi rol hangi aracı çağırabilir ve hangi satırları görebilir.
+"""Permissions: which role may call which tool and which rows it may see.
 
-Rol tablosu veri olarak roles.json'da durur. Yetki iki katmanda uygulanır:
-1. Araç: rolün listesinde olmayan araç hiç çalıştırılmaz.
-2. Veri: araç, rolün kapsamındaki satırlardan başka satır bulunmayan bir bağlantı üzerinde çalışır
-   (kapsam.py). Araçta bir hata olsa bile kapsam dışı satır sonuca giremez.
+The role table lives as data in roles.json. Permission is applied in two layers:
+1. Tool: a tool that is not in the role's list is never run.
+2. Data: the tool runs on a connection that holds no rows other than those in the role's scope (scope.py). Even
+   if there is a bug in a tool, an out-of-scope row cannot enter the result.
 
-Bütün roller modele aynı araç listesiyle gösterilir: rol başına ayrı liste, rol her değiştiğinde modelin
-araç tanımlarını baştan okumasını gerektirirdi. Faz 0'da 15 taslak araç 2.078 token tuttu ve 9b modeli bunu
-~77 saniyede okudu; 13 araçlık bu liste 2.187 token (ölçüm: reports/faz3_araclar.json).
+All roles are shown to the model with the same tool list: a separate list per role would make the model re-read
+the tool definitions every time the role changes. In Phase 0 the 15 draft tools took 2,078 tokens and the 9b
+model read them in ~77 seconds; the 13-tool list measured at the time is 2,187 tokens (measurement:
+reports/faz3_araclar.json).
 """
 
 from __future__ import annotations
@@ -16,36 +17,36 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-ROLLER_DOSYASI = Path(__file__).with_name("roles.json")
-KAPSAMLAR = ("hepsi", "yurtici", "ihracat")
+ROLES_FILE = Path(__file__).with_name("roles.json")
+SCOPES = ("hepsi", "yurtici", "ihracat")
 
 
 @dataclass(frozen=True)
-class Rol:
-    kimlik: str
-    ad: str
-    kapsam: str
-    araclar: frozenset[str]
+class Role:
+    role_id: str
+    name: str
+    scope: str
+    tools: frozenset[str]
 
 
 @dataclass(frozen=True)
-class YetkiTablosu:
-    roller: dict[str, Rol]
-    kullanicilar: dict[str, str]  # kullanıcı -> rol kimliği
+class PermissionTable:
+    roller: dict[str, Role]
+    users: dict[str, str]  # user -> role id
 
-    def izinli_mi(self, rol: str, arac: str) -> bool:
-        r = self.roller.get(rol)
-        return r is not None and arac in r.araclar
+    def is_allowed(self, role: str, tool: str) -> bool:
+        r = self.roller.get(role)
+        return r is not None and tool in r.tools
 
 
-def yetki_oku(yol: Path = ROLLER_DOSYASI) -> YetkiTablosu:
-    veri = json.loads(Path(yol).read_text(encoding="utf-8"))
-    roller = {}
-    for kimlik, r in veri["roller"].items():
-        if r["kapsam"] not in KAPSAMLAR:
+def read_permissions(path: Path = ROLES_FILE) -> PermissionTable:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    roles = {}
+    for role_id, r in data["roller"].items():
+        if r["kapsam"] not in SCOPES:
             raise ValueError(f"bilinmeyen kapsam: {r['kapsam']}")
-        roller[kimlik] = Rol(kimlik, r["ad"], r["kapsam"], frozenset(r["araclar"]))
-    for kullanici, rol in veri["kullanicilar"].items():
-        if rol not in roller:
-            raise ValueError(f"{kullanici} için bilinmeyen rol: {rol}")
-    return YetkiTablosu(roller, dict(veri["kullanicilar"]))
+        roles[role_id] = Role(role_id, r["ad"], r["kapsam"], frozenset(r["araclar"]))
+    for user, role in data["kullanicilar"].items():
+        if role not in roles:
+            raise ValueError(f"{user} için bilinmeyen rol: {role}")
+    return PermissionTable(roles, dict(data["kullanicilar"]))

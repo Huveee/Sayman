@@ -1,20 +1,21 @@
-"""Faz 5 soru seti: sentetik belgelerin maddelerinden üretilen sorular ve doğru parçaları.
+"""Phase 5 question set: questions generated from the articles of the synthetic documents, with their correct chunks.
 
-Soru seti arama kodundan önce yazıldı ve donduruldu (özeti reports/faz5_soru_seti.json'da). Sonradan eklenen tek
-satır, kütüphaneye eklenen kanunları soru üretiminin dışında tutan süzmedir; setin özeti değişmedi. Arama kodu
-(src/sayman/belge) bu dosyayı okumaz.
+The question set was written before the search code and frozen (its digest is in reports/faz5_soru_seti.json). The only
+line added later is the filter that keeps the laws added to the library out of question generation; the set's digest
+did not change. The search code (src/sayman/documents) does not read this file.
 
-- Her soru tek bir maddeyi sorar; doğru cevap o maddenin parçasıdır (ör. "SOZ-S003#m5").
-- Sözleşme soruları karşı tarafın adını içerir: onlarca sözleşmede aynı madde türleri vardır, soru hangisini
-  sorduğunu söylemelidir. İki firmanın kısa adı aynıysa tam ad kullanılır.
-- Politika soruları taraf adı içermez. Bir müşterinin sözleşmesindeki maddeyle karışabilecek olanlar ("genel kural
-  olarak", "şirket içinde") diye sorulur; böylece cevabı yalnızca politika verir.
-- Her madde türü için iki kalıp vardır: "yakın" kalıp maddenin kendi kelimelerini kullanır, "uzak" kalıp aynı şeyi
-  günlük dille, maddenin ayırt edici kelimelerinden kaçınarak sorar.
-- Ayar ve ayrılmış set iki yönden ayrıdır: belgeler ikiye bölünür (aynı belge iki sette olmaz) ve bir kalıp
-  çiftinin bir kalıbı ayar setine, öteki ayrılmış sete gider. Kalıp çiftlerinin rastgele yarısında yakın kalıp ayar
-  setine, öteki yarısında ayrılmış sete düşer; böylece iki setin yakın/uzak karışımı benzer olur ve ayar seti
-  ayrılmış setten kolay kalmaz. Her sorunun "stil" alanı hangi kalıptan geldiğini söyler.
+- Each question asks about a single article; the correct answer is that article's chunk (e.g. "SOZ-S003#m5").
+- Contract questions contain the counterparty's name: dozens of contracts have the same article kinds, so the question
+  must say which one it asks about. If two companies have the same short name, the full name is used.
+- Policy questions contain no counterparty name. Those that could be confused with an article in a customer's contract
+  are phrased ("as a general rule", "inside the company") so that only the policy can answer them.
+- Each article kind has two patterns: the "close" pattern uses the article's own words, the "far" pattern asks the same
+  thing in everyday language, avoiding the article's distinctive words.
+- The tuning set (`ayar`) and the held-out set (`ayrilmis`) are separated in two ways: the documents are split in two
+  (the same document is never in both sets) and one pattern of a pattern pair goes to the tuning set, the other to the
+  held-out set. For a random half of the pattern pairs the close pattern falls in the tuning set, for the other half in
+  the held-out set; so the close/far mix of the two sets is similar and the tuning set is not easier than the held-out
+  set. Each question's `stil` field says which pattern it came from.
 """
 
 from __future__ import annotations
@@ -24,12 +25,12 @@ import json
 import random
 from collections import Counter
 
-from sayman.documents.synthetic import Belge, arama_metni
+from sayman.documents.synthetic import Document, search_text
 
-SORU_PER_SOZLESME = 4
+QUESTIONS_PER_CONTRACT = 4
 
-# alan -> (yakın kalıp, uzak kalıp). {taraf}: karşı tarafın adı.
-ORTAK = {
+# field -> (close pattern, far pattern). {taraf}: the counterparty's name.
+COMMON = {
     "sure": ("{taraf} ile yaptığımız sözleşme ne zaman başladı, kaç yıl geçerli?",
              "{taraf} anlaşmamızın bitiş tarihi ne, otomatik yenileniyor mu?"),
     "fesih": ("{taraf} sözleşmesini feshetmek için kaç gün önceden yazılı bildirim gerekir?",
@@ -37,8 +38,8 @@ ORTAK = {
     "uyusmazlik": ("{taraf} ile uyuşmazlık çıkarsa hangi mahkeme ya da kurum yetkili?",
                    "{taraf} ile aramızda sorun çıkarsa davayı nerede açarız?"),
 }
-TEDARIK = {
-    **ORTAK,
+SUPPLY = {
+    **COMMON,
     "odeme_vadesi": ("{taraf} faturalarını fatura tarihinden itibaren kaç gün içinde ödemeliyiz?",
                      "{taraf} firmasına olan borcumuzu en geç ne zaman kapatmalıyız?"),
     "erken_odeme": ("{taraf} sözleşmesinde erken ödeme iskontosu var mı?",
@@ -56,8 +57,8 @@ TEDARIK = {
     "gizlilik": ("{taraf} sözleşmesine göre gizlilik yükümlülüğü kaç yıl sürüyor?",
                  "{taraf} ile aramızdaki ticari sırları anlaşma bittikten sonra ne kadar saklamaları gerekiyor?"),
 }
-HIZMET = {
-    **TEDARIK,
+SERVICE = {
+    **SUPPLY,
     "teslim": ("{taraf} gönderileri kaç iş gününde alıcısına ulaştırmak zorunda?",
                "{taraf} ile yolladığımız paketler müşteriye kaç günde varıyor?"),
     "kira_artisi": ("{taraf} ile kira sözleşmemizde kira bedeli ne zaman ve ne kadar artırılıyor?",
@@ -77,8 +78,8 @@ HIZMET = {
     "taahhut": ("{taraf} ile taahhüt süremiz kaç ay?",
                 "{taraf} hattını erken kapatırsak ne kadar ödememiz gerekir?"),
 }
-SATIS = {
-    **ORTAK,
+SALES = {
+    **COMMON,
     "odeme_vadesi": ("{taraf} faturalarını fatura tarihinden itibaren kaç gün içinde ödüyor?",
                      "{taraf} aldığı malların parasını bize en geç ne zaman yatırmalı?"),
     "teslim_sekli": ("{taraf} ile satışlarda teslim şekli ve para birimi ne?",
@@ -94,7 +95,7 @@ SATIS = {
     "teminat": ("{taraf} bize teminat mektubu vermiş mi, ne kadar?",
                 "{taraf} bize karşı bir güvence belgesi vermek zorunda mı, tutarı ne?"),
 }
-POLITIKA = {
+POLICY = {
     "guvenlik_esigi": ("Ana TL hesabının en düşük bakiyesi ne olmalı?",
                        "Şirketin ana banka hesabında sürekli kalması gereken en az para ne kadar?"),
     "banka_dagilimi": ("Toplam nakdin ne kadarı tek bir bankada tutulabilir?",
@@ -141,65 +142,65 @@ POLITIKA = {
     "yogunlasma": ("Tek bir tedarikçiden yapılan alımlar en fazla ne kadar olabilir?",
                    "Satın almalarımızı tek bir satıcıya ne kadar bağlayabiliriz?"),
 }
-KALIPLAR = {"tedarik_sozlesmesi": TEDARIK, "hizmet_sozlesmesi": HIZMET, "satis_sozlesmesi": SATIS,
-            "politika": POLITIKA}
-CIFTLER = sorted({c for grup in KALIPLAR.values() for c in grup.values()})
+PATTERNS = {"tedarik_sozlesmesi": SUPPLY, "hizmet_sozlesmesi": SERVICE, "satis_sozlesmesi": SALES,
+            "politika": POLICY}
+PAIRS = sorted({c for group in PATTERNS.values() for c in group.values()})
 
 
-def ters_ciftler(tohum: int = 42) -> set[tuple[str, str]]:
-    """Yakın kalıbı ayrılmış sete, uzak kalıbı ayar setine giden kalıp çiftleri (rastgele yarısı)."""
-    ciftler = list(CIFTLER)
-    random.Random(f"{tohum}:belge-kalip").shuffle(ciftler)
-    return set(ciftler[: len(ciftler) // 2])
+def swapped_pairs(seed: int = 42) -> set[tuple[str, str]]:
+    """The pattern pairs whose close pattern goes to the held-out set and far pattern to the tuning set (a random half)."""
+    pairs = list(PAIRS)
+    random.Random(f"{seed}:belge-kalip").shuffle(pairs)
+    return set(pairs[: len(pairs) // 2])
 
 
-def soru_seti(belgeler: list[Belge], tohum: int = 42) -> dict[str, list[dict]]:
-    """{"ayar": [...], "ayrilmis": [...]}: her soru {soru_id, soru, stil, dogru_parca, belge_id, tur, alan, deger,
-    roller}."""
-    belgeler = [b for b in belgeler if b.tur in KALIPLAR]  # kanunlar (karıştırıcı belgeler) soru almaz
-    rng = random.Random(f"{tohum}:belge-soru")
-    ters = ters_ciftler(tohum)
-    kisa = Counter(b.kisa_ad for b in belgeler if b.kisa_ad)
-    ayar_belgeleri = set()
-    for tur in sorted({b.tur for b in belgeler}):
-        grup = sorted(b.belge_id for b in belgeler if b.tur == tur)
-        rng.shuffle(grup)
-        ayar_belgeleri.update(grup[: (len(grup) + 1) // 2])
+def question_set(documents: list[Document], seed: int = 42) -> dict[str, list[dict]]:
+    """{"ayar": [...], "ayrilmis": [...]}: each question is {soru_id, soru, stil, dogru_parca, belge_id, tur, alan,
+    deger, roller}."""
+    documents = [b for b in documents if b.tur in PATTERNS]  # laws (confusing documents) get no questions
+    rng = random.Random(f"{seed}:belge-soru")
+    swapped = swapped_pairs(seed)
+    short_name_counts = Counter(b.kisa_ad for b in documents if b.kisa_ad)
+    tuning_documents = set()
+    for kind in sorted({b.tur for b in documents}):
+        group = sorted(b.belge_id for b in documents if b.tur == kind)
+        rng.shuffle(group)
+        tuning_documents.update(group[: (len(group) + 1) // 2])
 
-    sonuc: dict[str, list[dict]] = {"ayar": [], "ayrilmis": []}
-    for b in sorted(belgeler, key=lambda b: b.belge_id):
-        maddeler = [m for m in b.maddeler if m.alan]
+    result: dict[str, list[dict]] = {"ayar": [], "ayrilmis": []}
+    for b in sorted(documents, key=lambda b: b.belge_id):
+        articles = [m for m in b.maddeler if m.alan]
         if b.tur != "politika":
-            maddeler = rng.sample(maddeler, min(SORU_PER_SOZLESME, len(maddeler)))
-        set_adi = "ayar" if b.belge_id in ayar_belgeleri else "ayrilmis"
-        taraf = (b.kisa_ad if kisa[b.kisa_ad] == 1 else b.taraf_ad) if b.kisa_ad else None
-        for m in sorted(maddeler, key=lambda m: m.no):
-            cift = KALIPLAR[b.tur][m.alan]
-            stil = "yakin" if (set_adi == "ayar") != (cift in ters) else "uzak"
-            sonuc[set_adi].append({
-                "soru_id": f"{'A' if set_adi == 'ayar' else 'H'}-{m.parca_id}",
-                "soru": cift[0 if stil == "yakin" else 1].format(taraf=taraf), "stil": stil,
+            articles = rng.sample(articles, min(QUESTIONS_PER_CONTRACT, len(articles)))
+        set_name = "ayar" if b.belge_id in tuning_documents else "ayrilmis"
+        counterparty = (b.kisa_ad if short_name_counts[b.kisa_ad] == 1 else b.taraf_ad) if b.kisa_ad else None
+        for m in sorted(articles, key=lambda m: m.no):
+            pair = PATTERNS[b.tur][m.alan]
+            style = "yakin" if (set_name == "ayar") != (pair in swapped) else "uzak"
+            result[set_name].append({
+                "soru_id": f"{'A' if set_name == 'ayar' else 'H'}-{m.parca_id}",
+                "soru": pair[0 if style == "yakin" else 1].format(taraf=counterparty), "stil": style,
                 "dogru_parca": m.parca_id, "belge_id": b.belge_id, "tur": b.tur, "alan": m.alan,
                 "deger": m.deger, "roller": list(b.roller)})
-    return sonuc
+    return result
 
 
-def ozet(sorular: dict[str, list[dict]]) -> str:
-    metin = json.dumps(sorular, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(metin.encode("utf-8")).hexdigest()
+def digest(questions: dict[str, list[dict]]) -> str:
+    text = json.dumps(questions, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def belge_ozeti(belgeler: list[Belge]) -> str:
-    """Parça kimliği, madde metni ve aranan metin üzerinden özet: belge üretici değişirse bu da değişir."""
-    satirlar = [[m.parca_id, m.metin, arama_metni(b, m)] for b in belgeler for m in b.maddeler]
-    return hashlib.sha256(json.dumps(satirlar, ensure_ascii=False).encode("utf-8")).hexdigest()
+def documents_digest(documents: list[Document]) -> str:
+    """Digest over chunk identifier, article text and searched text: it changes if the document generator changes."""
+    rows = [[m.parca_id, m.metin, search_text(b, m)] for b in documents for m in b.maddeler]
+    return hashlib.sha256(json.dumps(rows, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
-def sans_tabani(sorular: list[dict], belgeler: list[Belge], k: int = 5) -> float | None:
-    """Arama doğru sözleşmeyi bulup içindeki maddeleri rastgele sıralasa beklenen isabet@k (yalnızca sözleşmeler).
+def chance_baseline(questions: list[dict], documents: list[Document], k: int = 5) -> float | None:
+    """Expected hit@k if the search finds the right contract and then orders its articles randomly (contracts only).
 
-    Sözleşme soruları taraf adını içerdiği için kelime araması doğru belgeye kolayca ulaşır; bu taban, isabet@k'nın
-    ne kadarının yalnızca belge adını bulmaktan geldiğini gösterir."""
-    madde_sayisi = {b.belge_id: len(b.maddeler) for b in belgeler}
-    s = [min(k, madde_sayisi[x["belge_id"]]) / madde_sayisi[x["belge_id"]] for x in sorular if x["tur"] != "politika"]
+    Contract questions contain the counterparty's name, so a word search easily reaches the right document; this baseline
+    shows how much of hit@k comes merely from finding the document name."""
+    article_counts = {b.belge_id: len(b.maddeler) for b in documents}
+    s = [min(k, article_counts[x["belge_id"]]) / article_counts[x["belge_id"]] for x in questions if x["tur"] != "politika"]
     return round(sum(s) / len(s), 4) if s else None

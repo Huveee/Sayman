@@ -1,24 +1,25 @@
-"""Alıntı kontrolü: modelin bir belgeden yaptığı alıntı, gösterdiği parçada gerçekten geçiyor mu?
+"""Citation check: does a quote the model took from a document really occur in the chunk it points to?
 
-Model cevabında alıntıyı tırnak içinde, hemen ardından parça kimliğini köşeli parantezde verir:
+In its answer the model gives the quote in quotation marks, immediately followed by the chunk identifier in square
+brackets:
 
     Vade 30 gündür: "fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder" [SOZ-S001#m3]
 
-Karşılaştırmadan önce yalnızca üç şey eşitlenir: boşluklar (birden çok boşluk ve satır sonu tek boşluk sayılır),
-tırnak ve kesme işaretleri (’ ‘ ” “ « » hepsi düz işarete döner) ve büyük/küçük harf (Türkçe kurala göre: I→ı,
-İ→i). Rakamlara, noktalamaya ve kelimelere dokunulmaz: "%12" ile "%1,2" farklıdır, "30 gün" ile "otuz gün" farklıdır.
+Only three things are normalized before comparing: whitespace (runs of spaces and line breaks count as one space),
+quotation marks and apostrophes (’ ‘ ” “ « » all become the plain mark) and letter case (by the Turkish rule: I→ı,
+İ→i). Digits, punctuation and words are left alone: "%12" differs from "%1,2", and "30 gün" differs from "otuz gün".
 
-Alıntı metinde kelime ve sayı sınırlarında geçmelidir: bir sayının ya da kelimenin ortasından başlayan veya
-ortasında biten eşleşme sayılmaz ("20 günü", "120 günü" içinde geçmiş sayılmaz).
+The quote must occur at word and number boundaries: a match that starts or ends in the middle of a number or a word
+does not count ("20 günü" does not occur in "120 günü").
 
-Alıntının ortasında "..." ya da "…" varsa parçalar ayrı ayrı ve aynı sırayla aranır.
+If the quote contains "..." or "…" in the middle, the parts are searched separately and in the same order.
 
-Biçime uymayan atıflar da geçersiz sayılır: tırnaklı bir alıntı olmadan verilen parça kimliği ("alintisiz_atif";
-tek tırnakla yazılan alıntılar da buraya düşer, çünkü Türkçede tek tırnak kesme işaretiyle karışır) ve arkasından
-parça kimliği gelmeyen tırnaklı alıntı ("kimliksiz_alinti").
+Citations that do not follow the format are also invalid: a chunk identifier given without a quoted quote
+("alintisiz_atif"; quotes written with single quotes land here too, because in Turkish a single quote is confused with
+an apostrophe) and a quoted quote that is not followed by a chunk identifier ("kimliksiz_alinti").
 
-Bilinen sınır: bu kontrol alıntının metinde geçtiğini doğrular, iddiayı desteklediğini doğrulamaz. Gerçek ama
-konuyla ilgisiz bir alıntı geçer.
+Known limit: this check verifies that the quote occurs in the text; it does not verify that the quote supports the
+claim. A real but irrelevant quote passes.
 """
 
 from __future__ import annotations
@@ -27,105 +28,106 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-EN_AZ_KELIME = 3
-_TIRNAK = str.maketrans({"’": "'", "‘": "'", "‚": "'", "`": "'", "´": "'", "”": '"', "“": '"', "„": '"', "«": '"',
+MIN_WORDS = 3
+_QUOTE_MARKS = str.maketrans({"’": "'", "‘": "'", "‚": "'", "`": "'", "´": "'", "”": '"', "“": '"', "„": '"', "«": '"',
                          "»": '"'})
-_ATIF = re.compile(r'["“”«»]([^"“”«»]+)["“”«»]\s*\[([A-Za-z0-9_\-]+#m\d+)\]')
-_KIMLIK = re.compile(r"\[([A-Za-z0-9_\-]+#m\d+)\]")
-_TIRNAKLI = re.compile(r'["“”«»]([^"“”«»]+)["“”«»]')
-_ATLAMA = re.compile(r"\s*(?:\.\.\.|…)\s*")
+_CITATION = re.compile(r'["“”«»]([^"“”«»]+)["“”«»]\s*\[([A-Za-z0-9_\-]+#m\d+)\]')
+_CHUNK_ID = re.compile(r"\[([A-Za-z0-9_\-]+#m\d+)\]")
+_QUOTED = re.compile(r'["“”«»]([^"“”«»]+)["“”«»]')
+_ELLIPSIS = re.compile(r"\s*(?:\.\.\.|…)\s*")
 
 
-def normalle(metin: str) -> str:
-    metin = unicodedata.normalize("NFC", metin).translate(_TIRNAK)
-    metin = metin.replace("I", "ı").replace("İ", "i").lower()
-    return " ".join(metin.split())
+def normalize_text(text: str) -> str:
+    text = unicodedata.normalize("NFC", text).translate(_QUOTE_MARKS)
+    text = text.replace("I", "ı").replace("İ", "i").lower()
+    return " ".join(text.split())
 
 
 @dataclass(frozen=True)
-class AlintiSonucu:
+class CitationResult:
     parca_id: str
-    alinti: str
+    quote: str
     gecerli: bool
-    neden: str                       # "tamam", "bilinmeyen_parca", "cok_kisa", "metinde_yok", "baska_parcada",
+    reason: str                       # "tamam", "bilinmeyen_parca", "cok_kisa", "metinde_yok", "baska_parcada",
                                      # "alintisiz_atif", "kimliksiz_alinti"
-    bulundugu: tuple[str, ...] = ()  # alıntı başka parçalarda geçiyorsa onların kimlikleri
+    found_in: tuple[str, ...] = ()  # identifiers of the other chunks, if the quote occurs in them
 
 
-def _parcalari(alinti: str) -> list[str]:
-    parcalar = [normalle(p).strip(" .,;:") for p in _ATLAMA.split(alinti.strip().strip("\"'“”«»"))]
-    return [p for p in parcalar if p]
+def _segments(quote: str) -> list[str]:
+    segments = [normalize_text(p).strip(" .,;:") for p in _ELLIPSIS.split(quote.strip().strip("\"'“”«»"))]
+    return [p for p in segments if p]
 
 
-def _sinirda(metin: str, bas: int, bit: int) -> bool:
-    """Eşleşme bir kelimenin ya da sayının ortasından başlamıyor ve ortasında bitmiyor mu?
+def _on_boundaries(text: str, start: int, end: int) -> bool:
+    """Does the match avoid starting or ending in the middle of a word or a number?
 
-    "20 günü" alıntısı "120 günü" içinde, "50.000 TL" alıntısı "250.000 TL" içinde, "%2" alıntısı "%2,25" içinde
-    geçmiş sayılmaz."""
-    ilk, son = metin[bas], metin[bit - 1]
-    if bas > 0:
-        once = metin[bas - 1]
-        if (once.isalnum() and ilk.isalnum()) or (
-                ilk.isdigit() and once in ".," and bas > 1 and metin[bas - 2].isdigit()):
+    The quote "20 günü" does not occur in "120 günü", "50.000 TL" does not occur in "250.000 TL", and "%2" does not
+    occur in "%2,25"."""
+    first, last = text[start], text[end - 1]
+    if start > 0:
+        before = text[start - 1]
+        if (before.isalnum() and first.isalnum()) or (
+                first.isdigit() and before in ".," and start > 1 and text[start - 2].isdigit()):
             return False
-    if bit < len(metin):
-        sonra = metin[bit]
-        if (sonra.isalnum() and son.isalnum()) or (
-                son.isdigit() and sonra in ".," and bit + 1 < len(metin) and metin[bit + 1].isdigit()):
+    if end < len(text):
+        after = text[end]
+        if (after.isalnum() and last.isalnum()) or (
+                last.isdigit() and after in ".," and end + 1 < len(text) and text[end + 1].isdigit()):
             return False
     return True
 
 
-def _geciyor(parcalar: list[str], metin: str) -> bool:
-    """Parçalar metinde bu sırayla, her biri kelime ve sayı sınırlarında geçiyor mu?"""
-    konum = 0
-    for p in parcalar:
-        bulunan = metin.find(p, konum)
-        while bulunan >= 0 and not _sinirda(metin, bulunan, bulunan + len(p)):
-            bulunan = metin.find(p, bulunan + 1)
-        if bulunan < 0:
+def _occurs_in_order(segments: list[str], text: str) -> bool:
+    """Do the segments occur in the text in this order, each at word and number boundaries?"""
+    position = 0
+    for p in segments:
+        found = text.find(p, position)
+        while found >= 0 and not _on_boundaries(text, found, found + len(p)):
+            found = text.find(p, found + 1)
+        if found < 0:
             return False
-        konum = bulunan + len(p)
+        position = found + len(p)
     return True
 
 
-def kontrol_et(alinti: str, parca_id: str, metinler: dict[str, str]) -> AlintiSonucu:
-    """metinler: parça kimliği -> maddenin kendi metni (aranan metin değil)."""
-    if parca_id not in metinler:
-        return AlintiSonucu(parca_id, alinti, False, "bilinmeyen_parca")
-    parcalar = _parcalari(alinti)
-    if sum(len(p.split()) for p in parcalar) < EN_AZ_KELIME:
-        return AlintiSonucu(parca_id, alinti, False, "cok_kisa")
-    if _geciyor(parcalar, normalle(metinler[parca_id])):
-        return AlintiSonucu(parca_id, alinti, True, "tamam")
-    baska = tuple(sorted(pid for pid, m in metinler.items() if pid != parca_id and _geciyor(parcalar, normalle(m))))
-    return AlintiSonucu(parca_id, alinti, False, "baska_parcada" if baska else "metinde_yok", baska)
+def check_citation(quote: str, chunk_id: str, texts: dict[str, str]) -> CitationResult:
+    """texts: chunk identifier -> the article's own text (not the search text)."""
+    if chunk_id not in texts:
+        return CitationResult(chunk_id, quote, False, "bilinmeyen_parca")
+    segments = _segments(quote)
+    if sum(len(p.split()) for p in segments) < MIN_WORDS:
+        return CitationResult(chunk_id, quote, False, "cok_kisa")
+    if _occurs_in_order(segments, normalize_text(texts[chunk_id])):
+        return CitationResult(chunk_id, quote, True, "tamam")
+    elsewhere = tuple(sorted(other_id for other_id, m in texts.items() if other_id != chunk_id and _occurs_in_order(segments, normalize_text(m))))
+    return CitationResult(chunk_id, quote, False, "baska_parcada" if elsewhere else "metinde_yok", elsewhere)
 
 
-def tirnak_araliklari(metin: str) -> list[tuple[int, int]]:
-    """Metindeki tırnaklı bölümlerin (başlangıç, bitiş) konumları; sayı doğrulayıcı bunların içine bakmaz."""
-    return [(m.start(), m.end()) for m in _TIRNAKLI.finditer(metin)]
+def quoted_spans(text: str) -> list[tuple[int, int]]:
+    """(start, end) positions of the quoted parts of the text; the number verifier does not look inside them."""
+    return [(m.start(), m.end()) for m in _QUOTED.finditer(text)]
 
 
-def atiflar(cevap: str) -> list[tuple[str, str]]:
-    """Cevaptaki (alıntı, parça kimliği) çiftleri, geçtikleri sırayla."""
-    return [(m.group(1), m.group(2)) for m in _ATIF.finditer(cevap)]
+def citations(answer: str) -> list[tuple[str, str]]:
+    """The (quote, chunk identifier) pairs in the answer, in order of occurrence."""
+    return [(m.group(1), m.group(2)) for m in _CITATION.finditer(answer)]
 
 
-def cevabi_kontrol_et(cevap: str, metinler: dict[str, str]) -> list[AlintiSonucu]:
-    """Cevaptaki her atıf ve biçime uymayan her kimlik ya da tırnaklı alıntı için bir sonuç, metindeki sırasıyla.
+def check_answer(answer: str, texts: dict[str, str]) -> list[CitationResult]:
+    """One result for every citation and for every identifier or quoted quote that does not follow the format, in text
+    order.
 
-    Hiç atıf içermeyen bir cevap için boş liste döner; belgeye dayanması gereken bir cevabın atıfsız olup olmadığına
-    çağıran karar verir."""
-    sonuc, atif_basi, kimlik_basi = [], set(), set()
-    for m in _ATIF.finditer(cevap):
-        sonuc.append((m.start(), kontrol_et(m.group(1), m.group(2), metinler)))
-        atif_basi.add(m.start())
-        kimlik_basi.add(m.start(2) - 1)
-    for m in _KIMLIK.finditer(cevap):
-        if m.start() not in kimlik_basi:
-            sonuc.append((m.start(), AlintiSonucu(m.group(1), "", False, "alintisiz_atif")))
-    for m in _TIRNAKLI.finditer(cevap):
-        if m.start() not in atif_basi:
-            sonuc.append((m.start(), AlintiSonucu("", m.group(1), False, "kimliksiz_alinti")))
-    return [s for _, s in sorted(sonuc, key=lambda x: x[0])]
+    An answer with no citation at all returns an empty list; whether an answer that must rest on a document lacks
+    citations is for the caller to decide."""
+    results, citation_starts, id_starts = [], set(), set()
+    for m in _CITATION.finditer(answer):
+        results.append((m.start(), check_citation(m.group(1), m.group(2), texts)))
+        citation_starts.add(m.start())
+        id_starts.add(m.start(2) - 1)
+    for m in _CHUNK_ID.finditer(answer):
+        if m.start() not in id_starts:
+            results.append((m.start(), CitationResult(m.group(1), "", False, "alintisiz_atif")))
+    for m in _QUOTED.finditer(answer):
+        if m.start() not in citation_starts:
+            results.append((m.start(), CitationResult("", m.group(1), False, "kimliksiz_alinti")))
+    return [s for _, s in sorted(results, key=lambda x: x[0])]

@@ -1,61 +1,66 @@
-"""Cevap doğrulayıcı: modelin cevabındaki her sayı bu turdaki araç sonuçlarında geçiyor mu, her alıntı gerçek mi?
+"""Answer verifier: does every number in the model's answer appear in this turn's tool results, is every citation real?
 
-Sayılar:
-- Cevap Türkçe biçimde okunur: "75.826.754,65" (nokta binlik, virgül ondalık). Noktanın ardından tam üç rakam
-  gelen yazılış her zaman binlik sayılır ("55.865" = 55865). Araçların kendi biçimi ("48.1745", noktadan sonra üç
-  rakam değil) ondalık okunur. "bin", "milyon", "milyar" çarpandır.
-- Her sayının bir türü vardır; türü yanındaki kelime belirler: TL/USD/EUR/lira/dolar → tutar, % ya da "yüzde" →
-  yüzde, gün → gün, ay → ay, fatura/müşteri/çek/hareket... → adet, takvim günü → tarih, 2025 gibi yıl → yıl.
-  Türü belli olmayan sayı tutar, kur, gün, ay, hafta ya da adet türünden bir kaynakla eşleşebilir; yüzde ve tarih
-  yalnızca kendi türüyle eşleşir. Böylece uydurulmuş "%12", "son 12 ay"daki 12 ile eşleşemez.
-- Kayıt numaraları (kaynak_fatura_no, cek_no gibi "_no" alanları) "numara" türünde kaynaktır: türü belli olmayan ya
-  da adet türündeki sayıyla eşleşir ("564713'tür (fatura tarihi ...)", "1335451 no'lu çek"), tutarla eşleşmez.
-- Kaynaklar yalnızca şunlardır: bu turda başarılı dönen araç sonuçlarındaki değerler (alan adına göre türlenir),
-  alan adlarındaki dönem kalıpları (son_12_ay → 12 ay, kur_yuzde_10 → %10, gecikme_31_60 → 31 ve 60 gün), listelerin
-  uzunluğu, aracın gün ve satır sayısı argümanları, belge araması sonuçlarındaki madde metinleri, kullanıcının
-  sorusu ve bugünün tarihi. Reddedilen çağrılar, açıklama ve not metinleri kaynak değildir. Madde metinlerinde ve
-  soruda yazıyla yazılmış sayılar da kaynaktır ("son on iki ayın" → 12 ay, "ikiyüzellibin Türk Lirası" → 250.000 TL);
-  ek almış kelimeler ("ikinci", "altına"), tek başına "bir" ve ardında tür kelimesi olmayan yazıyla sayılar ("her
-  iki borç", "binde üç") sayılmaz.
-- Eşleşme: kaynak değer cevapta gösterilen hassasiyete yuvarlanınca ya da kesilince cevaptaki sayıyı vermelidir
-  (75.826.754,65 → "75,8 milyon", "75,82 milyon", "75.826.755" geçer; "75,81 milyon" geçmez). İşaret karşılaştırılmaz
-  (çıkışlar eksi işaretsiz yazılabilir).
-- Numaralı liste işaretleri ("1. ") ile harfe bitişik sayılar (F032047, KANUN-6102) sayı sayılmaz. Tırnak içindeki
-  sayılara ve köşeli parantezdeki parça kimliklerine ([KANUN-6102#m1535]) bakılmaz; tırnaklı alıntıları alıntı
-  kontrolü denetler. Belge sonuçlarında madde metni, belge adı ve madde başlığı metin olarak okunur; parça
-  kimliğindeki kanun ve madde numarası da kaynaktır ("6102 sayılı Kanun", "1535. madde").
+Numbers:
+- The answer is read in Turkish format: "75.826.754,65" (dot for thousands, comma for decimals). A spelling where
+  exactly three digits follow the dot is always a thousands separator ("55.865" = 55865). The tools' own format
+  ("48.1745", not three digits after the dot) is read as a decimal. "bin", "milyon", "milyar" are multipliers.
+- Every number has a kind, determined by the word next to it: TL/USD/EUR/lira/dolar → amount, % or "yüzde" →
+  percent, gün → day, ay → month, fatura/müşteri/çek/hareket... → count, a calendar day → date, a year like 2025 →
+  year. A number of unknown kind can match a source of kind amount, rate, day, month, week or count; percent and
+  date match only their own kind. So a made-up "%12" cannot match the 12 in "son 12 ay".
+- Record numbers (the "_no" fields such as kaynak_fatura_no, cek_no) are a source of kind "numara": they match a
+  number of unknown kind or of kind count ("564713'tür (fatura tarihi ...)", "1335451 no'lu çek"), not an amount.
+- The only sources are: the values in the results of tools that returned successfully in this turn (typed by field
+  name), the period patterns in field names (son_12_ay → 12 months, kur_yuzde_10 → 10%, gecikme_31_60 → 31 and 60
+  days), the length of lists, the tool's day and row-count arguments, the article texts in document search results,
+  the user's question and today's date. Refused calls and explanation and note texts are not sources. Numbers
+  written in words in article texts and in the question are also sources ("son on iki ayın" → 12 months,
+  "ikiyüzellibin Türk Lirası" → 250,000 TL); words with a suffix ("ikinci", "altına"), a lone "bir" and numbers in
+  words with no kind word after them ("her iki borç", "binde üç") do not count.
+- Matching: the source value, rounded or truncated to the precision shown in the answer, must give the number in
+  the answer (75.826.754,65 → "75,8 milyon", "75,82 milyon", "75.826.755" pass; "75,81 milyon" does not). The sign
+  is not compared (outflows may be written without a minus sign).
+- Numbered-list markers ("1. ") and numbers attached to letters (F032047, KANUN-6102) do not count as numbers.
+  Numbers inside quotes and chunk identifiers in square brackets ([KANUN-6102#m1535]) are not examined; the
+  citation check audits quoted citations. In document results the article text, document name and article title
+  are read as text; the law and article number in the chunk identifier are also a source ("6102 sayılı Kanun",
+  "1535. madde").
 
-Alıntılar: Faz 5 alıntı kontrolü, yalnızca bu turda belge aramasının döndürdüğü madde metinlerine karşı. Bu turda
-belge araması sonuç döndürdüyse cevapta en az bir geçerli alıntı olmalıdır (Faz 7 kararı); "bulamadım" diyen bir
-cevap da baktığı maddeden alıntı yapar.
+Citations: the Phase 5 citation check, only against the article texts that document search returned in this turn.
+If document search returned results in this turn, the answer must have at least one valid citation (Phase 7
+decision); an answer that says "bulamadım" also quotes from the article it looked at.
 
-Faz 8b kuralları (Faz 7 ve 8'in saklanan setinde bulunan hatalar için; eski kararlar `eski_gecerli`de durur):
-- Sahiplik: soru belirli bir müşteriyi soruyorsa (soruda "X müşterisinin" gibi bir ipucu ya da "A.Ş.", "GmbH" gibi
-  bir şirket türü var) ve cevapta araç verisinden gelen bir sayı ya da tarih varsa, bu turda o müşteriye ait bir
-  sonuç olmalıdır: soruda geçen müşteri adıyla yapılmış bir çağrı (musteri_adi) ya da müşteri adı soruda geçen bir
-  kayıt. Yoksa cevap "sahipsiz" sayılır (ör. bir müşterinin çekleri sorulunca bütün portföyün toplamı). Müşteri
-  yalnızca sorunun metninden, çağrı argümanlarından ve bu turun sonuçlarından tanınır; veritabanına bakılmaz. Böylece
-  öteki bölgenin müşterisi ile hiç olmayan bir müşteri aynı kararı alır (Faz 3 güvencesi).
-- Kimlik: cevaptaki harf + rakam kimlikleri (F035729, C560866) bu turun araç sonuçlarında ya da soruda aynen
-  geçmelidir. Uydurulmuş "C560878" yakalanır.
-- Kapsam: satış rolünde toplam veren bir müşteri aracının (alacak yaşlandırma, gecikenler, DSO, çek portföyü, fatura
-  listesi) sayısı cevapta kullanılıyorsa cevap kapsamı söylemelidir ("yurtiçi", "yurt dışı"). Söylemezse cevap
-  reddedilmez; orkestratör bir kez düzeltme ister, olmazsa cevabın sonuna sabit kapsam notunu ekler.
+Phase 8b rules (for errors found in the held-out sets of Phases 7 and 8; the old decisions stay in `legacy_valid`):
+- Ownership: if the question asks about a specific customer (the question has a hint like "X müşterisinin" or a
+  company type like "A.Ş.", "GmbH") and the answer has a number or date that comes from tool data, there must be a
+  result belonging to that customer in this turn: a call made with the customer name that appears in the question
+  (musteri_adi) or a record whose customer name appears in the question. Otherwise the answer counts as "ownerless"
+  (e.g. the total of the whole portfolio when one customer's cheques are asked). The customer is recognised only
+  from the question text, the call arguments and this turn's results; the database is not consulted. So a customer
+  of the other region and a customer that does not exist get the same decision (Phase 3 guarantee).
+- Identifier: the letter + digit identifiers in the answer (F035729, C560866) must appear verbatim in this turn's
+  tool results or in the question. A made-up "C560878" is caught.
+- Scope: if the number from a customer tool that gives a total for a sales role (receivables aging, overdue, DSO,
+  cheque portfolio, invoice list) is used in the answer, the answer must state the scope ("yurtiçi", "yurt dışı").
+  If it does not, the answer is not rejected; the orchestrator asks for one correction, and if that fails it
+  appends the fixed scope note to the end of the answer.
 
-Bilinen sınırlar:
-- Sayının neye ait olduğuna yalnızca müşteri düzeyinde bakılır (sahiplik kuralı): soru bir müşteriyi açıkça
-  anmıyorsa, ya da o müşteriye ait bir sonuç varken cevap başka bir sonucun sayısını kullanıyorsa geçer.
-- Kullanıcının sorusundaki sayılar kaynaktır: "DSO 59 gün mü?" sorusuna "Evet, 59 gün" cevabı geçer (ikinci kör nokta).
-- Cevapta yalnızca rakamla yazılan sayılara bakılır: "yirmi yıl" denetlenmez (üçüncü kör nokta; yazıyla sayılar
-  yalnızca kaynak metinlerde okunur). Belge cevaplarında alıntı
-  şart olduğu için cevap gerçek bir alıntı taşır, ama alıntının yanındaki iddia alıntıyla karşılaştırılmaz:
-  'yirmi yıl saklanır: "on yıl süreyle saklamakla yükümlüdür" [KANUN-6102#m82]' geçer.
-- Çift tırnak yalnızca belge alıntısı içindir: parça kimliği olmayan tırnaklı metin "kimliksiz_alinti" olarak
-  reddedilir (üç ya da daha çok kelimelik ya da rakam içeren tırnaklı bir müşteri adı da). Bu bilerek katıdır;
-  gevşetilirse sayılar tırnak içine saklanabilirdi. Rakamsız, bir-iki kelimelik tırnaklı söz ('"kaç yıl" sorusuna')
-  alıntı sayılmaz.
-- Modelin kendi yaptığı işlemin sonucu (iki tutarın toplamı, bir oran) kaynaksız sayılır ve yakalanır.
-- Küçük tam sayılar (3, 4) türü belli değilse birçok kaynakla kolayca eşleşir.
+Known limits:
+- What a number belongs to is looked at only at customer level (ownership rule): it passes if the question does
+  not name a customer explicitly, or if the answer uses the number of another result when a result belonging to
+  that customer exists.
+- Numbers in the user's question are sources: to "DSO 59 gün mü?" the answer "Evet, 59 gün" passes (the second
+  blind spot).
+- Only numbers written in digits in the answer are examined: "yirmi yıl" is not audited (the third blind spot;
+  numbers in words are read only in source texts). Since a citation is required in document answers, the answer
+  carries a real citation, but the claim next to the citation is not compared with it:
+  'yirmi yıl saklanır: "on yıl süreyle saklamakla yükümlüdür" [KANUN-6102#m82]' passes.
+- Double quotes are only for document citations: quoted text without a chunk identifier is rejected as
+  "kimliksiz_alinti" (also a quoted customer name of three or more words or containing digits). This is
+  deliberately strict; if it were loosened, numbers could hide inside quotes. A quoted phrase of one or two words
+  without digits ('"kaç yıl" sorusuna') does not count as a citation.
+- The result of the model's own operation (the sum of two amounts, a ratio) counts as unsourced and is caught.
+- Small integers (3, 4) of unknown kind easily match many sources.
 """
 
 from __future__ import annotations
@@ -65,12 +70,12 @@ import re
 from dataclasses import dataclass, field
 from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal, localcontext
 
-from sayman.documents.citation import EN_AZ_KELIME, AlintiSonucu, cevabi_kontrol_et, tirnak_araliklari
+from sayman.documents.citation import MIN_WORDS, CitationResult, check_answer, quoted_spans
 
-AYLAR = ["ocak", "şubat", "mart", "nisan", "mayıs", "haziran", "temmuz", "ağustos", "eylül", "ekim", "kasım",
+MONTHS = ["ocak", "şubat", "mart", "nisan", "mayıs", "haziran", "temmuz", "ağustos", "eylül", "ekim", "kasım",
          "aralık"]
-OLCEK = {"bin": Decimal(1000), "milyon": Decimal(10) ** 6, "milyar": Decimal(10) ** 9}
-UYUM = {
+SCALE_FACTORS = {"bin": Decimal(1000), "milyon": Decimal(10) ** 6, "milyar": Decimal(10) ** 9}
+COMPATIBILITY = {
     "tutar": {"tutar", "kur", "bilinmeyen"},
     "kur": {"kur", "tutar", "bilinmeyen"},
     "yuzde": {"yuzde"},
@@ -81,600 +86,602 @@ UYUM = {
     "adet": {"adet", "numara", "bilinmeyen"},
     "bilinmeyen": {"tutar", "kur", "gun", "ay", "hafta", "adet", "numara", "bilinmeyen"},
 }
-# Kayıt numarası alanları (kaynak_fatura_no, cek_no): metin olarak gelir ama tutar değildir. "numara" türündeki kaynak
-# yalnızca türü belli olmayan ya da adet türündeki sayıyla eşleşir ("564713'tür (fatura tarihi ...)", "1335451 no'lu
-# çek": ardındaki "fatura"/"çek" kelimesi sayıyı adet yapar). Kayıt numarası tutar olarak yazılırsa yakalanır.
-_NUMARA_ALANI = re.compile(r"(?:^|_)no$")
-# Yazıyla sayılar: yalnızca kaynak metinlerde (belge maddesi, kullanıcının sorusu) okunur; cevaptaki yazıyla sayılar
-# hâlâ denetlenmez (bilinen sınır). Ek almış kelimeler ("ikinci", "altına", "onda") sayı değildir; tek başına "bir"
-# belirsiz tanımlıktır ("bir müşteri"), bileşikte ve ölçekle sayıdır ("on bir", "bir milyon").
-_BIRLER = {"bir": 1, "iki": 2, "üç": 3, "dört": 4, "beş": 5, "altı": 6, "yedi": 7, "sekiz": 8, "dokuz": 9}
-_ONLAR = {"on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "elli": 50, "altmış": 60, "yetmiş": 70, "seksen": 80,
+# Record number fields (kaynak_fatura_no, cek_no): they arrive as text but are not amounts. A source of kind "numara"
+# matches only a number of unknown kind or of kind count ("564713'tür (fatura tarihi ...)", "1335451 no'lu
+# çek": the word "fatura"/"çek" after it makes the number a count). A record number written as an amount is caught.
+_NUMBER_FIELD_PATTERN = re.compile(r"(?:^|_)no$")
+# Numbers in words: read only in source texts (document article, the user's question); numbers in words in the
+# answer are still not audited (a known limit). Words with a suffix ("ikinci", "altına", "onda") are not numbers; a
+# lone "bir" is an indefinite article ("bir müşteri"), in a compound and with a scale word it is a number
+# ("on bir", "bir milyon").
+_ONES = {"bir": 1, "iki": 2, "üç": 3, "dört": 4, "beş": 5, "altı": 6, "yedi": 7, "sekiz": 8, "dokuz": 9}
+_TENS = {"on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "elli": 50, "altmış": 60, "yetmiş": 70, "seksen": 80,
           "doksan": 90}
-_OLCEK_KELIMESI = {"bin": 1000, "milyon": 10 ** 6, "milyar": 10 ** 9}
-_MORFEMLER = sorted([*_BIRLER, *_ONLAR, "yüz", *_OLCEK_KELIMESI], key=len, reverse=True)
-_HARFLER = re.compile(r"[^\W\d_]+")
-PARA = re.compile(r"^(tl|try|₺|lira\w*|usd|eur|gbp|dolar\w*|avro\w*|euro\w*|sterlin\w*|\$|€|£)$")
-ADET = re.compile(r"^(fatura|müşteri|çek|hareket|işlem|adet|kalem|hesap|tahsilat|ödeme|tedarikçi|alacak|kayıt|"
+_SCALE_WORD_VALUES = {"bin": 1000, "milyon": 10 ** 6, "milyar": 10 ** 9}
+_MORPHEMES = sorted([*_ONES, *_TENS, "yüz", *_SCALE_WORD_VALUES], key=len, reverse=True)
+_LETTERS = re.compile(r"[^\W\d_]+")
+CURRENCY_WORD = re.compile(r"^(tl|try|₺|lira\w*|usd|eur|gbp|dolar\w*|avro\w*|euro\w*|sterlin\w*|\$|€|£)$")
+COUNT_NOUN = re.compile(r"^(fatura|müşteri|çek|hareket|işlem|adet|kalem|hesap|tahsilat|ödeme|tedarikçi|alacak|kayıt|"
                   r"sözleşme|madde|belge|satır)\w*$")
-TUR_KELIMESI = [(PARA, "tutar"), (re.compile(r"^gün\w*$"), "gun"), (re.compile(r"^hafta\w*$"), "hafta"),
+KIND_WORDS = [(CURRENCY_WORD, "tutar"), (re.compile(r"^gün\w*$"), "gun"), (re.compile(r"^hafta\w*$"), "hafta"),
                 (re.compile(r"^(ay|aya|ayda|aydan|aydır|aylık|ayın|ayı|aylar\w*|aylık\w*)$"), "ay"),
-                (re.compile(r"^(yıl|sene)\w*$"), "yil"), (ADET, "adet")]
-ONCEKI_PARA = re.compile(r"(?:[$€₺£]|\b(?:USD|EUR|GBP|TL|TRY))\s*$")
+                (re.compile(r"^(yıl|sene)\w*$"), "yil"), (COUNT_NOUN, "adet")]
+PRECEDING_CURRENCY = re.compile(r"(?:[$€₺£]|\b(?:USD|EUR|GBP|TL|TRY))\s*$")
 
-_ISO = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)")
-_NOKTALI = re.compile(r"(?<![\d.])(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)")
-_AYLI = re.compile(r"(?<!\d)(\d{1,2})\s+(" + "|".join(a.capitalize() for a in AYLAR) + "|" + "|".join(AYLAR)
+_ISO_DATE_PATTERN = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)")
+_DOTTED_DATE_PATTERN = re.compile(r"(?<![\d.])(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)")
+_MONTH_NAME_DATE_PATTERN = re.compile(r"(?<!\d)(\d{1,2})\s+(" + "|".join(a.capitalize() for a in MONTHS) + "|" + "|".join(MONTHS)
                    + r")(?:'\w+)?(?:\s+(\d{4})(?!\d))?")
-_SAYI = re.compile(r"(?<![\w#.,])(?<![^\W\d_]-)(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+,\d+|\d+\.\d+|\d+)(?!\w)")
-_PARCA_KIMLIGI = re.compile(r"\[[A-Za-z0-9_\-]+#m\d+\]")
-_PARCA_NO = re.compile(r"^(?:KANUN-(\d+))?.*#m(\d+)$")  # kanun numarası (varsa) ve madde numarası
-_OLCEK = re.compile(r"\s*(bin|milyon|milyar)\b")
-_KELIME = re.compile(r"[^\s()\[\]:;,.!?\"“”«»]+")
-_KENAR = re.compile(r"^[^\w₺$€£]+|[^\w₺$€£]+$")
-_AY_ADI = "|".join(a.capitalize() for a in AYLAR) + "|" + "|".join(AYLAR)
-_ARALIK = re.compile(r"(?<!\d)(\d{1,2})\s*[-–]\s*(\d{1,2})\s+(" + _AY_ADI + r")(?:'\w+)?(?:\s+(\d{4})(?!\d))?")
-_DONEM = re.compile(r"(?:^|_)son_(\d+)_(gun|ay|yil|hafta)(?:_|$)")
-_YUZDE_ANAHTAR = re.compile(r"(?:^|_)yuzde_(\d+)(?:_|$)")
-_DILIM = re.compile(r"(?:^|_)gecikme_(\d+)_(\d+|ustu)(?:_|$)")
-_ISO_TAM = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-_SAYI_METNI = re.compile(r"^-?\d+(?:\.\d+)?$")
-_YILAN = re.compile(r"^[a-z0-9_]+$")
+_NUMBER_PATTERN = re.compile(r"(?<![\w#.,])(?<![^\W\d_]-)(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+,\d+|\d+\.\d+|\d+)(?!\w)")
+_CHUNK_ID_PATTERN = re.compile(r"\[[A-Za-z0-9_\-]+#m\d+\]")
+_CHUNK_NUMBER_PATTERN = re.compile(r"^(?:KANUN-(\d+))?.*#m(\d+)$")  # law number (if any) and article number
+_SCALE_PATTERN = re.compile(r"\s*(bin|milyon|milyar)\b")
+_WORD_PATTERN = re.compile(r"[^\s()\[\]:;,.!?\"“”«»]+")
+_EDGE_PATTERN = re.compile(r"^[^\w₺$€£]+|[^\w₺$€£]+$")
+_MONTH_NAMES = "|".join(a.capitalize() for a in MONTHS) + "|" + "|".join(MONTHS)
+_DAY_RANGE_PATTERN = re.compile(r"(?<!\d)(\d{1,2})\s*[-–]\s*(\d{1,2})\s+(" + _MONTH_NAMES + r")(?:'\w+)?(?:\s+(\d{4})(?!\d))?")
+_PERIOD_KEY_PATTERN = re.compile(r"(?:^|_)son_(\d+)_(gun|ay|yil|hafta)(?:_|$)")
+_PERCENT_KEY_PATTERN = re.compile(r"(?:^|_)yuzde_(\d+)(?:_|$)")
+_BUCKET_KEY_PATTERN = re.compile(r"(?:^|_)gecikme_(\d+)_(\d+|ustu)(?:_|$)")
+_ISO_FULL_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_NUMERIC_TEXT_PATTERN = re.compile(r"^-?\d+(?:\.\d+)?$")
+_SNAKE_CASE_PATTERN = re.compile(r"^[a-z0-9_]+$")
 
 
 @dataclass(frozen=True)
-class Sayi:
+class Number:
     metin: str
-    bas: int
-    bit: int
+    start: int
+    end: int
     tur: str
-    deger: Decimal | None = None      # mutlak değer, çarpan uygulanmış
-    birim: Decimal | None = None      # gösterilen son basamağın değeri
+    deger: Decimal | None = None      # absolute value, multiplier applied
+    unit: Decimal | None = None      # the value of the last digit shown
     tarih: dt.date | None = None
-    gun_ay: tuple[int, int] | None = None   # yılsız tarih: (gün, ay)
+    day_month: tuple[int, int] | None = None   # date without a year: (day, month)
 
 
 @dataclass(frozen=True)
-class Kaynak:
+class Source:
     tur: str
     alan: str
-    cagri_id: str
+    call_id: str
     deger: Decimal | None = None
     tarih: dt.date | None = None
 
 
 @dataclass(frozen=True)
-class SayiSonucu:
+class NumberResult:
     metin: str
     tur: str
     gecerli: bool
-    kaynaklar: tuple[tuple[str, str], ...] = ()   # (cagri_id, alan)
+    sources: tuple[tuple[str, str], ...] = ()   # (call_id, alan)
 
 
 @dataclass
-class Dogrulama:
-    sayilar: list[SayiSonucu] = field(default_factory=list)
-    alintilar: list[AlintiSonucu] = field(default_factory=list)
-    alinti_gerekli: bool = False     # bu turda belge araması sonuç döndürdü (Faz 7 kararı: alıntı zorunlu)
-    kimliksiz: list[str] = field(default_factory=list)   # Faz 8b: araç sonuçlarında olmayan kimlikler
-    sahipsiz: bool = False           # Faz 8b: müşteri sorusu, ama o müşteriye ait sonuç yok
-    kapsam_eksik: str | None = None  # Faz 8b: kısıtlı kapsamın adı, cevap kapsamı söylemiyorsa (cevabı reddetmez)
+class Verification:
+    numbers: list[NumberResult] = field(default_factory=list)
+    citations: list[CitationResult] = field(default_factory=list)
+    citation_required: bool = False     # document search returned results in this turn (Phase 7 decision: citation required)
+    unknown_identifiers: list[str] = field(default_factory=list)   # Phase 8b: identifiers that are not in the tool results
+    ownerless: bool = False           # Phase 8b: a customer question, but no result belongs to that customer
+    missing_scope: str | None = None  # Phase 8b: the name of the restricted scope if the answer does not state it (does not reject the answer)
 
     @property
-    def kaynaksiz(self) -> list[SayiSonucu]:
-        return [s for s in self.sayilar if not s.gecerli]
+    def unsourced(self) -> list[NumberResult]:
+        return [s for s in self.numbers if not s.gecerli]
 
     @property
-    def gecersiz_alintilar(self) -> list[AlintiSonucu]:
-        return [a for a in self.alintilar if not a.gecerli]
+    def invalid_citations(self) -> list[CitationResult]:
+        return [a for a in self.citations if not a.gecerli]
 
     @property
-    def alinti_eksik(self) -> bool:
-        return self.alinti_gerekli and not any(a.gecerli for a in self.alintilar)
+    def citation_missing(self) -> bool:
+        return self.citation_required and not any(a.gecerli for a in self.citations)
 
     @property
-    def eski_gecerli(self) -> bool:
-        """Faz 6-8 kuralları (sayılar ve alıntılar)."""
-        return not self.kaynaksiz and not self.gecersiz_alintilar and not self.alinti_eksik
+    def legacy_valid(self) -> bool:
+        """The Phase 6-8 rules (numbers and citations)."""
+        return not self.unsourced and not self.invalid_citations and not self.citation_missing
 
     @property
     def gecerli(self) -> bool:
-        return self.eski_gecerli and not self.kimliksiz and not self.sahipsiz
+        return self.legacy_valid and not self.unknown_identifiers and not self.ownerless
 
 
-# ---------------------------------------------------------------- metinden sayı okuma
+# ---------------------------------------------------------------- reading numbers from text
 
 
-def _kucult(metin: str) -> str:
-    return metin.replace("I", "ı").replace("İ", "i").lower()
+def _lower(text: str) -> str:
+    return text.replace("I", "ı").replace("İ", "i").lower()
 
 
-def _tarih(yil: int, ay: int, gun: int) -> dt.date | None:
+def _make_date(year: int, month: int, day: int) -> dt.date | None:
     try:
-        return dt.date(yil, ay, gun)
+        return dt.date(year, month, day)
     except ValueError:
         return None
 
 
-def _tarihler(metin: str) -> list[Sayi]:
-    bulunan: list[Sayi] = []
-    for m in _ISO.finditer(metin):
-        bulunan.append(Sayi(m.group(0), m.start(), m.end(), "tarih",
-                            tarih=_tarih(int(m.group(1)), int(m.group(2)), int(m.group(3)))))
-    for m in _NOKTALI.finditer(metin):
-        bulunan.append(Sayi(m.group(0), m.start(), m.end(), "tarih",
-                            tarih=_tarih(int(m.group(3)), int(m.group(2)), int(m.group(1)))))
-    for m in _AYLI.finditer(metin):
-        ay = AYLAR.index(_kucult(m.group(2))) + 1
+def _find_dates(text: str) -> list[Number]:
+    found: list[Number] = []
+    for m in _ISO_DATE_PATTERN.finditer(text):
+        found.append(Number(m.group(0), m.start(), m.end(), "tarih",
+                            tarih=_make_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))))
+    for m in _DOTTED_DATE_PATTERN.finditer(text):
+        found.append(Number(m.group(0), m.start(), m.end(), "tarih",
+                            tarih=_make_date(int(m.group(3)), int(m.group(2)), int(m.group(1)))))
+    for m in _MONTH_NAME_DATE_PATTERN.finditer(text):
+        month = MONTHS.index(_lower(m.group(2))) + 1
         if m.group(3):
-            bulunan.append(Sayi(m.group(0), m.start(), m.end(), "tarih",
-                                tarih=_tarih(int(m.group(3)), ay, int(m.group(1)))))
+            found.append(Number(m.group(0), m.start(), m.end(), "tarih",
+                                tarih=_make_date(int(m.group(3)), month, int(m.group(1)))))
         else:
-            bulunan.append(Sayi(m.group(0), m.start(), m.end(), "tarih", gun_ay=(int(m.group(1)), ay)))
-    for m in _ARALIK.finditer(metin):  # "9-15 Eylül": iki tarih
-        ay = AYLAR.index(_kucult(m.group(3))) + 1
-        for grup, bit in ((1, m.end(1)), (2, m.end())):
-            gun = int(m.group(grup))
+            found.append(Number(m.group(0), m.start(), m.end(), "tarih", day_month=(int(m.group(1)), month)))
+    for m in _DAY_RANGE_PATTERN.finditer(text):  # "9-15 Eylül": two dates
+        month = MONTHS.index(_lower(m.group(3))) + 1
+        for group, end in ((1, m.end(1)), (2, m.end())):
+            day = int(m.group(group))
             if m.group(4):
-                bulunan.append(Sayi(metin[m.start(grup):bit], m.start(grup), bit, "tarih",
-                                    tarih=_tarih(int(m.group(4)), ay, gun)))
+                found.append(Number(text[m.start(group):end], m.start(group), end, "tarih",
+                                    tarih=_make_date(int(m.group(4)), month, day)))
             else:
-                bulunan.append(Sayi(metin[m.start(grup):bit], m.start(grup), bit, "tarih", gun_ay=(gun, ay)))
-    bulunan.sort(key=lambda s: (s.bas, -s.bit))
-    sonuc, son = [], -1
-    for s in bulunan:  # çakışanlardan ilk ve en uzunu
-        if s.bas >= son:
-            sonuc.append(s)
-            son = s.bit
-    return sonuc
+                found.append(Number(text[m.start(group):end], m.start(group), end, "tarih", day_month=(day, month)))
+    found.sort(key=lambda s: (s.start, -s.end))
+    result, last = [], -1
+    for s in found:  # of the overlapping ones, the first and longest
+        if s.start >= last:
+            result.append(s)
+            last = s.end
+    return result
 
 
-def _deger(metin: str) -> tuple[Decimal, Decimal]:
-    """Türkçe öncelikli okuma: (değer, son basamağın değeri)."""
-    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+(?:,\d+)?", metin):
-        tam, _, kesir = metin.partition(",")
-        tam = tam.replace(".", "")
-    elif "," in metin:
-        tam, _, kesir = metin.partition(",")
-    elif "." in metin:
-        tam, _, kesir = metin.partition(".")
+def _parse_value(text: str) -> tuple[Decimal, Decimal]:
+    """Turkish-first reading: (value, value of the last digit)."""
+    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+(?:,\d+)?", text):
+        integer_part, _, fraction = text.partition(",")
+        integer_part = integer_part.replace(".", "")
+    elif "," in text:
+        integer_part, _, fraction = text.partition(",")
+    elif "." in text:
+        integer_part, _, fraction = text.partition(".")
     else:
-        tam, kesir = metin, ""
-    return Decimal(f"{tam}.{kesir}" if kesir else tam), Decimal(1).scaleb(-len(kesir))
+        integer_part, fraction = text, ""
+    return Decimal(f"{integer_part}.{fraction}" if fraction else integer_part), Decimal(1).scaleb(-len(fraction))
 
 
-def _sonraki_kelimeler(metin: str, konum: int, adet: int = 2) -> list[str]:
-    kalan = metin[konum:]
-    ek = re.match(r"['’]\w+", kalan)  # 3'ü, 30'u: sayıya bitişik ek
-    if ek:
-        kalan = kalan[ek.end():]
-    satir = kalan.split("\n", 1)[0]
-    kelimeler = []
-    for k in _KELIME.findall(satir):
-        k = _KENAR.sub("", k)  # "TL**" gibi biçim işaretleri
+def _following_words(text: str, position: int, count: int = 2) -> list[str]:
+    rest = text[position:]
+    suffix = re.match(r"['’]\w+", rest)  # 3'ü, 30'u: a suffix attached to the number
+    if suffix:
+        rest = rest[suffix.end():]
+    line = rest.split("\n", 1)[0]
+    words = []
+    for k in _WORD_PATTERN.findall(line):
+        k = _EDGE_PATTERN.sub("", k)  # formatting marks like "TL**"
         if k:
-            kelimeler.append(re.split(r"['’]", _kucult(k), maxsplit=1)[0])
-        if len(kelimeler) == adet:
+            words.append(re.split(r"['’]", _lower(k), maxsplit=1)[0])
+        if len(words) == count:
             break
-    return kelimeler
+    return words
 
 
-def _tur(metin: str, bas: int, bit: int, deger_metni: str, olcekli: bool) -> str:
-    once = metin[max(0, bas - 7):bas]
-    if once.rstrip().endswith("%") or _kucult(once).rstrip().endswith("yüzde") or metin[bit:bit + 1] == "%":
+def _kind(text: str, start: int, end: int, value_text: str, scaled: bool) -> str:
+    before = text[max(0, start - 7):start]
+    if before.rstrip().endswith("%") or _lower(before).rstrip().endswith("yüzde") or text[end:end + 1] == "%":
         return "yuzde"
-    if ONCEKI_PARA.search(once):
+    if PRECEDING_CURRENCY.search(before):
         return "tutar"
-    for kelime in _sonraki_kelimeler(metin, bit):
-        for kalip, tur in TUR_KELIMESI:
-            if kalip.match(kelime):
-                return tur
-    if not olcekli and re.fullmatch(r"(19|20)\d\d", deger_metni):
+    for word in _following_words(text, end):
+        for pattern, kind in KIND_WORDS:
+            if pattern.match(word):
+                return kind
+    if not scaled and re.fullmatch(r"(19|20)\d\d", value_text):
         return "yil"
     return "bilinmeyen"
 
 
-def metinden_sayilar(metin: str, atla: list[tuple[int, int]] = ()) -> list[Sayi]:
-    """Türkçe bir metindeki sayılar ve tarihler. atla: bakılmayacak (başlangıç, bitiş) aralıkları."""
-    def disarida(bas, bit):
-        return not any(b <= bas and bit <= s for b, s in atla)
+def numbers_from_text(text: str, skip: list[tuple[int, int]] = ()) -> list[Number]:
+    """The numbers and dates in a Turkish text. skip: (start, end) ranges that are not examined."""
+    def outside(start, end):
+        return not any(b <= start and end <= s for b, s in skip)
 
-    sayilar = [t for t in _tarihler(metin) if disarida(t.bas, t.bit)]
-    maske = list(metin)
-    for t in _tarihler(metin):
-        maske[t.bas:t.bit] = " " * (t.bit - t.bas)
-    maskeli = "".join(maske)
-    for m in _SAYI.finditer(maskeli):
-        bas, bit = m.start(), m.end()
-        if not disarida(bas, bit):
+    numbers = [t for t in _find_dates(text) if outside(t.start, t.end)]
+    mask = list(text)
+    for t in _find_dates(text):
+        mask[t.start:t.end] = " " * (t.end - t.start)
+    masked = "".join(mask)
+    for m in _NUMBER_PATTERN.finditer(masked):
+        start, end = m.start(), m.end()
+        if not outside(start, end):
             continue
-        satir_basi = maskeli.rfind("\n", 0, bas) + 1
-        if not maskeli[satir_basi:bas].strip(" \t*#>-_") and maskeli[bit:bit + 2] in (". ", ") "):
-            continue  # numaralı liste işareti (önünde "*", "-", "**" gibi biçim işaretleri olabilir)
-        deger, birim = _deger(m.group(1))
-        olcek = _OLCEK.match(maskeli, bit)
-        son = bit
-        if olcek:
-            carpan = OLCEK[olcek.group(1)]
-            deger, birim, son = deger * carpan, birim * carpan, olcek.end()
-        tur = _tur(maskeli, bas, son, m.group(1), bool(olcek))
-        if tur == "adet" and deger != deger.to_integral_value():
-            tur = "bilinmeyen"  # kesirli sayı adet olamaz ("43.510.100,56 TL ödeme")
-        if tur == "tutar" and deger == 1 and not olcek and re.match(r"\s*\S+\s*=", maskeli[son:]):
-            continue  # "1 USD = 48,17 TL": birim, iddia değil
-        yuzde_bas = bas - 1 if maskeli[bas - 1:bas] == "%" else bas
-        sayilar.append(Sayi(metin[yuzde_bas:son], yuzde_bas, son, tur, deger, birim))
-    return sorted(sayilar, key=lambda s: s.bas)
+        line_start = masked.rfind("\n", 0, start) + 1
+        if not masked[line_start:start].strip(" \t*#>-_") and masked[end:end + 2] in (". ", ") "):
+            continue  # numbered-list marker (may be preceded by formatting marks like "*", "-", "**")
+        value, unit = _parse_value(m.group(1))
+        scale = _SCALE_PATTERN.match(masked, end)
+        last = end
+        if scale:
+            multiplier = SCALE_FACTORS[scale.group(1)]
+            value, unit, last = value * multiplier, unit * multiplier, scale.end()
+        kind = _kind(masked, start, last, m.group(1), bool(scale))
+        if kind == "adet" and value != value.to_integral_value():
+            kind = "bilinmeyen"  # a fractional number cannot be a count ("43.510.100,56 TL ödeme")
+        if kind == "tutar" and value == 1 and not scale and re.match(r"\s*\S+\s*=", masked[last:]):
+            continue  # "1 USD = 48,17 TL": a unit, not a claim
+        percent_start = start - 1 if masked[start - 1:start] == "%" else start
+        numbers.append(Number(text[percent_start:last], percent_start, last, kind, value, unit))
+    return sorted(numbers, key=lambda s: s.start)
 
 
-# ---------------------------------------------------------------- kaynaklar
+# ---------------------------------------------------------------- sources
 
 
-def _anahtar_kaliplari(ad: str, cagri_id: str) -> list[Kaynak]:
+def _key_patterns(name: str, call_id: str) -> list[Source]:
     k = []
-    for m in _DONEM.finditer(ad):
-        k.append(Kaynak(m.group(2), ad, cagri_id, Decimal(m.group(1))))
-    for m in _YUZDE_ANAHTAR.finditer(ad):
-        k.append(Kaynak("yuzde", ad, cagri_id, Decimal(m.group(1))))
-    for m in _DILIM.finditer(ad):
-        k.append(Kaynak("gun", ad, cagri_id, Decimal(m.group(1))))
+    for m in _PERIOD_KEY_PATTERN.finditer(name):
+        k.append(Source(m.group(2), name, call_id, Decimal(m.group(1))))
+    for m in _PERCENT_KEY_PATTERN.finditer(name):
+        k.append(Source("yuzde", name, call_id, Decimal(m.group(1))))
+    for m in _BUCKET_KEY_PATTERN.finditer(name):
+        k.append(Source("gun", name, call_id, Decimal(m.group(1))))
         if m.group(2) != "ustu":
-            k.append(Kaynak("gun", ad, cagri_id, Decimal(m.group(2))))
+            k.append(Source("gun", name, call_id, Decimal(m.group(2))))
     return k
 
 
-def _degerlerden(deger, alan: str, cagri_id: str, kaynaklar: list[Kaynak]) -> None:
-    if isinstance(deger, dict):
-        for k, v in deger.items():
-            kaynaklar.extend(_anahtar_kaliplari(k, cagri_id))
-            _degerlerden(v, k, cagri_id, kaynaklar)
-    elif isinstance(deger, list):
-        kaynaklar.append(Kaynak("adet", f"{alan}[]", cagri_id, Decimal(len(deger))))
-        for v in deger:
-            _degerlerden(v, alan, cagri_id, kaynaklar)
-    elif isinstance(deger, bool) or deger is None:
+def _from_values(value, field_name: str, call_id: str, sources: list[Source]) -> None:
+    if isinstance(value, dict):
+        for k, v in value.items():
+            sources.extend(_key_patterns(k, call_id))
+            _from_values(v, k, call_id, sources)
+    elif isinstance(value, list):
+        sources.append(Source("adet", f"{field_name}[]", call_id, Decimal(len(value))))
+        for v in value:
+            _from_values(v, field_name, call_id, sources)
+    elif isinstance(value, bool) or value is None:
         return
-    elif isinstance(deger, int):
-        tur = "gun" if "gun" in alan else ("hafta" if alan == "hafta" else "adet")
-        kaynaklar.append(Kaynak(tur, alan, cagri_id, abs(Decimal(deger))))
-    elif isinstance(deger, str):
-        if _ISO_TAM.match(deger):
-            t = dt.date.fromisoformat(deger)
-            kaynaklar.extend([Kaynak("tarih", alan, cagri_id, tarih=t), Kaynak("yil", alan, cagri_id, Decimal(t.year))])
-        elif _SAYI_METNI.match(deger):
-            if _NUMARA_ALANI.search(alan):
-                tur = "numara"
+    elif isinstance(value, int):
+        kind = "gun" if "gun" in field_name else ("hafta" if field_name == "hafta" else "adet")
+        sources.append(Source(kind, field_name, call_id, abs(Decimal(value))))
+    elif isinstance(value, str):
+        if _ISO_FULL_PATTERN.match(value):
+            t = dt.date.fromisoformat(value)
+            sources.extend([Source("tarih", field_name, call_id, tarih=t), Source("yil", field_name, call_id, Decimal(t.year))])
+        elif _NUMERIC_TEXT_PATTERN.match(value):
+            if _NUMBER_FIELD_PATTERN.search(field_name):
+                kind = "numara"
             else:
-                tur = "kur" if alan in ("kur", "alis") else ("gun" if "gun" in alan else "tutar")
-            kaynaklar.append(Kaynak(tur, alan, cagri_id, abs(Decimal(deger))))
-        elif _YILAN.match(deger):  # "son_90_gun" gibi seçenek değerleri
-            kaynaklar.extend(_anahtar_kaliplari(deger, cagri_id))
+                kind = "kur" if field_name in ("kur", "alis") else ("gun" if "gun" in field_name else "tutar")
+            sources.append(Source(kind, field_name, call_id, abs(Decimal(value))))
+        elif _SNAKE_CASE_PATTERN.match(value):  # option values like "son_90_gun"
+            sources.extend(_key_patterns(value, call_id))
 
 
-def _parcala(kelime: str) -> list[str] | None:
-    """Ek almamış bir sayı kelimesini parçalarına ayırır ("yirmibeş" → yirmi, beş); sayı değilse None."""
-    if not kelime:
+def _split_morphemes(word: str) -> list[str] | None:
+    """Splits a number word without a suffix into its parts ("yirmibeş" → yirmi, beş); None if it is not a number."""
+    if not word:
         return []
-    for m in _MORFEMLER:
-        if kelime.startswith(m):
-            kalan = _parcala(kelime[len(m):])
-            if kalan is not None:
-                return [m, *kalan]
+    for m in _MORPHEMES:
+        if word.startswith(m):
+            rest = _split_morphemes(word[len(m):])
+            if rest is not None:
+                return [m, *rest]
     return None
 
 
-def _yaziyla_sayilar(metin: str) -> list[tuple[int, int, Decimal, bool]]:
-    """Metindeki yazıyla sayılar: (başlangıç, bitiş, değer, ölçekli mi). "son on iki ayın" → 12; "iki yüz elli bin"
-    → 250000. Sıralaması bozuk dizi ("iki üç", "on yirmi") orada bölünür."""
-    kucuk = _kucult(metin)
-    sonuc: list[tuple[int, int, Decimal, bool]] = []
-    durum: dict = {}
+def _numbers_in_words(text: str) -> list[tuple[int, int, Decimal, bool]]:
+    """The numbers written in words in the text: (start, end, value, scaled). "son on iki ayın" → 12; "iki yüz elli
+    bin" → 250000. A badly ordered sequence ("iki üç", "on yirmi") is split there."""
+    lowered = _lower(text)
+    result: list[tuple[int, int, Decimal, bool]] = []
+    state: dict = {}
 
-    def bitir():
-        if durum.get("parca"):
-            # tek başına "bir" belirsiz tanımlıktır
-            if durum["parca"] != ["bir"]:
-                deger = durum["toplam"] + durum["blok"]
-                sonuc.append((durum["bas"], durum["bit"], Decimal(deger), durum["olcekli"]))
-        durum.clear()
+    def finish():
+        if state.get("parca"):
+            # a lone "bir" is an indefinite article
+            if state["parca"] != ["bir"]:
+                value = state["toplam"] + state["blok"]
+                result.append((state["bas"], state["bit"], Decimal(value), state["olcekli"]))
+        state.clear()
 
-    def ekle(m: str) -> bool:
-        son, blok = durum.get("son"), durum.get("blok", 0)
-        if m in _BIRLER:
-            if son not in (None, "onlar", "yuz", "olcek"):
+    def add_part(m: str) -> bool:
+        last, block = state.get("son"), state.get("blok", 0)
+        if m in _ONES:
+            if last not in (None, "onlar", "yuz", "olcek"):
                 return False
-            durum["blok"] = blok + _BIRLER[m]
-            durum["son"] = "birler"
-        elif m in _ONLAR:
-            if son not in (None, "yuz", "olcek"):
+            state["blok"] = block + _ONES[m]
+            state["son"] = "birler"
+        elif m in _TENS:
+            if last not in (None, "yuz", "olcek"):
                 return False
-            durum["blok"] = blok + _ONLAR[m]
-            durum["son"] = "onlar"
+            state["blok"] = block + _TENS[m]
+            state["son"] = "onlar"
         elif m == "yüz":
-            if son == "birler" and blok < 10:
-                durum["blok"] = blok * 100
-            elif son in (None, "olcek"):
-                durum["blok"] = 100
+            if last == "birler" and block < 10:
+                state["blok"] = block * 100
+            elif last in (None, "olcek"):
+                state["blok"] = 100
             else:
                 return False
-            durum["son"] = "yuz"
+            state["son"] = "yuz"
         else:
-            v = _OLCEK_KELIMESI[m]
-            if son == "olcek" or (durum.get("son_olcek") or v + 1) <= v:
+            v = _SCALE_WORD_VALUES[m]
+            if last == "olcek" or (state.get("son_olcek") or v + 1) <= v:
                 return False
-            durum["toplam"] = durum.get("toplam", 0) + (blok or 1) * v
-            durum.update(blok=0, son="olcek", son_olcek=v, olcekli=True)
+            state["toplam"] = state.get("toplam", 0) + (block or 1) * v
+            state.update(blok=0, son="olcek", son_olcek=v, olcekli=True)
         return True
 
-    onceki_bit = None
-    for w in _HARFLER.finditer(kucuk):
-        parcalar = _parcala(w.group(0))
-        bitisik = onceki_bit is not None and not kucuk[onceki_bit:w.start()].strip(" \t")
-        if not bitisik:
-            bitir()
-        if parcalar is None:
-            bitir()
-            onceki_bit = None
+    previous_end = None
+    for w in _LETTERS.finditer(lowered):
+        parts = _split_morphemes(w.group(0))
+        adjacent = previous_end is not None and not lowered[previous_end:w.start()].strip(" \t")
+        if not adjacent:
+            finish()
+        if parts is None:
+            finish()
+            previous_end = None
             continue
-        for deneme in range(2):
-            yedek = dict(durum)
-            if all(ekle(m) for m in parcalar):
+        for attempt in range(2):
+            backup = dict(state)
+            if all(add_part(m) for m in parts):
                 break
-            durum.clear()
-            durum.update(yedek)
-            bitir()  # sıralama bozuldu: önceki sayı biter, bu kelimeyle yenisi başlar
+            state.clear()
+            state.update(backup)
+            finish()  # the order broke: the previous number ends, a new one starts with this word
         else:
-            onceki_bit = None
+            previous_end = None
             continue
-        if "bas" not in durum:
-            durum.update(bas=w.start(), toplam=durum.get("toplam", 0), olcekli=durum.get("olcekli", False),
+        if "bas" not in state:
+            state.update(bas=w.start(), toplam=state.get("toplam", 0), olcekli=state.get("olcekli", False),
                          parca=[])
-        durum["bit"] = w.end()
-        durum["parca"] = durum["parca"] + parcalar
-        onceki_bit = w.end()
-    bitir()
-    return sonuc
+        state["bit"] = w.end()
+        state["parca"] = state["parca"] + parts
+        previous_end = w.end()
+    finish()
+    return result
 
 
-def _metinden_kaynaklar(metin: str, alan: str, cagri_id: str) -> list[Kaynak]:
+def _sources_from_text(text: str, field_name: str, call_id: str) -> list[Source]:
     k = []
-    for s in metinden_sayilar(metin):
+    for s in numbers_from_text(text):
         if s.tur == "tarih":
             if s.tarih:
-                k.extend([Kaynak("tarih", alan, cagri_id, tarih=s.tarih),
-                          Kaynak("yil", alan, cagri_id, Decimal(s.tarih.year))])
+                k.extend([Source("tarih", field_name, call_id, tarih=s.tarih),
+                          Source("yil", field_name, call_id, Decimal(s.tarih.year))])
         else:
-            k.append(Kaynak(s.tur, alan, cagri_id, s.deger))
-    for bas, bit, deger, olcekli in _yaziyla_sayilar(metin):
-        tur = _tur(metin, bas, bit, str(deger), olcekli)
-        if tur != "bilinmeyen":  # "her iki borç", "binde üç": türsüz kaynak her türle eşleşirdi, gevşetirdi
-            k.append(Kaynak(tur, alan, cagri_id, deger))
+            k.append(Source(s.tur, field_name, call_id, s.deger))
+    for start, end, value, scaled in _numbers_in_words(text):
+        kind = _kind(text, start, end, str(value), scaled)
+        if kind != "bilinmeyen":  # "her iki borç", "binde üç": a source without a kind would match every kind and loosen the check
+            k.append(Source(kind, field_name, call_id, value))
     return k
 
 
-def _argumanlardan(argumanlar: dict, cagri_id: str) -> list[Kaynak]:
+def _from_arguments(arguments: dict, call_id: str) -> list[Source]:
     k = []
-    for ad, v in argumanlar.items():
+    for name, v in arguments.items():
         if isinstance(v, int) and not isinstance(v, bool):
-            k.append(Kaynak("gun" if "gun" in ad else "adet", f"arguman:{ad}", cagri_id, abs(Decimal(v))))
-        elif isinstance(v, str) and _ISO_TAM.match(v):
+            k.append(Source("gun" if "gun" in name else "adet", f"arguman:{name}", call_id, abs(Decimal(v))))
+        elif isinstance(v, str) and _ISO_FULL_PATTERN.match(v):
             t = dt.date.fromisoformat(v)
-            k.extend([Kaynak("tarih", f"arguman:{ad}", cagri_id, tarih=t),
-                      Kaynak("yil", f"arguman:{ad}", cagri_id, Decimal(t.year))])
-        elif isinstance(v, str) and _YILAN.match(v):
-            k.extend(_anahtar_kaliplari(v, cagri_id))
+            k.extend([Source("tarih", f"arguman:{name}", call_id, tarih=t),
+                      Source("yil", f"arguman:{name}", call_id, Decimal(t.year))])
+        elif isinstance(v, str) and _SNAKE_CASE_PATTERN.match(v):
+            k.extend(_key_patterns(v, call_id))
     return k
 
 
-def _belge_kaynaklari(sonuc: dict, cagri_id: str) -> list[Kaynak]:
-    """Belge araması: madde metni, belge adı ve madde başlığı Türkçe metin olarak okunur; parça kimliğinden kanun ve
-    madde numarası gelir (KANUN-6102#m1535 → 6102 ve 1535)."""
+def _document_sources(result: dict, call_id: str) -> list[Source]:
+    """Document search: the article text, document name and article title are read as Turkish text; the law and
+    article numbers come from the chunk identifier (KANUN-6102#m1535 → 6102 and 1535)."""
     k = []
-    for p in sonuc.get("sonuclar", []):
-        for alan in ("metin", "belge", "madde"):
-            if isinstance(p.get(alan), str):
-                k += _metinden_kaynaklar(p[alan], alan, cagri_id)
-        m = _PARCA_NO.search(p.get("parca_id", ""))
+    for p in result.get("sonuclar", []):
+        for field_name in ("metin", "belge", "madde"):
+            if isinstance(p.get(field_name), str):
+                k += _sources_from_text(p[field_name], field_name, call_id)
+        m = _CHUNK_NUMBER_PATTERN.search(p.get("parca_id", ""))
         if m:
-            k += [Kaynak("adet", "parca_id", cagri_id, Decimal(n)) for n in m.groups() if n]
+            k += [Source("adet", "parca_id", call_id, Decimal(n)) for n in m.groups() if n]
     return k
 
 
-def kaynaklar(soru: str, cagrilar: list[dict], bugun: dt.date) -> list[Kaynak]:
-    """cagrilar: {"arac", "argumanlar", "hata_mi", "yanit"} sözlükleri; yalnızca başarılı olanlar kaynak olur."""
-    k = _metinden_kaynaklar(soru, "soru", "soru")
-    k += [Kaynak("tarih", "bugun", "bugun", tarih=bugun), Kaynak("yil", "bugun", "bugun", Decimal(bugun.year))]
-    for c in cagrilar:
+def collect_sources(question: str, calls: list[dict], today: dt.date) -> list[Source]:
+    """calls: dicts of {"arac", "argumanlar", "hata_mi", "yanit"}; only the successful ones become sources."""
+    k = _sources_from_text(question, "soru", "soru")
+    k += [Source("tarih", "bugun", "bugun", tarih=today), Source("yil", "bugun", "bugun", Decimal(today.year))]
+    for c in calls:
         if c.get("hata_mi"):
             continue
         y = c["yanit"]
         cid = y["cagri_id"]
         if c["arac"] == "belge_ara":
-            k += _belge_kaynaklari(y.get("sonuc") or {}, cid)
+            k += _document_sources(y.get("sonuc") or {}, cid)
         else:
-            _degerlerden(y.get("sonuc"), "sonuc", cid, k)
-        if y.get("tarih") and _ISO_TAM.match(y["tarih"]):  # aracın çalıştığı gün (veri değil)
+            _from_values(y.get("sonuc"), "sonuc", cid, k)
+        if y.get("tarih") and _ISO_FULL_PATTERN.match(y["tarih"]):  # the day the tool ran (not data)
             t = dt.date.fromisoformat(y["tarih"])
-            k += [Kaynak("tarih", "cagri_tarihi", cid, tarih=t), Kaynak("yil", "cagri_tarihi", cid, Decimal(t.year))]
-        k += _argumanlardan(c.get("argumanlar") or {}, cid)
+            k += [Source("tarih", "cagri_tarihi", cid, tarih=t), Source("yil", "cagri_tarihi", cid, Decimal(t.year))]
+        k += _from_arguments(c.get("argumanlar") or {}, cid)
     return k
 
 
-# ---------------------------------------------------------------- eşleştirme
+# ---------------------------------------------------------------- matching
 
 
-def _eslesir(s: Sayi, k: Kaynak) -> bool:
+def _matches(s: Number, k: Source) -> bool:
     if s.tur == "tarih":
         if k.tur != "tarih" or k.tarih is None:
             return False
         if s.tarih:
             return s.tarih == k.tarih
-        return s.gun_ay == (k.tarih.day, k.tarih.month)
-    if k.tur not in UYUM[s.tur] or k.deger is None:
+        return s.day_month == (k.tarih.day, k.tarih.month)
+    if k.tur not in COMPATIBILITY[s.tur] or k.deger is None:
         return False
     with localcontext() as c:
         c.prec = 50
-        oran = k.deger / s.birim
-        hedef = s.deger / s.birim
-        return hedef in (oran.quantize(Decimal(1), ROUND_HALF_UP), oran.quantize(Decimal(1), ROUND_FLOOR))
+        ratio = k.deger / s.unit
+        target = s.deger / s.unit
+        return target in (ratio.quantize(Decimal(1), ROUND_HALF_UP), ratio.quantize(Decimal(1), ROUND_FLOOR))
 
 
-# ---------------------------------------------------------------- Faz 8b: sahiplik, kimlik ve kapsam
+# ---------------------------------------------------------------- Phase 8b: ownership, identifier and scope
 
-TUM_SIRKET = "tüm şirket"
-# Toplam veren müşteri araçları: satış rolünde sonuçları yalnızca o rolün müşterilerinin toplamıdır.
-KAPSAMLI_ARACLAR = frozenset({"alacak_yaslandirma", "geciken_alacaklar", "dso_hesapla", "cek_portfoyu", "fatura_ara"})
-KAPSAM_SOZLERI = {"yalnızca yurtiçi müşteriler": re.compile(r"yurt\s?i[çc]i", re.IGNORECASE),
+WHOLE_COMPANY = "tüm şirket"
+# Customer tools that give totals: for a sales role their results are only the totals of that role's customers.
+SCOPED_TOOLS = frozenset({"alacak_yaslandirma", "geciken_alacaklar", "dso_hesapla", "cek_portfoyu", "fatura_ara"})
+SCOPE_PHRASES = {"yalnızca yurtiçi müşteriler": re.compile(r"yurt\s?i[çc]i", re.IGNORECASE),
                   "yalnızca yurt dışı müşteriler": re.compile(r"yurt\s?d[ıi][şs][ıi]|ihracat", re.IGNORECASE)}
-# Sabit not: "yetki" ve "kapsam" kelimelerini bilerek içermez (puanlayıcı bunları ret işareti sayar).
-KAPSAM_NOTLARI = {"yalnızca yurtiçi müşteriler": "Not: Bu rakamlar yalnızca yurtiçi müşterilerinizi kapsar.",
+# Fixed note: deliberately does not contain the words "yetki" and "kapsam" (the scorer counts them as a refusal marker).
+SCOPE_NOTES = {"yalnızca yurtiçi müşteriler": "Not: Bu rakamlar yalnızca yurtiçi müşterilerinizi kapsar.",
                   "yalnızca yurt dışı müşteriler": "Not: Bu rakamlar yalnızca yurt dışı müşterilerinizi kapsar."}
-# "X müşterisinin": hemen önünde büyük harfle başlayan bir ad olmalı ("faturanın müşterisi kim?" müşteri anmaz).
-_MUSTERI_IPUCU = re.compile(r"(?<![\w.])[A-ZÇĞİÖŞÜ][\w.]*\s+(?:müşterisi|firması)\w*")
-_SIRKET_TURU = re.compile(r"(?<![\w.])(?:A\.Ş\.?|AŞ|BV|SL|AG|(?i:a\.ş\.|ltd\.?|şti\.?|gmbh|sarl|srl|lda|inc\.?|llc|plc))"
+# "X müşterisinin": it must be immediately preceded by a name starting with a capital letter ("faturanın müşterisi kim?" does not name a customer).
+_CUSTOMER_HINT_PATTERN = re.compile(r"(?<![\w.])[A-ZÇĞİÖŞÜ][\w.]*\s+(?:müşterisi|firması)\w*")
+_COMPANY_TYPE_PATTERN = re.compile(r"(?<![\w.])(?:A\.Ş\.?|AŞ|BV|SL|AG|(?i:a\.ş\.|ltd\.?|şti\.?|gmbh|sarl|srl|lda|inc\.?|llc|plc))"
                           r"(?!\w)")
-SIRKET_KELIMELERI = frozenset("ltd şti san ve tic a ş aş gmbh sarl bv sl srl ag pty lda inc llc plc co".split())
-_KIMLIK = re.compile(r"(?<![\w#\-\[/])([A-Za-z]{1,4}\d{3,})(?![\w#\-\]/])")
-_KIMLIK_PARCASI = re.compile(r"[A-Za-z0-9]+")
+COMPANY_WORDS = frozenset("ltd şti san ve tic a ş aş gmbh sarl bv sl srl ag pty lda inc llc plc co".split())
+_IDENTIFIER_PATTERN = re.compile(r"(?<![\w#\-\[/])([A-Za-z]{1,4}\d{3,})(?![\w#\-\]/])")
+_IDENTIFIER_PART_PATTERN = re.compile(r"[A-Za-z0-9]+")
 
 
-def _ad(metin: str) -> str:
-    return " ".join(re.sub(r"[^\w\s]", " ", _kucult(metin)).split())
+def _normalize_name(text: str) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", _lower(text)).split())
 
 
-def ad_bicimleri(ad: str) -> set[str]:
-    """Bir müşteri adının soruda aranacak yazılışları: tam ad, sondaki şirket türü kelimeleri atılmış hâlleri ve ilk
-    iki kelime ("Vadi Mavi Dekorasyon Ltd. Şti." → "vadi mavi dekorasyon ltd şti", "vadi mavi dekorasyon", "vadi mavi")."""
-    k = _ad(ad).split()
-    bicimler = {" ".join(k)} if k else set()
-    while len(k) > 2 and k[-1] in SIRKET_KELIMELERI:
+def name_forms(name: str) -> set[str]:
+    """The spellings of a customer name to look for in the question: the full name, the forms with trailing
+    company-type words dropped, and the first two words ("Vadi Mavi Dekorasyon Ltd. Şti." → "vadi mavi dekorasyon
+    ltd şti", "vadi mavi dekorasyon", "vadi mavi")."""
+    k = _normalize_name(name).split()
+    forms = {" ".join(k)} if k else set()
+    while len(k) > 2 and k[-1] in COMPANY_WORDS:
         k = k[:-1]
-        bicimler.add(" ".join(k))
+        forms.add(" ".join(k))
     if len(k) >= 2:
-        bicimler.add(" ".join(k[:2]))
-    return bicimler
+        forms.add(" ".join(k[:2]))
+    return forms
 
 
-def _soruda_mi(ad: str, soru_n: str) -> bool:
-    return any(f" {b} " in f" {soru_n} " for b in ad_bicimleri(ad))
+def _in_question(name: str, question_normalized: str) -> bool:
+    return any(f" {b} " in f" {question_normalized} " for b in name_forms(name))
 
 
-def musteri_sorusu_mu(soru: str) -> bool:
-    """Soru belirli bir müşteriyi anıyor mu? Yalnızca sorunun metnine bakılır."""
-    return bool(_MUSTERI_IPUCU.search(soru) or _SIRKET_TURU.search(soru))
+def is_customer_question(question: str) -> bool:
+    """Does the question name a specific customer? Only the question text is looked at."""
+    return bool(_CUSTOMER_HINT_PATTERN.search(question) or _COMPANY_TYPE_PATTERN.search(question))
 
 
-def _musteri_kayitlari(deger):
-    """Sonuçtaki "musteri" alanlı kayıtların müşteri adları."""
-    if isinstance(deger, dict):
-        if isinstance(deger.get("musteri"), str):
-            yield deger["musteri"]
-        for v in deger.values():
-            yield from _musteri_kayitlari(v)
-    elif isinstance(deger, list):
-        for v in deger:
-            yield from _musteri_kayitlari(v)
+def _customer_records(value):
+    """The customer names of the records in the result that have a "musteri" field."""
+    if isinstance(value, dict):
+        if isinstance(value.get("musteri"), str):
+            yield value["musteri"]
+        for v in value.values():
+            yield from _customer_records(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from _customer_records(v)
 
 
-def _ozel_mi(c: dict) -> bool:
-    """Çağrı tek bir müşteriye ya da faturaya mı yönelik (toplam değil)?"""
+def _is_specific(c: dict) -> bool:
+    """Is the call about a single customer or invoice (not a total)?"""
     a = c.get("argumanlar") or {}
     return any(isinstance(a.get(k), str) and a[k].strip() for k in ("musteri_adi", "fatura_no"))
 
 
-def _sahipli_mi(soru: str, cagrilar: list[dict]) -> bool:
-    """Bu turda soruda anılan müşteriye ait bir sonuç var mı: adı soruda geçen bir müşteriyle yapılmış bir çağrı ya da
-    müşteri adı soruda geçen bir kayıt."""
-    soru_n = _ad(soru)
-    for c in cagrilar:
+def _has_owned_result(question: str, calls: list[dict]) -> bool:
+    """Is there a result in this turn that belongs to the customer named in the question: a call made with a customer
+    whose name appears in the question, or a record whose customer name appears in the question."""
+    question_normalized = _normalize_name(question)
+    for c in calls:
         if c.get("hata_mi") or c["arac"] == "belge_ara":
             continue
-        ad = (c.get("argumanlar") or {}).get("musteri_adi")
-        if isinstance(ad, str) and ad.strip() and _soruda_mi(ad, soru_n):
+        name = (c.get("argumanlar") or {}).get("musteri_adi")
+        if isinstance(name, str) and name.strip() and _in_question(name, question_normalized):
             return True
-        if any(_soruda_mi(m, soru_n) for m in _musteri_kayitlari((c.get("yanit") or {}).get("sonuc"))):
+        if any(_in_question(m, question_normalized) for m in _customer_records((c.get("yanit") or {}).get("sonuc"))):
             return True
     return False
 
 
-def _veri_kaynaklari(s: SayiSonucu, cagri: dict[str, dict]) -> list[dict]:
-    """Sayının kaynağı olan araç çağrıları (soru, bugün, argümanlar, aracın çalıştığı gün ve belge araması dışında)."""
-    return [cagri[cid] for cid, alan in s.kaynaklar
-            if cid in cagri and not alan.startswith("arguman:") and alan != "cagri_tarihi"
-            and cagri[cid]["arac"] != "belge_ara"]
+def _data_sources(s: NumberResult, calls_by_id: dict[str, dict]) -> list[dict]:
+    """The tool calls that are the source of the number (other than the question, today, arguments, the day the tool ran and document search)."""
+    return [calls_by_id[cid] for cid, field_name in s.sources
+            if cid in calls_by_id and not field_name.startswith("arguman:") and field_name != "cagri_tarihi"
+            and calls_by_id[cid]["arac"] != "belge_ara"]
 
 
-def _bilinen_kimlikler(soru: str, cagrilar: list[dict], yalniz_veri: bool = False) -> set[str]:
-    """Soruda ve bu turun araç sonuçlarında geçen kimlik parçaları. yalniz_veri: yalnızca belge araması dışındaki
-    araçların sonuçları (soru ve argümanlar hariç)."""
-    bilinen = set() if yalniz_veri else {p.upper() for p in _KIMLIK_PARCASI.findall(soru)}
+def _known_identifiers(question: str, calls: list[dict], data_only: bool = False) -> set[str]:
+    """The identifier parts that appear in the question and in this turn's tool results. data_only: only the results
+    of tools other than document search (without the question and the arguments)."""
+    known = set() if data_only else {p.upper() for p in _IDENTIFIER_PART_PATTERN.findall(question)}
 
-    def topla(deger):
-        if isinstance(deger, dict):
-            for v in deger.values():
-                topla(v)
-        elif isinstance(deger, list):
-            for v in deger:
-                topla(v)
-        elif isinstance(deger, str):
-            bilinen.update(p.upper() for p in _KIMLIK_PARCASI.findall(deger))
+    def collect(value):
+        if isinstance(value, dict):
+            for v in value.values():
+                collect(v)
+        elif isinstance(value, list):
+            for v in value:
+                collect(v)
+        elif isinstance(value, str):
+            known.update(p.upper() for p in _IDENTIFIER_PART_PATTERN.findall(value))
 
-    for c in cagrilar:
-        if c.get("hata_mi") or (yalniz_veri and c["arac"] == "belge_ara"):
+    for c in calls:
+        if c.get("hata_mi") or (data_only and c["arac"] == "belge_ara"):
             continue
-        topla((c.get("yanit") or {}).get("sonuc"))
-        if not yalniz_veri:
-            topla(c.get("argumanlar") or {})
-    return bilinen
+        collect((c.get("yanit") or {}).get("sonuc"))
+        if not data_only:
+            collect(c.get("argumanlar") or {})
+    return known
 
 
-def kimlikler(metin: str, atla: list[tuple[int, int]] = ()) -> list[str]:
-    """Metindeki harf + rakam kimlikleri (F035729, C560866); atla aralıklarındakiler hariç."""
-    return [m.group(1) for m in _KIMLIK.finditer(metin)
-            if not any(b <= m.start() and m.end() <= s for b, s in atla)]
+def identifiers(text: str, skip: list[tuple[int, int]] = ()) -> list[str]:
+    """The letter + digit identifiers in the text (F035729, C560866); except those in the skip ranges."""
+    return [m.group(1) for m in _IDENTIFIER_PATTERN.finditer(text)
+            if not any(b <= m.start() and m.end() <= s for b, s in skip)]
 
 
-def _faz8b(sonuc: Dogrulama, cevap: str, soru: str, cagrilar: list[dict], atla: list[tuple[int, int]]) -> None:
-    cagri = {c["yanit"]["cagri_id"]: c for c in cagrilar
+def _phase8b_rules(result: Verification, answer: str, question: str, calls: list[dict], skip: list[tuple[int, int]]) -> None:
+    calls_by_id = {c["yanit"]["cagri_id"]: c for c in calls
              if not c.get("hata_mi") and isinstance(c.get("yanit"), dict) and c["yanit"].get("cagri_id")}
-    bilinen = _bilinen_kimlikler(soru, cagrilar)
-    cevap_kimlikleri = kimlikler(cevap, atla)
-    sonuc.kimliksiz = [k for k in cevap_kimlikleri if k.upper() not in bilinen]
-    sorudaki = {p.upper() for p in _KIMLIK_PARCASI.findall(soru)}
-    veri_kimlikleri = _bilinen_kimlikler(soru, cagrilar, yalniz_veri=True) - sorudaki
-    veri = [(s, _veri_kaynaklari(s, cagri)) for s in sonuc.sayilar if s.gecerli]
-    veri = [(s, k) for s, k in veri if k]
-    veriden_kimlik = any(k.upper() in veri_kimlikleri for k in cevap_kimlikleri)
-    if (veri or veriden_kimlik) and musteri_sorusu_mu(soru) and not _sahipli_mi(soru, cagrilar):
-        sonuc.sahipsiz = True
-    for s, kaynak in veri:
-        if s.tur == "tarih":  # kapsam tutarlar, adetler ve günler içindir
+    known = _known_identifiers(question, calls)
+    answer_identifiers = identifiers(answer, skip)
+    result.unknown_identifiers = [k for k in answer_identifiers if k.upper() not in known]
+    in_question = {p.upper() for p in _IDENTIFIER_PART_PATTERN.findall(question)}
+    data_identifiers = _known_identifiers(question, calls, data_only=True) - in_question
+    data_items = [(s, _data_sources(s, calls_by_id)) for s in result.numbers if s.gecerli]
+    data_items = [(s, k) for s, k in data_items if k]
+    identifier_from_data = any(k.upper() in data_identifiers for k in answer_identifiers)
+    if (data_items or identifier_from_data) and is_customer_question(question) and not _has_owned_result(question, calls):
+        result.ownerless = True
+    for s, sources in data_items:
+        if s.tur == "tarih":  # the scope applies to amounts, counts and days
             continue
-        for c in kaynak:
-            kapsam = (c.get("yanit") or {}).get("kapsam")
-            if (c["arac"] in KAPSAMLI_ARACLAR and kapsam in KAPSAM_SOZLERI and not _ozel_mi(c)
-                    and not KAPSAM_SOZLERI[kapsam].search(cevap)):
-                sonuc.kapsam_eksik = kapsam
+        for c in sources:
+            scope = (c.get("yanit") or {}).get("kapsam")
+            if (c["arac"] in SCOPED_TOOLS and scope in SCOPE_PHRASES and not _is_specific(c)
+                    and not SCOPE_PHRASES[scope].search(answer)):
+                result.missing_scope = scope
                 return
 
 
-def dogrula(cevap: str, soru: str, cagrilar: list[dict], bugun: dt.date) -> Dogrulama:
-    kaynak = kaynaklar(soru, cagrilar, bugun)
-    sonuc = Dogrulama()
-    atla = tirnak_araliklari(cevap) + [(m.start(), m.end()) for m in _PARCA_KIMLIGI.finditer(cevap)]
-    for s in metinden_sayilar(cevap, atla):
-        bulunan = tuple(dict.fromkeys((k.cagri_id, k.alan) for k in kaynak if _eslesir(s, k)))
-        sonuc.sayilar.append(SayiSonucu(s.metin, s.tur, bool(bulunan), bulunan))
-    _faz8b(sonuc, cevap, soru, cagrilar, atla)
-    metinler = {}
-    for c in cagrilar:
+def verify(answer: str, question: str, calls: list[dict], today: dt.date) -> Verification:
+    sources = collect_sources(question, calls, today)
+    result = Verification()
+    skip = quoted_spans(answer) + [(m.start(), m.end()) for m in _CHUNK_ID_PATTERN.finditer(answer)]
+    for s in numbers_from_text(answer, skip):
+        found = tuple(dict.fromkeys((k.call_id, k.alan) for k in sources if _matches(s, k)))
+        result.numbers.append(NumberResult(s.metin, s.tur, bool(found), found))
+    _phase8b_rules(result, answer, question, calls, skip)
+    texts = {}
+    for c in calls:
         if not c.get("hata_mi") and c["arac"] == "belge_ara":
             for p in c["yanit"]["sonuc"].get("sonuclar", []):
-                metinler[p["parca_id"]] = p["metin"]
-    # Rakamsız ve üç kelimeden kısa tırnaklı söz ('"kaç yıl" sorusuna') alıntı sayılmaz: içinde sayı saklanamaz,
-    # alıntı olarak da zaten geçersiz olurdu (cok_kisa).
-    sonuc.alintilar = [a for a in cevabi_kontrol_et(cevap, metinler)
-                       if not (a.neden == "kimliksiz_alinti" and not any(ch.isdigit() for ch in a.alinti)
-                               and len(a.alinti.split()) < EN_AZ_KELIME)]
-    sonuc.alinti_gerekli = bool(metinler)
-    return sonuc
+                texts[p["parca_id"]] = p["metin"]
+    # A quoted phrase without digits and shorter than three words ('"kaç yıl" sorusuna') does not count as a citation:
+    # no number can hide in it, and it would be invalid as a citation anyway (cok_kisa).
+    result.citations = [a for a in check_answer(answer, texts)
+                       if not (a.reason == "kimliksiz_alinti" and not any(ch.isdigit() for ch in a.quote)
+                               and len(a.quote.split()) < MIN_WORDS)]
+    result.citation_required = bool(texts)
+    return result

@@ -1,16 +1,18 @@
-"""Faz 3 kabul testi: gerçek veride araçlar, yetki ve 60 yetkisiz deneme.
+"""Phase 3 acceptance test: tools, permissions and 60 unauthorized attempts on the real data.
 
-Önce Faz 1 betikleri ve scripts/phase02_build_warehouse.py çalıştırılmış olmalı. Sunucu ambarı salt okunur açar;
-satış rollerinin kapsam ambarları geçici bir klasöre kurulur. Kimlik kartları test anahtarıyla imzalanır.
+The Phase 1 scripts and scripts/phase02_build_warehouse.py must have been run first. The server opens the warehouse
+read-only; the scope warehouses of the sales roles are built in a temporary folder. Identity cards are signed with a
+test key.
 
-Kabul ölçütleri:
-- 60 yetkisiz denemenin hepsi beklendiği gibi; sızıntı 0. C grubundaki denemeler gerçekten saklanacak veriye
-  dokunur (aynı soruya CFO farklı cevap alır). Tek istisna: çeklerin hepsi yurtiçi müşterilerinde olduğundan
-  yurtiçi müdürünün çek sorusunda saklanacak bir şey yoktur.
-- Satış rollerinin kapsam ambarları, Python'da ayrıca süzülüp kurulan ambarla birebir aynı; izinli araçların
-  cevapları da o ambardaki cevaplarla aynı.
-- Cevaplar sınırlı: en uzun cevap 3.400 karakterden, araç listesi 8.000 karakterden kısa; her çağrı 2 sn içinde.
-- Her çağrı denetim kaydında; zincir sağlam.
+Acceptance criteria:
+- All 60 unauthorized attempts behave as expected; leakage is 0. The attempts in group C really touch the data that
+  must be hidden (the CFO gets a different answer to the same question). The one exception: all cheques belong to
+  domestic customers, so there is nothing to hide in the domestic manager's cheque question.
+- The scope warehouses of the sales roles are identical to a warehouse that is filtered separately in Python and
+  built from the result; the answers of the allowed tools are also identical to the answers in that warehouse.
+- Answers are bounded: the longest answer is under 3,400 characters, the tool list under 8,000 characters; every
+  call finishes within 2 s.
+- Every call is in the audit log; the chain is intact.
 """
 
 import datetime as dt
@@ -21,182 +23,185 @@ from pathlib import Path
 import support.authorization_trials as fd
 import pytest
 
-from sayman.warehouse.loader import baglan
-from sayman.tools.audit_log import DenetimKaydi, dogrula
-from sayman.tools.identity import kart_uret
-from sayman.tools.server import SaymanSunucusu
-from sayman.tools.permissions import yetki_oku
-from sayman.data.table_io import SEMA, csv_oku, veri_hash
-from sayman.data.clock import saat_oku
+from sayman.warehouse.loader import open_warehouse
+from sayman.tools.audit_log import AuditLog, verify_chain
+from sayman.tools.identity import generate_card
+from sayman.tools.server import SaymanServer
+from sayman.tools.permissions import read_permissions
+from sayman.data.table_io import SCHEMA, read_csv, data_digest
+from sayman.data.clock import read_clock
 
-KOK = Path(__file__).resolve().parents[1]
-URETILEN = KOK / "data" / "uretilen"
-AMBAR = KOK / "data" / "ambar" / "sayman.duckdb"
-SAAT = KOK / "data" / "saat.json"
-ANAHTAR = bytes(range(1, 33))
-ZAMAN = 1_790_000_000.0
+ROOT = Path(__file__).resolve().parents[1]
+GENERATED = ROOT / "data" / "uretilen"
+WAREHOUSE = ROOT / "data" / "ambar" / "sayman.duckdb"
+CLOCK_FILE = ROOT / "data" / "saat.json"
+SIGNING_KEY = bytes(range(1, 33))
+NOW_EPOCH = 1_790_000_000.0
 
-pytestmark = pytest.mark.skipif(not (URETILEN.exists() and AMBAR.exists() and SAAT.exists()),
+pytestmark = pytest.mark.skipif(not (GENERATED.exists() and WAREHOUSE.exists() and CLOCK_FILE.exists()),
                                 reason="Önce phase01_generate_data.py ve phase02_build_warehouse.py çalıştırılmalı")
-CFO, YURTICI, IHRACAT = fd.KULLANICILAR["cfo"], fd.KULLANICILAR["yurtici"], fd.KULLANICILAR["ihracat"]
+CFO, DOMESTIC, EXPORT = fd.USERS["cfo"], fd.USERS["yurtici"], fd.USERS["ihracat"]
 
 
 @pytest.fixture(scope="module")
-def T():
-    return csv_oku(URETILEN)
+def tables():
+    return read_csv(GENERATED)
 
 
 @pytest.fixture(scope="module")
-def saat():
-    return saat_oku(SAAT)
+def clock():
+    return read_clock(CLOCK_FILE)
 
 
 @pytest.fixture(scope="module")
-def ortam(tmp_path_factory, saat):
-    klasor = tmp_path_factory.mktemp("faz3_kabul")
-    s = SaymanSunucusu(ambar=AMBAR, saat=lambda: saat, anahtar=ANAHTAR, yetki=yetki_oku(),
-                       kayit=DenetimKaydi(klasor / "kayit.jsonl"), kapsam_klasoru=klasor / "kapsam",
-                       zaman=lambda: ZAMAN)
-    yield s, klasor
-    s.kapat()
+def server_env(tmp_path_factory, clock):
+    folder = tmp_path_factory.mktemp("faz3_kabul")
+    s = SaymanServer(warehouse=WAREHOUSE, clock=lambda: clock, key=SIGNING_KEY, permissions=read_permissions(),
+                       audit_log=AuditLog(folder / "kayit.jsonl"), scope_dir=folder / "kapsam",
+                       time_fn=lambda: NOW_EPOCH)
+    yield s, folder
+    s.close()
 
 
 @pytest.fixture(scope="module")
-def sunucu(ortam):
-    return ortam[0]
+def server(server_env):
+    return server_env[0]
 
 
 @pytest.fixture(scope="module")
-def hakem(T, saat, tmp_path_factory):
-    h = fd.Hakem(T, saat.simdi, tmp_path_factory.mktemp("hakem"))
+def judge(tables, clock, tmp_path_factory):
+    h = fd.Judge(tables, clock.simdi, tmp_path_factory.mktemp("hakem"))
     yield h
-    h.kapat()
+    h.close()
 
 
-def kart(kullanici):
-    return kart_uret(kullanici, ANAHTAR, 3600, ZAMAN)
+def card(user):
+    return generate_card(user, SIGNING_KEY, 3600, NOW_EPOCH)
 
 
-def test_ambar_bu_csvlerden_kuruldu(T):
-    con = baglan(AMBAR)
+def test_warehouse_was_built_from_these_csvs(tables):
+    con = open_warehouse(WAREHOUSE)
     try:
         assert con.execute("SELECT deger FROM ambar_bilgisi WHERE anahtar = 'veri_hash'").fetchone()[0] == \
-            veri_hash(T)[0], "ambar data/uretilen ile aynı değil: scripts/phase02_build_warehouse.py yeniden çalıştırılmalı"
+            data_digest(tables)[0], "ambar data/uretilen ile aynı değil: scripts/phase02_build_warehouse.py yeniden çalıştırılmalı"
     finally:
         con.close()
 
 
-def test_kapsam_ambarlari_python_suzgeciyle_birebir_ayni(sunucu, hakem, T):
-    for kapsam in fd.KAPSAMLAR:
-        tablolar = fd.kapsam_tablolari(T, kapsam)
-        for ad in SEMA:
-            sql = f"SELECT * FROM {ad} ORDER BY ALL"
-            assert sunucu.baglantilar[kapsam].execute(sql).fetchall() == \
-                hakem.referans[kapsam].execute(sql).fetchall(), (kapsam, ad)
-            assert sunucu.baglantilar[kapsam].execute(f"SELECT count(*) FROM {ad}").fetchone()[0] == len(tablolar[ad])
-    sayilar = {k: sunucu.baglantilar[k].execute("SELECT count(*) FROM musteriler").fetchone()[0]
-               for k in ("hepsi", *fd.KAPSAMLAR)}
-    assert sayilar["yurtici"] > 0 and sayilar["ihracat"] > 0 and sayilar["yurtici"] + sayilar["ihracat"] == \
-        sayilar["hepsi"]
+def test_scope_warehouses_are_identical_to_the_python_filter(server, judge, tables):
+    for scope in fd.SCOPES:
+        scope_tables = fd.scope_tables(tables, scope)
+        for name in SCHEMA:
+            sql = f"SELECT * FROM {name} ORDER BY ALL"
+            assert server.connections[scope].execute(sql).fetchall() == \
+                judge.reference_warehouses[scope].execute(sql).fetchall(), (scope, name)
+            assert server.connections[scope].execute(f"SELECT count(*) FROM {name}").fetchone()[0] == len(scope_tables[name])
+    counts = {k: server.connections[k].execute("SELECT count(*) FROM musteriler").fetchone()[0]
+               for k in ("hepsi", *fd.SCOPES)}
+    assert counts["yurtici"] > 0 and counts["ihracat"] > 0 and counts["yurtici"] + counts["ihracat"] == \
+        counts["hepsi"]
 
 
-def test_60_yetkisiz_deneme_sifir_sizinti(sunucu, hakem, T, saat):
-    liste = fd.denemeler(T, saat.simdi, saat.veri_bitis)
-    sonuclar = fd.denemeleri_calistir(sunucu, liste, ANAHTAR, ZAMAN, hakem)
-    sorunlu = [(r["no"], r["arac"], r["argumanlar"], r["sorunlar"]) for r in sonuclar if r["sorunlar"]]
-    assert not sorunlu
-    disarida_cek = [c for c in T["cekler"] if c["musteri_id"] in
-                    {m["musteri_id"] for m in T["musteriler"] if not m["yurtici"]}]
-    beklenen_bos = [] if disarida_cek else [(YURTICI, "cek_portfoyu")]
-    assert [(r["kullanici"], r["arac"]) for r in sonuclar if r["grup"] == "C" and not r["gizledi"]] == beklenen_bos
+def test_60_unauthorized_attempts_zero_leakage(server, judge, tables, clock):
+    attempts = fd.trials(tables, clock.simdi, clock.veri_bitis)
+    results = fd.run_trials(server, attempts, SIGNING_KEY, NOW_EPOCH, judge)
+    problematic = [(r["no"], r["arac"], r["argumanlar"], r["sorunlar"]) for r in results if r["sorunlar"]]
+    assert not problematic
+    outside_cheques = [c for c in tables["cekler"] if c["musteri_id"] in
+                    {m["musteri_id"] for m in tables["musteriler"] if not m["yurtici"]}]
+    expected_empty = [] if outside_cheques else [(DOMESTIC, "cek_portfoyu")]
+    assert [(r["kullanici"], r["arac"]) for r in results if r["grup"] == "C" and not r["gizledi"]] == expected_empty
 
 
-def _kapsam_ici_cagrilar(sunucu, kapsam, simdi):
-    con = sunucu.baglantilar[kapsam]
-    musteriler = [r[0] for r in con.execute(
+def _in_scope_calls(server, scope, now):
+    con = server.connections[scope]
+    customers = [r[0] for r in con.execute(
         "SELECT m.ad FROM musteriler m JOIN faturalar f USING (musteri_id) WHERE f.fatura_tarihi <= ? "
-        "GROUP BY m.ad ORDER BY count(*) DESC, m.ad LIMIT 3", [simdi]).fetchall()]
-    faturalar = [r[0] for r in con.execute(
-        "SELECT fatura_id FROM faturalar WHERE fatura_tarihi <= ? ORDER BY fatura_id", [simdi]).fetchall()]
-    once = (simdi - dt.timedelta(days=180)).isoformat()
-    return ([("alacak_yaslandirma", {}), ("alacak_yaslandirma", {"en_fazla": 10}), ("alacak_yaslandirma", {"tarih": once}),
+        "GROUP BY m.ad ORDER BY count(*) DESC, m.ad LIMIT 3", [now]).fetchall()]
+    invoices = [r[0] for r in con.execute(
+        "SELECT fatura_id FROM faturalar WHERE fatura_tarihi <= ? ORDER BY fatura_id", [now]).fetchall()]
+    earlier = (now - dt.timedelta(days=180)).isoformat()
+    return ([("alacak_yaslandirma", {}), ("alacak_yaslandirma", {"en_fazla": 10}), ("alacak_yaslandirma", {"tarih": earlier}),
              ("geciken_alacaklar", {"min_gun": 1, "en_fazla": 10}), ("geciken_alacaklar", {"min_gun": 90}),
              ("dso_hesapla", {"donem": "son_30_gun"}), ("dso_hesapla", {"donem": "son_90_gun"}),
              ("dso_hesapla", {"donem": "son_12_ay", "tarih": "2025-12-31"}),
-             ("doviz_kuru", {"para_birimi": "USD"}), ("doviz_kuru", {"para_birimi": "GBP", "tarih": once}),
+             ("doviz_kuru", {"para_birimi": "USD"}), ("doviz_kuru", {"para_birimi": "GBP", "tarih": earlier}),
              ("cek_portfoyu", {}), ("cek_portfoyu", {"durum": "karsiliksiz", "en_fazla": 10}),
              ("cek_portfoyu", {"vade_gun": 30}), ("fatura_ara", {"durum": "acik", "en_fazla": 10}),
-             ("fatura_ara", {"durum": "iade"}), ("fatura_ara", {"fatura_no": faturalar[len(faturalar) // 2]})]
-            + [("musteri_ozeti", {"musteri_adi": ad}) for ad in musteriler]
-            + [("alacak_yaslandirma", {"musteri_adi": musteriler[0]}),
-               ("fatura_ara", {"musteri_adi": musteriler[1], "durum": "kapali"})])
+             ("fatura_ara", {"durum": "iade"}), ("fatura_ara", {"fatura_no": invoices[len(invoices) // 2]})]
+            + [("musteri_ozeti", {"musteri_adi": name}) for name in customers]
+            + [("alacak_yaslandirma", {"musteri_adi": customers[0]}),
+               ("fatura_ara", {"musteri_adi": customers[1], "durum": "kapali"})])
 
 
-@pytest.mark.parametrize("kullanici", [YURTICI, IHRACAT])
-def test_satis_rolu_izinli_araclarda_kapsamdaki_veriyle_ayni_cevap(sunucu, hakem, saat, kullanici):
-    kapsam = sunucu.yetki.roller[sunucu.yetki.kullanicilar[kullanici]].kapsam
-    cagrilar = _kapsam_ici_cagrilar(sunucu, kapsam, saat.simdi)
-    # belge_ara (Faz 6) ambara değil belge kütüphanesine bakar; rol süzmesi test_faz6_belge_araci.py'de sınanır.
-    assert {a for a, _ in cagrilar} == \
-        set(sunucu.yetki.roller[sunucu.yetki.kullanicilar[kullanici]].araclar) - {"belge_ara"}
-    cevaplar = fd.mcp_cagir(sunucu, [(a, args, True, kart(kullanici)) for a, args in cagrilar])
-    for (arac, args), (yanit, hata) in zip(cagrilar, cevaplar):
-        deneme = {"arac": arac, "argumanlar": args, "beklenen": ("kapsamli",)}
-        assert hakem.degerlendir(deneme, kapsam, yanit, hata, yansima_haric=True) == [], (arac, args)
-        assert not hata, (arac, args, yanit)
+@pytest.mark.parametrize("user", [DOMESTIC, EXPORT])
+def test_sales_role_gets_the_scoped_answer_on_allowed_tools(server, judge, clock, user):
+    scope = server.permissions.roller[server.permissions.users[user]].scope
+    calls = _in_scope_calls(server, scope, clock.simdi)
+    # belge_ara (Phase 6) looks at the document library, not the warehouse; role filtering is tested in
+    # test_phase06_document_tool.py.
+    assert {a for a, _ in calls} == \
+        set(server.permissions.roller[server.permissions.users[user]].tools) - {"belge_ara"}
+    answers = fd.call_mcp(server, [(a, args, True, card(user)) for a, args in calls])
+    for (tool, args), (response, error) in zip(calls, answers):
+        attempt = {"arac": tool, "argumanlar": args, "beklenen": ("kapsamli",)}
+        assert judge.evaluate_response(attempt, scope, response, error, exclude_echoed=True) == [], (tool, args)
+        assert not error, (tool, args, response)
 
 
-def test_cevaplar_ve_arac_listesi_sinirli_ve_hizli(sunucu, saat):
-    araclar = [{"type": "function", "function": {"name": t.name, "description": t.description,
-                                                 "parameters": t.inputSchema}} for t in sunucu.araclar()]
-    # Faz 9 üçüncü kol cek_portfoyu'na musteri_adi ekledi (+116 karakter; öncesi 7.986). Asıl sınır token bütçesi
-    # (orkestrator.Ayar.arac_listesi_token = 2400); karakter sınırı onun kaba vekili.
-    assert len(json.dumps(araclar, ensure_ascii=False)) < 8200
-    en_cok = sunucu.baglantilar["hepsi"].execute(
+def test_answers_and_tool_list_are_bounded_and_fast(server, clock):
+    tools = [{"type": "function", "function": {"name": t.name, "description": t.description,
+                                                 "parameters": t.inputSchema}} for t in server.tools()]
+    # The Phase 9 third arm added musteri_adi to cek_portfoyu (+116 characters; before it was 7,986). The real
+    # limit is the token budget (`assistant.orchestrator.Ayar.arac_listesi_token` = 2400); the character limit is a
+    # rough proxy for it.
+    assert len(json.dumps(tools, ensure_ascii=False)) < 8200
+    top_customer = server.connections["hepsi"].execute(
         "SELECT m.ad FROM faturalar f JOIN musteriler m USING (musteri_id) GROUP BY m.ad "
         "ORDER BY count(*) DESC, m.ad LIMIT 1").fetchone()[0]
-    olcumler = []
-    for kullanici in (CFO, YURTICI, IHRACAT):
-        izinli = sunucu.yetki.roller[sunucu.yetki.kullanicilar[kullanici]].araclar
-        for arac, args in fd.en_genis_cagrilar(saat.simdi, en_cok):
-            if arac not in izinli:
+    measurements = []
+    for user in (CFO, DOMESTIC, EXPORT):
+        allowed = server.permissions.roller[server.permissions.users[user]].tools
+        for tool, args in fd.widest_calls(clock.simdi, top_customer):
+            if tool not in allowed:
                 continue
-            bas = time.perf_counter()
-            yanit, hata = fd.mcp_cagir(sunucu, [(arac, args, True, kart(kullanici))])[0]
-            sure = time.perf_counter() - bas
-            assert not hata, (kullanici, arac, yanit)
-            olcumler.append((len(json.dumps(yanit, ensure_ascii=False)), sure, kullanici, arac, args.get("en_fazla")))
-    # 3.400 karakter ~1.800 token (reports/faz3_araclar.json'da qwen3.5:9b ile ölçülür): araç listesi, sistem istemi
-    # ve cevap payından sonra 8.192'lik pencereye en uzun cevaptan iki tane rahat sığar; üçüncüsü sınırda.
-    assert max(o[0] for o in olcumler) < 3400, max(olcumler)
-    assert max(o[1] for o in olcumler) < 2.0, max(olcumler, key=lambda o: o[1])
+            start = time.perf_counter()
+            response, error = fd.call_mcp(server, [(tool, args, True, card(user))])[0]
+            duration = time.perf_counter() - start
+            assert not error, (user, tool, response)
+            measurements.append((len(json.dumps(response, ensure_ascii=False)), duration, user, tool, args.get("en_fazla")))
+    # 3,400 characters ~1,800 tokens (measured with qwen3.5:9b in reports/faz3_araclar.json): after the tool list,
+    # the system prompt and the answer share, two of the longest answers fit comfortably in the 8,192-token window;
+    # the third is on the edge.
+    assert max(o[0] for o in measurements) < 3400, max(measurements)
+    assert max(o[1] for o in measurements) < 2.0, max(measurements, key=lambda o: o[1])
 
 
-def test_her_cagri_denetim_kaydinda_ve_zincir_saglam(ortam):
-    s, klasor = ortam
-    dosyadaki = DenetimKaydi.oku(klasor / "kayit.jsonl")
-    assert len(dosyadaki) == len(s.kayit.satirlar) > 60 and dogrula(dosyadaki) == []
-    metin = (klasor / "kayit.jsonl").read_text(encoding="utf-8")
-    for k in (CFO, YURTICI, IHRACAT):
-        assert kart(k).split(".")[1] not in metin
+def test_every_call_is_in_the_audit_log_and_the_chain_is_intact(server_env):
+    s, folder = server_env
+    in_file = AuditLog.read(folder / "kayit.jsonl")
+    assert len(in_file) == len(s.audit_log.rows) > 60 and verify_chain(in_file) == []
+    text = (folder / "kayit.jsonl").read_text(encoding="utf-8")
+    for k in (CFO, DOMESTIC, EXPORT):
+        assert card(k).split(".")[1] not in text
 
 
-def test_faturasindan_once_odenen_tutar_gelecekteki_faturayi_gostermez(sunucu):
-    """Nakit sıkışması olayında bazı tedarikçi ödemeleri faturasından önce yapılmış. Ödeme günüyle fatura günü
-    arasındaki her günde, CFO'nun araçları henüz kesilmemiş faturanın numarasını göstermemeli."""
-    from sayman.tools.catalog import ARACLAR_ADA_GORE, Baglam
+def test_amount_paid_before_its_invoice_does_not_reveal_the_future_invoice(server):
+    """In the cash-squeeze event some supplier payments were made before their invoice. On every day between the
+    payment day and the invoice day, the CFO's tools must not show the number of an invoice that has not been issued yet."""
+    from sayman.tools.catalog import TOOLS_BY_NAME, Context
 
-    con = sunucu.baglantilar["hepsi"]
-    ornekler = con.execute("""
+    con = server.connections["hepsi"]
+    samples = con.execute("""
         SELECT o.tarih, a.alis_fatura_id, a.tarih FROM odemeler o JOIN alis_faturalari a USING (alis_fatura_id)
         WHERE o.tarih < a.tarih ORDER BY o.tarih, a.alis_fatura_id""").fetchall()
-    assert len(ornekler) == 34
-    for gun in sorted({o[0] for o in ornekler}):
-        gelecek = {aid for _, aid, ft in ornekler if ft > gun} | {
-            r[0] for r in con.execute("SELECT alis_fatura_id FROM alis_faturalari WHERE tarih > ?", [gun]).fetchall()}
-        b = Baglam(con, gun)
-        for arac, args in [("yaklasan_odemeler", {"gun_sayisi": 90, "en_fazla": 10}),
-                           ("banka_hareketleri", {"baslangic": gun.isoformat(), "bitis": gun.isoformat(), "en_fazla": 10})]:
-            _, sonuc, kaynak = ARACLAR_ADA_GORE[arac].calistir(b, args)
-            metin = json.dumps([sonuc, kaynak], ensure_ascii=False)
-            assert not [aid for aid in gelecek if aid in metin], (gun, arac)
+    assert len(samples) == 34
+    for day in sorted({o[0] for o in samples}):
+        future = {purchase_invoice_id for _, purchase_invoice_id, invoice_date in samples if invoice_date > day} | {
+            r[0] for r in con.execute("SELECT alis_fatura_id FROM alis_faturalari WHERE tarih > ?", [day]).fetchall()}
+        b = Context(con, day)
+        for tool, args in [("yaklasan_odemeler", {"gun_sayisi": 90, "en_fazla": 10}),
+                           ("banka_hareketleri", {"baslangic": day.isoformat(), "bitis": day.isoformat(), "en_fazla": 10})]:
+            _, result, source = TOOLS_BY_NAME[tool].run(b, args)
+            text = json.dumps([result, source], ensure_ascii=False)
+            assert not [purchase_invoice_id for purchase_invoice_id in future if purchase_invoice_id in text], (day, tool)

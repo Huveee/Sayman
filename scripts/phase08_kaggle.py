@@ -1,14 +1,15 @@
-"""Kaggle ile konuşan küçük yardımcı: özel veri seti yükler, eğitim not defterini gönderir, durumunu ve çıktısını alır.
+"""A small helper that talks to Kaggle: uploads a private dataset, pushes the training notebook, fetches its status and output.
 
-Kimlik .env dosyasındaki KAGGLE_USERNAME ve KAGGLE_API_TOKEN'dan okunur ve yalnızca kaggle komutunun ortamına verilir;
-hiçbir yere yazılmaz, ekrana basılan çıktıda anahtar geçerse gizlenir. Veri setleri ve not defterleri özeldir.
+The credentials are read from KAGGLE_USERNAME and KAGGLE_API_TOKEN in the .env file and are given only to the environment of
+the kaggle command; they are written nowhere, and if the token appears in the printed output it is masked. Datasets and
+notebooks are private.
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz8_kaggle.py veri --klasor data\\egitim\\duman --slug sayman-egitim-duman
-    .venv\\Scripts\\python -I scripts\\faz8_kaggle.py itele --slug sayman-faz8-duman --veri sayman-egitim-duman
-    .venv\\Scripts\\python -I scripts\\faz8_kaggle.py durum --slug sayman-faz8-duman
-    .venv\\Scripts\\python -I scripts\\faz8_kaggle.py cikti --slug sayman-faz8-duman --desen "rapor\\.json"
-    .venv\\Scripts\\python -I scripts\\faz8_kaggle.py birlestir --slug sayman-faz8-birlestir --kaynak sayman-faz8-tam ^
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase08_kaggle.py veri --klasor data\\egitim\\duman --slug sayman-egitim-duman
+    .venv\\Scripts\\python -I scripts\\phase08_kaggle.py itele --slug sayman-faz8-duman --veri sayman-egitim-duman
+    .venv\\Scripts\\python -I scripts\\phase08_kaggle.py durum --slug sayman-faz8-duman
+    .venv\\Scripts\\python -I scripts\\phase08_kaggle.py cikti --slug sayman-faz8-duman --desen "rapor\\.json"
+    .venv\\Scripts\\python -I scripts\\phase08_kaggle.py birlestir --slug sayman-faz8-birlestir --kaynak sayman-faz8-tam ^
         --adapter adapter_epok2 --lora-gguf sayman-lora-epok2.gguf
 """
 
@@ -22,184 +23,184 @@ import subprocess
 import sys
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-KAGGLE = KOK / ".venv" / "Scripts" / "kaggle.exe"
-BETIK = KOK / "kaggle" / "phase08_train.py"
-BIRLESTIR = KOK / "kaggle" / "phase08_merge.py"
-GGUF_OZET = KOK / "src" / "sayman" / "training" / "gguf_summary.py"
-NICELEME = KOK / "kaggle" / "phase08_quantization_check.py"
-UYUM = KOK / "kaggle" / "phase08_compatibility_check.py"
-OLLAMA_OZETI = KOK / "data" / "egitim" / "calisma" / "ollama_taban_ozet.json"  # faz8_gguf_karsilastir.py çıkarır
+ROOT = Path(__file__).resolve().parents[1]
+KAGGLE = ROOT / ".venv" / "Scripts" / "kaggle.exe"
+TRAIN_SCRIPT = ROOT / "kaggle" / "phase08_train.py"
+MERGE_SCRIPT = ROOT / "kaggle" / "phase08_merge.py"
+GGUF_SUMMARY = ROOT / "src" / "sayman" / "training" / "gguf_summary.py"
+QUANTIZATION_CHECK = ROOT / "kaggle" / "phase08_quantization_check.py"
+COMPATIBILITY_CHECK = ROOT / "kaggle" / "phase08_compatibility_check.py"
+OLLAMA_SUMMARY = ROOT / "data" / "egitim" / "calisma" / "ollama_taban_ozet.json"  # written by phase08_compare_gguf.py
 
 
-def kimlik() -> tuple[str, dict]:
+def credentials() -> tuple[str, dict]:
     from dotenv import dotenv_values
 
-    v = dotenv_values(KOK / ".env")
-    ad, tok = v.get("KAGGLE_USERNAME"), v.get("KAGGLE_API_TOKEN")
-    if not ad or not tok:
+    v = dotenv_values(ROOT / ".env")
+    name, token = v.get("KAGGLE_USERNAME"), v.get("KAGGLE_API_TOKEN")
+    if not name or not token:
         raise SystemExit(".env dosyasında KAGGLE_USERNAME ve KAGGLE_API_TOKEN olmalı")
-    return ad, {**os.environ, "KAGGLE_USERNAME": ad, "KAGGLE_API_TOKEN": tok}
+    return name, {**os.environ, "KAGGLE_USERNAME": name, "KAGGLE_API_TOKEN": token}
 
 
 def kaggle(*arg: str) -> subprocess.CompletedProcess:
-    _, ortam = kimlik()
-    r = subprocess.run([str(KAGGLE), *arg], env=ortam, capture_output=True, text=True, encoding="utf-8",
+    _, env = credentials()
+    r = subprocess.run([str(KAGGLE), *arg], env=env, capture_output=True, text=True, encoding="utf-8",
                        errors="replace")
-    gizli = ortam["KAGGLE_API_TOKEN"]
-    r.stdout, r.stderr = r.stdout.replace(gizli, "<gizli>"), r.stderr.replace(gizli, "<gizli>")
+    secret = env["KAGGLE_API_TOKEN"]
+    r.stdout, r.stderr = r.stdout.replace(secret, "<gizli>"), r.stderr.replace(secret, "<gizli>")
     print((r.stdout + r.stderr).strip())
     return r
 
 
-def veri(klasor: Path, slug: str) -> None:
-    ad, _ = kimlik()
-    (klasor / "dataset-metadata.json").write_text(json.dumps(
-        {"title": slug, "id": f"{ad}/{slug}", "licenses": [{"name": "CC0-1.0"}]}, indent=1), encoding="utf-8")
-    r = kaggle("datasets", "status", f"{ad}/{slug}")
+def upload_dataset(directory: Path, slug: str) -> None:
+    name, _ = credentials()
+    (directory / "dataset-metadata.json").write_text(json.dumps(
+        {"title": slug, "id": f"{name}/{slug}", "licenses": [{"name": "CC0-1.0"}]}, indent=1), encoding="utf-8")
+    r = kaggle("datasets", "status", f"{name}/{slug}")
     if r.returncode == 0 and "ready" in (r.stdout + r.stderr).lower():
-        kaggle("datasets", "version", "-p", str(klasor), "-m", "güncelleme", "-d")
+        kaggle("datasets", "version", "-p", str(directory), "-m", "güncelleme", "-d")
     else:
-        kaggle("datasets", "create", "-p", str(klasor))  # varsayılan: özel
+        kaggle("datasets", "create", "-p", str(directory))  # default: private
 
 
-def itele(slug: str, veri_slug: str) -> None:
-    ad, _ = kimlik()
-    klasor = KOK / "data" / "egitim" / "kernel" / slug
-    if klasor.exists():
-        shutil.rmtree(klasor)
-    klasor.mkdir(parents=True)
-    shutil.copy(BETIK, klasor / BETIK.name)
-    (klasor / "kernel-metadata.json").write_text(json.dumps({
-        "id": f"{ad}/{slug}", "title": slug, "code_file": BETIK.name, "language": "python", "kernel_type": "script",
+def push_training(slug: str, dataset_slug: str) -> None:
+    name, _ = credentials()
+    directory = ROOT / "data" / "egitim" / "kernel" / slug
+    if directory.exists():
+        shutil.rmtree(directory)
+    directory.mkdir(parents=True)
+    shutil.copy(TRAIN_SCRIPT, directory / TRAIN_SCRIPT.name)
+    (directory / "kernel-metadata.json").write_text(json.dumps({
+        "id": f"{name}/{slug}", "title": slug, "code_file": TRAIN_SCRIPT.name, "language": "python", "kernel_type": "script",
         "is_private": True, "enable_gpu": True, "enable_internet": True, "machine_shape": "NvidiaTeslaT4",
-        "dataset_sources": [f"{ad}/{veri_slug}"], "competition_sources": [], "kernel_sources": [],
+        "dataset_sources": [f"{name}/{dataset_slug}"], "competition_sources": [], "kernel_sources": [],
         "model_sources": []}, indent=1), encoding="utf-8")
-    kaggle("kernels", "push", "-p", str(klasor))
+    kaggle("kernels", "push", "-p", str(directory))
 
 
-def birlestir_betigi(adapter: str, lora_gguf: str, ara_tur: str, yalniz_taban: bool = False) -> str:
-    """Birleştirme betiği: sabitler doldurulur, GGUF özet modülü içine eklenir (Kaggle'a tek dosya gider)."""
+def merge_script(adapter: str, lora_gguf: str, intermediate_dtype: str, base_only: bool = False) -> str:
+    """Merge script: the constants are filled in and the GGUF summary module is inlined (one file goes to Kaggle)."""
     import re
 
-    s = BIRLESTIR.read_text(encoding="utf-8")
-    for ad, deger in (("ADAPTER", adapter), ("LORA_GGUF", lora_gguf), ("ARA_TUR", ara_tur)):
-        s, n = re.subn(rf'^{ad} = "[^"]*"', f"{ad} = {json.dumps(deger)}", s, count=1, flags=re.M)
+    s = MERGE_SCRIPT.read_text(encoding="utf-8")
+    for name, value in (("ADAPTER", adapter), ("LORA_GGUF", lora_gguf), ("ARA_TUR", intermediate_dtype)):
+        s, n = re.subn(rf'^{name} = "[^"]*"', f"{name} = {json.dumps(value)}", s, count=1, flags=re.M)
         if n != 1:
-            raise SystemExit(f"{ad} sabiti bulunamadı")
-    s, n = re.subn(r"^YALNIZ_TABAN = (True|False)$", f"YALNIZ_TABAN = {yalniz_taban}", s, count=1, flags=re.M)
+            raise SystemExit(f"{name} sabiti bulunamadı")
+    s, n = re.subn(r"^YALNIZ_TABAN = (True|False)$", f"YALNIZ_TABAN = {base_only}", s, count=1, flags=re.M)
     if n != 1:
         raise SystemExit("YALNIZ_TABAN sabiti bulunamadı")
-    return gguf_ekle(s)
+    return inline_gguf_summary(s)
 
 
-def gguf_ekle(s: str) -> str:
-    modul = GGUF_OZET.read_text(encoding="utf-8").replace("from __future__ import annotations\n", "")
+def inline_gguf_summary(s: str) -> str:
+    module_source = GGUF_SUMMARY.read_text(encoding="utf-8").replace("from __future__ import annotations\n", "")
     if s.count("# <<gguf_ozet>>") != 1:
         raise SystemExit("gguf_ozet işareti bulunamadı")
-    return s.replace("# <<gguf_ozet>>", modul)
+    return s.replace("# <<gguf_ozet>>", module_source)
 
 
-def tani_betigi(betik: Path) -> str:
-    """Tanı betikleri: Ollama'daki temel modelin tensör özetleri (bu bilgisayarda çıkarıldı) ve GGUF okuyucu eklenir;
-    betikte varsa 0. katmanın ssm_a değerleri de."""
-    s = betik.read_text(encoding="utf-8")
-    hedef = json.loads(OLLAMA_OZETI.read_text(encoding="utf-8"))
-    isaret = "HEDEF: dict = {}  # <<hedef>>"
-    if s.count(isaret) != 1:
+def diagnostic_script(script: Path) -> str:
+    """Diagnostic scripts: the tensor summaries of the base model in Ollama (extracted on this computer) and the GGUF
+    reader are inlined; also the ssm_a values of layer 0, if the script has them."""
+    s = script.read_text(encoding="utf-8")
+    target = json.loads(OLLAMA_SUMMARY.read_text(encoding="utf-8"))
+    marker = "HEDEF: dict = {}  # <<hedef>>"
+    if s.count(marker) != 1:
         raise SystemExit("hedef işareti bulunamadı")
-    s = s.replace(isaret, f"HEDEF: dict = {json.dumps(hedef)}  # <<hedef>>")
-    isaret2 = "OLLAMA_SSM_A0: list = []  # <<ssm_a0>>"
-    if isaret2 in s:
-        ssm_a0 = json.loads((OLLAMA_OZETI.parent / "ollama_ssm_a0.json").read_text(encoding="utf-8"))
-        s = s.replace(isaret2, f"OLLAMA_SSM_A0: list = {json.dumps(ssm_a0)}  # <<ssm_a0>>")
-    return gguf_ekle(s)
+    s = s.replace(marker, f"HEDEF: dict = {json.dumps(target)}  # <<hedef>>")
+    marker_2 = "OLLAMA_SSM_A0: list = []  # <<ssm_a0>>"
+    if marker_2 in s:
+        ssm_a0 = json.loads((OLLAMA_SUMMARY.parent / "ollama_ssm_a0.json").read_text(encoding="utf-8"))
+        s = s.replace(marker_2, f"OLLAMA_SSM_A0: list = {json.dumps(ssm_a0)}  # <<ssm_a0>>")
+    return inline_gguf_summary(s)
 
 
-def niceleme_betigi() -> str:
-    return tani_betigi(NICELEME)
+def quantization_script() -> str:
+    return diagnostic_script(QUANTIZATION_CHECK)
 
 
-def tani(slug: str, betik: Path, veri: list[str]) -> None:
-    ad, _ = kimlik()
-    klasor = KOK / "data" / "egitim" / "kernel" / slug
-    if klasor.exists():
-        shutil.rmtree(klasor)
-    klasor.mkdir(parents=True)
-    (klasor / betik.name).write_text(tani_betigi(betik), encoding="utf-8")
-    (klasor / "kernel-metadata.json").write_text(json.dumps({
-        "id": f"{ad}/{slug}", "title": slug, "code_file": betik.name, "language": "python", "kernel_type": "script",
+def push_diagnostic(slug: str, script: Path, datasets: list[str]) -> None:
+    name, _ = credentials()
+    directory = ROOT / "data" / "egitim" / "kernel" / slug
+    if directory.exists():
+        shutil.rmtree(directory)
+    directory.mkdir(parents=True)
+    (directory / script.name).write_text(diagnostic_script(script), encoding="utf-8")
+    (directory / "kernel-metadata.json").write_text(json.dumps({
+        "id": f"{name}/{slug}", "title": slug, "code_file": script.name, "language": "python", "kernel_type": "script",
         "is_private": True, "enable_gpu": False, "enable_internet": True,
-        "dataset_sources": [f"{ad}/{v}" for v in veri], "competition_sources": [], "kernel_sources": [],
+        "dataset_sources": [f"{name}/{v}" for v in datasets], "competition_sources": [], "kernel_sources": [],
         "model_sources": []}, indent=1), encoding="utf-8")
-    kaggle("kernels", "push", "-p", str(klasor))
+    kaggle("kernels", "push", "-p", str(directory))
 
 
-def birlestir(slug: str, kaynak: str | None, adapter: str, lora_gguf: str, ara_tur: str) -> None:
-    """kaynak None ise yalnızca temel model sıkıştırılır (adapter gerekmez)."""
-    ad, _ = kimlik()
-    klasor = KOK / "data" / "egitim" / "kernel" / slug
-    if klasor.exists():
-        shutil.rmtree(klasor)
-    klasor.mkdir(parents=True)
-    (klasor / BIRLESTIR.name).write_text(birlestir_betigi(adapter, lora_gguf, ara_tur, yalniz_taban=kaynak is None),
+def push_merge(slug: str, source: str | None, adapter: str, lora_gguf: str, intermediate_dtype: str) -> None:
+    """If `source` is None only the base model is quantized (no adapter needed)."""
+    name, _ = credentials()
+    directory = ROOT / "data" / "egitim" / "kernel" / slug
+    if directory.exists():
+        shutil.rmtree(directory)
+    directory.mkdir(parents=True)
+    (directory / MERGE_SCRIPT.name).write_text(merge_script(adapter, lora_gguf, intermediate_dtype, base_only=source is None),
                                          encoding="utf-8")
-    (klasor / "kernel-metadata.json").write_text(json.dumps({
-        "id": f"{ad}/{slug}", "title": slug, "code_file": BIRLESTIR.name, "language": "python", "kernel_type": "script",
+    (directory / "kernel-metadata.json").write_text(json.dumps({
+        "id": f"{name}/{slug}", "title": slug, "code_file": MERGE_SCRIPT.name, "language": "python", "kernel_type": "script",
         "is_private": True, "enable_gpu": False, "enable_internet": True, "dataset_sources": [],
-        "competition_sources": [], "kernel_sources": [f"{ad}/{kaynak}"] if kaynak else [], "model_sources": []},
+        "competition_sources": [], "kernel_sources": [f"{name}/{source}"] if source else [], "model_sources": []},
         indent=1), encoding="utf-8")
-    kaggle("kernels", "push", "-p", str(klasor))
+    kaggle("kernels", "push", "-p", str(directory))
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description="Kaggle yardımcısı (Faz 8)")
-    alt = ap.add_subparsers(dest="komut", required=True)
-    v = alt.add_parser("veri")
+    subparsers = ap.add_subparsers(dest="komut", required=True)
+    v = subparsers.add_parser("veri")
     v.add_argument("--klasor", type=Path, required=True)
     v.add_argument("--slug", required=True)
-    i = alt.add_parser("itele")
+    i = subparsers.add_parser("itele")
     i.add_argument("--slug", required=True)
     i.add_argument("--veri", required=True)
-    d = alt.add_parser("durum")
+    d = subparsers.add_parser("durum")
     d.add_argument("--slug", required=True)
-    c = alt.add_parser("cikti")
+    c = subparsers.add_parser("cikti")
     c.add_argument("--slug", required=True)
     c.add_argument("--desen", default=None, help="yalnızca bu düzenli ifadeye uyan dosyalar")
-    b = alt.add_parser("birlestir")
+    b = subparsers.add_parser("birlestir")
     b.add_argument("--slug", required=True)
     b.add_argument("--kaynak", required=True, help="adapterı üreten eğitim not defteri")
     b.add_argument("--adapter", default="adapter")
     b.add_argument("--lora-gguf", default="sayman-lora.gguf")
     b.add_argument("--ara-tur", default="f32", choices=("f32", "bf16", "f16"))
-    t = alt.add_parser("taban", help="yalnızca dokunulmamış temel model: aynı yoldan geçer ve çıktıya konur")
+    t = subparsers.add_parser("taban", help="yalnızca dokunulmamış temel model: aynı yoldan geçer ve çıktıya konur")
     t.add_argument("--slug", required=True)
     t.add_argument("--ara-tur", default="f32", choices=("f32", "bf16", "f16"))
-    n = alt.add_parser("niceleme")
+    n = subparsers.add_parser("niceleme")
     n.add_argument("--slug", required=True)
-    u = alt.add_parser("uyum")
+    u = subparsers.add_parser("uyum")
     u.add_argument("--slug", required=True)
     a = ap.parse_args()
-    ad, _ = kimlik()
+    name, _ = credentials()
     if a.komut == "veri":
-        veri(a.klasor, a.slug)
+        upload_dataset(a.klasor, a.slug)
     elif a.komut == "itele":
-        itele(a.slug, a.veri)
+        push_training(a.slug, a.veri)
     elif a.komut == "birlestir":
-        birlestir(a.slug, a.kaynak, a.adapter, a.lora_gguf, a.ara_tur)
+        push_merge(a.slug, a.kaynak, a.adapter, a.lora_gguf, a.ara_tur)
     elif a.komut == "taban":
-        birlestir(a.slug, None, "adapter", "sayman-lora.gguf", a.ara_tur)
+        push_merge(a.slug, None, "adapter", "sayman-lora.gguf", a.ara_tur)
     elif a.komut == "niceleme":
-        tani(a.slug, NICELEME, [])
+        push_diagnostic(a.slug, QUANTIZATION_CHECK, [])
     elif a.komut == "uyum":
-        tani(a.slug, UYUM, ["sayman-egitim-tam"])
+        push_diagnostic(a.slug, COMPATIBILITY_CHECK, ["sayman-egitim-tam"])
     elif a.komut == "durum":
-        kaggle("kernels", "status", f"{ad}/{a.slug}")
+        kaggle("kernels", "status", f"{name}/{a.slug}")
     else:
-        hedef = KOK / "data" / "egitim" / "kaggle_cikti" / a.slug
-        hedef.mkdir(parents=True, exist_ok=True)
-        arg = ["kernels", "output", f"{ad}/{a.slug}", "-p", str(hedef), "-o"]
+        target = ROOT / "data" / "egitim" / "kaggle_cikti" / a.slug
+        target.mkdir(parents=True, exist_ok=True)
+        arg = ["kernels", "output", f"{name}/{a.slug}", "-p", str(target), "-o"]
         if a.desen:
             arg += ["--file-pattern", a.desen]
         kaggle(*arg)

@@ -1,33 +1,33 @@
-"""Para tutarları: hesap Decimal ile yapılır, saklama tamsayı kuruşla (1/100 birim).
+"""Money amounts: computed with Decimal, stored as integer cents (1/100 of a unit).
 
-Kayan noktalı sayı kullanılmaz; "bakiye = açılış + hareketler" eşitliği birebir tutmalıdır.
+Floating-point numbers are never used; the equality "balance = opening balance + movements" must hold exactly.
 """
 
 from __future__ import annotations
 
 from decimal import ROUND_HALF_EVEN, Decimal
 
-KURUS = Decimal("0.01")
+CENT = Decimal("0.01")
 
 
-def ondalik(deger) -> Decimal:
-    """Metin, tamsayı ya da Decimal'i Decimal'e çevirir. float kabul edilmez."""
-    if isinstance(deger, float):
+def to_decimal(value) -> Decimal:
+    """Converts text, an integer or a Decimal to a Decimal. A float is rejected."""
+    if isinstance(value, float):
         raise TypeError("float para tutarı olarak kabul edilmez; metin ya da Decimal verin")
-    if isinstance(deger, Decimal):
-        return deger
-    return Decimal(str(deger).strip())
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value).strip())
 
 
-def kurusa(tutar: Decimal) -> int:
-    """Decimal tutarı en yakın kuruşa (eşitlikte çift tarafa) yuvarlayıp tamsayı kuruş döner."""
-    return int((tutar.quantize(KURUS, rounding=ROUND_HALF_EVEN) * 100).to_integral_value())
+def to_cents(amount: Decimal) -> int:
+    """Rounds a Decimal amount to the nearest cent (ties to even) and returns integer cents."""
+    return int((amount.quantize(CENT, rounding=ROUND_HALF_EVEN) * 100).to_integral_value())
 
 
-def kurustan(kurus: int) -> Decimal:
-    return (Decimal(kurus) / 100).quantize(KURUS)
+def from_cents(cents: int) -> Decimal:
+    return (Decimal(cents) / 100).quantize(CENT)
 
 
-def oran_uygula(kurus: int, oran: Decimal) -> int:
-    """Kuruş tutarına bir oran uygular, sonucu yine tamsayı kuruş olarak döner."""
-    return kurusa(kurustan(kurus) * oran)
+def apply_rate(cents: int, rate: Decimal) -> int:
+    """Applies a rate to an amount in cents and returns the result as integer cents again."""
+    return to_cents(from_cents(cents) * rate)

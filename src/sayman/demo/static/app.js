@@ -1,18 +1,18 @@
-// Defne ERP demo + Sayman sohbet penceresi. Düz JS, bağımlılık yok.
+// Defne ERP demo + Sayman chat window. Plain JS, no dependencies.
 "use strict";
 
 const $ = (id) => document.getElementById(id);
 const AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 const DURUM_ETIKET = { ret: "Yetki yok", uretemedim: "Doğrulanamadı", sure_siniri: "Süre sınırı", baglam_siniri: "Çok uzun", adim_siniri: "Adım sınırı" };
 
-let durum = null;          // son /api/durum
+let durum = null;          // last /api/durum
 let kullanici = null;      // /api/ben
-let meşgul = false;        // Sayman cevap bekliyor mu
+let meşgul = false;        // is Sayman waiting for an answer
 let yoklamaZamani = null;
 let ornekYuklendi = false;
 let toastZamani = null;
 
-// ---- Yardımcılar ----
+// ---- Helpers ----
 function el(etiket, sinif, metin) {
   const e = document.createElement(etiket);
   if (sinif) e.className = sinif;
@@ -28,7 +28,7 @@ function uzunTarih(iso) {
 
 class Yetkisiz extends Error {}
 
-// Tüm istekler buradan geçer; 401 -> giriş ekranı
+// All requests go through here; 401 -> login screen
 async function api(yol, govde) {
   const secenek = { credentials: "same-origin" };
   if (govde !== undefined) {
@@ -38,7 +38,7 @@ async function api(yol, govde) {
   }
   const r = await fetch(yol, secenek);
   let veri = null;
-  try { veri = await r.json(); } catch (_) { /* gövde yok */ }
+  try { veri = await r.json(); } catch (_) { /* no body */ }
   if (r.status === 401 && yol !== "/api/giris") {
     if (kullanici) girisGoster();
     throw new Yetkisiz();
@@ -59,7 +59,7 @@ function toast(metin) {
   toastZamani = setTimeout(() => t.classList.add("gizli"), 5000);
 }
 
-// ---- Giriş / çıkış ----
+// ---- Login / logout ----
 async function kullanicilariYukle() {
   const kutu = $("kullanici-kartlari");
   kutu.replaceChildren();
@@ -98,12 +98,12 @@ async function girisYap(ad) {
 }
 
 async function cikis() {
-  try { await api("/api/cikis", {}); } catch (_) { /* yine de çık */ }
+  try { await api("/api/cikis", {}); } catch (_) { /* log out anyway */ }
   girisGoster();
 }
 
 async function kabukGoster(ben) {
-  sohbetiSifirla(); // kullanıcı değişiminde geçmişi temizle
+  sohbetiSifirla(); // clear the history when the user changes
   kullanici = ben;
   $("giris").classList.add("gizli");
   $("kabuk").classList.remove("gizli");
@@ -115,7 +115,7 @@ async function kabukGoster(ben) {
   yoklamaZamani = setInterval(durumYenile, 10000);
 }
 
-// ---- Durum ----
+// ---- Status ----
 async function durumYenile() {
   if (!kullanici) return;
   try {
@@ -127,7 +127,7 @@ async function durumYenile() {
   $("model-yazi").textContent = durum.model_hazir ? "Hazır" : "Isınıyor";
 }
 
-// ---- Rapor ----
+// ---- Report ----
 function raporCiz(r) {
   $("rapor-ust").textContent = `${uzunTarih(r.tarih)} · ${r.kapsam_adi}`;
   const kutu = $("rapor");
@@ -145,10 +145,10 @@ function raporCiz(r) {
 }
 
 async function raporYukle() {
-  try { raporCiz(await api("/api/rapor")); } catch (_) { /* 401 yukarıda ele alınır */ }
+  try { raporCiz(await api("/api/rapor")); } catch (_) { /* 401 is handled above */ }
 }
 
-// ---- Uyarılar ----
+// ---- Alerts ----
 function uyarilariCiz(liste, yeniIdler) {
   const kutu = $("uyarilar");
   kutu.replaceChildren();
@@ -173,10 +173,10 @@ async function uyarilariYukle(yeniIdler = new Set()) {
   try {
     const v = await api("/api/uyarilar");
     uyarilariCiz(v.uyarilar || [], yeniIdler);
-  } catch (_) { /* yoksay */ }
+  } catch (_) { /* ignore */ }
 }
 
-// ---- Zamanı ileri sar ----
+// ---- Fast-forward time ----
 async function ileriSar() {
   const btn = $("ileri");
   btn.disabled = true;
@@ -195,7 +195,7 @@ async function ileriSar() {
   }
 }
 
-// ---- Sohbet ----
+// ---- Chat ----
 function sohbetiSifirla() {
   $("mesajlar").replaceChildren();
   $("soru").value = "";
@@ -220,10 +220,10 @@ async function ornekleriYukle() {
       b.addEventListener("click", () => gonder(s));
       kutu.append(b);
     }
-  } catch (_) { /* yoksay */ }
+  } catch (_) { /* ignore */ }
 }
 
-// Yalnızca **kalın** ve satır sonu; her şey textContent ile eklenir
+// Only **bold** and line breaks; everything is added with textContent
 function metinCiz(hedef, metin) {
   String(metin).split("\n").forEach((satir, i) => {
     if (i) hedef.append(document.createElement("br"));
@@ -288,7 +288,7 @@ function sohbetAc(ac) {
   if (ac) $("soru").focus();
 }
 
-// ---- Başlangıç ----
+// ---- Startup ----
 $("cikis").addEventListener("click", cikis);
 $("ileri").addEventListener("click", ileriSar);
 $("sohbet-ac").addEventListener("click", () => sohbetAc(true));

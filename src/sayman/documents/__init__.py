@@ -1,1 +1,1 @@
-"""Faz 5: belge kütüphanesi, arama ve alıntı kontrolü."""
+"""Phase 5: document library, search and citation check."""

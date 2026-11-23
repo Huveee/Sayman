@@ -1,9 +1,12 @@
 """TCMB EVDS'den günlük döviz alış kurlarını indirir: data/kaynak/tcmb_kurlar.csv
 
-Kullanım (proje kökünden, .env içinde EVDS_API_KEY dolu olmalı):
-    .venv\\Scripts\\python scripts\\faz1_kur_indir.py --baslangic 2024-10-01 --bitis 2026-11-12
+Downloads the daily foreign-exchange buying rates from the CBRT (TCMB) EVDS: data/kaynak/tcmb_kurlar.csv
+(The first line above feeds the argparse description through `__doc__.splitlines()[0]`, so it stays as is.)
 
-Anahtar yalnızca istek başlığında gönderilir; adrese, dosyalara ya da ekrana yazılmaz.
+Usage (from the project root, EVDS_API_KEY must be filled in .env):
+    .venv\\Scripts\\python scripts\\phase01_download_rates.py --baslangic 2024-10-01 --bitis 2026-11-12
+
+The key is sent only in the request header; it is never written to the URL, files or the screen.
 """
 
 from __future__ import annotations
@@ -16,52 +19,52 @@ import urllib.request
 from decimal import Decimal
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from dotenv import dotenv_values  # noqa: E402
 
-from sayman.data.exchange_rates import SERILER, kurlar_yaz  # noqa: E402
+from sayman.data.exchange_rates import EVDS_SERIES, write_rates  # noqa: E402
 
-ADRES = "https://evds3.tcmb.gov.tr/igmevdsms-dis/series={seriler}&startDate={bas}&endDate={bit}&type=json"
+EVDS_URL_TEMPLATE = "https://evds3.tcmb.gov.tr/igmevdsms-dis/series={seriler}&startDate={bas}&endDate={bit}&type=json"
 
 
-def indir(baslangic: dt.date, bitis: dt.date, anahtar: str) -> list[tuple[dt.date, str, Decimal]]:
-    seriler = "-".join(SERILER.values())
-    url = ADRES.format(seriler=seriler, bas=baslangic.strftime("%d-%m-%Y"), bit=bitis.strftime("%d-%m-%Y"))
-    istek = urllib.request.Request(url, headers={"key": anahtar, "User-Agent": "sayman-faz1"})
-    with urllib.request.urlopen(istek, timeout=60) as yanit:
-        veri = json.loads(yanit.read().decode("utf-8"))
-    satirlar = []
-    for kayit in veri.get("items", []):
-        tarih = dt.datetime.strptime(kayit["Tarih"], "%d-%m-%Y").date()
-        for pb, seri in SERILER.items():
-            deger = kayit.get(seri.replace(".", "_"))
-            if deger in (None, "", "null"):
-                continue  # hafta sonu ve tatillerde kur yayımlanmaz
-            satirlar.append((tarih, pb, Decimal(str(deger)).normalize()))
-    return satirlar
+def download(start: dt.date, end: dt.date, api_key: str) -> list[tuple[dt.date, str, Decimal]]:
+    series_ids = "-".join(EVDS_SERIES.values())
+    url = EVDS_URL_TEMPLATE.format(seriler=series_ids, bas=start.strftime("%d-%m-%Y"), bit=end.strftime("%d-%m-%Y"))
+    request = urllib.request.Request(url, headers={"key": api_key, "User-Agent": "sayman-faz1"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    rows = []
+    for record in data.get("items", []):
+        date = dt.datetime.strptime(record["Tarih"], "%d-%m-%Y").date()
+        for currency, series_code in EVDS_SERIES.items():
+            value = record.get(series_code.replace(".", "_"))
+            if value in (None, "", "null"):
+                continue  # no rate is published on weekends and holidays
+            rows.append((date, currency, Decimal(str(value)).normalize()))
+    return rows
 
 
 def main() -> int:
-    for akis in (sys.stdout, sys.stderr):
-        akis.reconfigure(encoding="utf-8", errors="replace")
-    ayri = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ayri.add_argument("--baslangic", type=dt.date.fromisoformat, default=dt.date(2024, 10, 1))
-    ayri.add_argument("--bitis", type=dt.date.fromisoformat, default=dt.date.today())
-    ayri.add_argument("--cikti", type=Path, default=KOK / "data" / "kaynak" / "tcmb_kurlar.csv")
-    arg = ayri.parse_args()
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--baslangic", type=dt.date.fromisoformat, default=dt.date(2024, 10, 1))
+    parser.add_argument("--bitis", type=dt.date.fromisoformat, default=dt.date.today())
+    parser.add_argument("--cikti", type=Path, default=ROOT / "data" / "kaynak" / "tcmb_kurlar.csv")
+    args = parser.parse_args()
 
-    anahtar = (dotenv_values(KOK / ".env").get("EVDS_API_KEY") or "").strip()
-    if not anahtar:
+    api_key = (dotenv_values(ROOT / ".env").get("EVDS_API_KEY") or "").strip()
+    if not api_key:
         print("EVDS_API_KEY .env dosyasında boş.", file=sys.stderr)
         return 2
-    satirlar = indir(arg.baslangic, arg.bitis, anahtar)
-    kurlar_yaz(satirlar, arg.cikti)
-    for pb in SERILER:
-        tarihler = [t for t, p, _ in satirlar if p == pb]
-        print(f"{pb}: {len(tarihler)} gün, {min(tarihler)} - {max(tarihler)}")
-    print(f"Yazıldı: {arg.cikti}")
+    rows = download(args.baslangic, args.bitis, api_key)
+    write_rates(rows, args.cikti)
+    for currency in EVDS_SERIES:
+        dates = [t for t, p, _ in rows if p == currency]
+        print(f"{currency}: {len(dates)} gün, {min(dates)} - {max(dates)}")
+    print(f"Yazıldı: {args.cikti}")
     return 0
 
 

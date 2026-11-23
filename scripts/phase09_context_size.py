@@ -1,16 +1,17 @@
-"""Faz 9 ön ölçümü: iki araç listesi ve otomatik araçların sayfaları modelin bağlamına (8192 token) ne kadar yer kaplar?
+"""Phase 9 pre-measurement: how much room do the two tool lists and the pages of the generated tools take in the model's context (8192 tokens)?
 
-Ölçüm Ollama'nın prompt_eval_count değeriyle yapılır (faz6_duman.py ile aynı yöntem): aynı istem araçlı ve araçsız
-sorulur, fark araç listesinin token sayısıdır. Ön belleğin karışmaması için her istemin başına rastgele bir etiket
-konur. Sayfalar için CFO'nun faturalar, tahsilatlar ve çekler listelerinin 10 ve 25 kayıtlık sayfaları bir araç
-mesajı olarak verilir. Tahmin için karakter/token oranı da yazılır (orkestratör tahmini 1,7 kullanır).
+The measurement uses Ollama's prompt_eval_count (the same method as scripts/phase06_smoke.py): the same prompt is asked with
+and without tools, the difference is the token count of the tool list. So that the cache does not get mixed up, a random tag
+is put at the start of every prompt. For the pages, the 10- and 25-record pages of the CFO's invoice, collection and cheque
+lists are given as a tool message. The characters/token ratio is also written for the estimate (the orchestrator's estimate
+uses 1.7).
 
-Model: temel qwen3.5:9b (Faz 9'da iki kol da bununla ölçülür). Ollama'da başka iş yokken çalıştırın; önce
-scripts/faz8_ollama_model.py bosalt.
+Model: the base qwen3.5:9b (in Phase 9 both arms are measured with it). Run it when there is no other job in Ollama; first
+run scripts/phase08_ollama_model.py bosalt.
 
-Çıktı: reports/faz9_boyut.json
+Output: reports/faz9_boyut.json
 
-    .venv\\Scripts\\python -I -u scripts\\faz9_boyut.py
+    .venv\\Scripts\\python -I -u scripts\\phase09_context_size.py
 """
 
 from __future__ import annotations
@@ -22,83 +23,83 @@ import tempfile
 import time
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-from sayman.tools.audit_log import DenetimKaydi  # noqa: E402
-from sayman.tools.identity import kart_uret  # noqa: E402
-from sayman.tools.permissions import yetki_oku  # noqa: E402
-from sayman.assistant.model import MODEL, SECENEKLER  # noqa: E402
-from sayman.assistant.orchestrator import SISTEM_ISTEMI, Ayar, arac_tanimlari  # noqa: E402
-from sayman.experiment.generated_tools import OtomatikSunucu  # noqa: E402
-from sayman.data.clock import saat_oku  # noqa: E402
+from sayman.tools.audit_log import AuditLog  # noqa: E402
+from sayman.tools.identity import generate_card  # noqa: E402
+from sayman.tools.permissions import read_permissions  # noqa: E402
+from sayman.assistant.model import MODEL, OPTIONS  # noqa: E402
+from sayman.assistant.orchestrator import SYSTEM_PROMPT, Settings, tool_definitions  # noqa: E402
+from sayman.experiment.generated_tools import GeneratedServer  # noqa: E402
+from sayman.data.clock import read_clock  # noqa: E402
 
-AMBAR = KOK / "data" / "ambar" / "sayman.duckdb"
-LISTELER = ("faturalar_api_v1_faturalar_get", "tahsilatlar_api_v1_tahsilatlar_get", "cekler_api_v1_cekler_get")
+WAREHOUSE = ROOT / "data" / "ambar" / "sayman.duckdb"
+LIST_TOOLS = ("faturalar_api_v1_faturalar_get", "tahsilatlar_api_v1_tahsilatlar_get", "cekler_api_v1_cekler_get")
 
 
 def main() -> None:
     import ollama
     sys.stdout.reconfigure(encoding="utf-8")
-    istemci = ollama.Client(timeout=900)
+    client = ollama.Client(timeout=900)
 
-    def token(mesajlar, araclar=None) -> int:
-        r = istemci.chat(model=MODEL, messages=mesajlar, tools=araclar, think=False, keep_alive="15m",
-                         options={**SECENEKLER, "num_predict": 1})
+    def token(messages, tools=None) -> int:
+        r = client.chat(model=MODEL, messages=messages, tools=tools, think=False, keep_alive="15m",
+                         options={**OPTIONS, "num_predict": 1})
         return r.prompt_eval_count
 
-    def kisa():
+    def short_message():
         return {"role": "system", "content": f"[{secrets.token_hex(4)}] Sen bir finans asistanısın."}
 
-    def tam():
-        return {"role": "system", "content": f"[{secrets.token_hex(4)}] {SISTEM_ISTEMI}"}
+    def full_message():
+        return {"role": "system", "content": f"[{secrets.token_hex(4)}] {SYSTEM_PROMPT}"}
 
-    saat = saat_oku(KOK / "data" / "saat.json")
-    anahtar = secrets.token_bytes(32)
+    clock = read_clock(ROOT / "data" / "saat.json")
+    signing_key = secrets.token_bytes(32)
     with tempfile.TemporaryDirectory() as g:
-        s = OtomatikSunucu(AMBAR, lambda: saat, anahtar, yetki_oku(), DenetimKaydi(Path(g) / "d.jsonl"), Path(g) / "k")
+        s = GeneratedServer(WAREHOUSE, lambda: clock, signing_key, read_permissions(), AuditLog(Path(g) / "d.jsonl"), Path(g) / "k")
         try:
-            kart = kart_uret("selin.aydin", anahtar, 900)
-            sayfalar = {}
-            for ad in LISTELER:
-                for boyut in (10, 25):
-                    yanit, hata = s.kapi(ad, {"sayfa_boyutu": boyut}, kart)
-                    assert not hata, yanit
-                    sayfalar[f"{ad}:{boyut}"] = json.dumps(yanit, ensure_ascii=False)
-            el, oto = arac_tanimlari(), s.arac_tanimlari()
+            card = generate_card("selin.aydin", signing_key, 900)
+            pages = {}
+            for name in LIST_TOOLS:
+                for size in (10, 25):
+                    response, error = s.gate(name, {"sayfa_boyutu": size}, card)
+                    assert not error, response
+                    pages[f"{name}:{size}"] = json.dumps(response, ensure_ascii=False)
+            manual_tools, auto_tools = tool_definitions(), s.tool_definitions()
         finally:
-            s.kapat()
+            s.close()
 
-    bas = time.perf_counter()
-    token([kisa(), {"role": "user", "content": "Merhaba"}])  # model yüklensin
-    yukleme_s = round(time.perf_counter() - bas, 1)
-    bos = token([kisa(), {"role": "user", "content": "Merhaba"}])
-    el_t = token([kisa(), {"role": "user", "content": "Merhaba"}], el) - bos
-    oto_t = token([kisa(), {"role": "user", "content": "Merhaba"}], oto) - bos
-    sistem_t = token([tam(), {"role": "user", "content": "Merhaba"}]) - bos
-    taban = token([kisa(), {"role": "user", "content": "x"}])
-    sayfa = {}
-    for anahtar_ad, metin in sayfalar.items():
-        t = token([kisa(), {"role": "user", "content": metin}]) - taban
-        sayfa[anahtar_ad] = {"karakter": len(metin), "token": t, "karakter_token": round(len(metin) / t, 2)}
-        print(anahtar_ad, sayfa[anahtar_ad], flush=True)
+    start_time = time.perf_counter()
+    token([short_message(), {"role": "user", "content": "Merhaba"}])  # so that the model gets loaded
+    load_seconds = round(time.perf_counter() - start_time, 1)
+    empty_tokens = token([short_message(), {"role": "user", "content": "Merhaba"}])
+    manual_tokens = token([short_message(), {"role": "user", "content": "Merhaba"}], manual_tools) - empty_tokens
+    auto_tokens = token([short_message(), {"role": "user", "content": "Merhaba"}], auto_tools) - empty_tokens
+    system_tokens = token([full_message(), {"role": "user", "content": "Merhaba"}]) - empty_tokens
+    baseline = token([short_message(), {"role": "user", "content": "x"}])
+    page_stats = {}
+    for page_key, text in pages.items():
+        t = token([short_message(), {"role": "user", "content": text}]) - baseline
+        page_stats[page_key] = {"karakter": len(text), "token": t, "karakter_token": round(len(text) / t, 2)}
+        print(page_key, page_stats[page_key], flush=True)
 
-    ayar = Ayar()
-    butce = ayar.baglam_token - ayar.cevap_payi
-    sonuc = {
-        "model": MODEL, "num_ctx": ayar.baglam_token, "cevap_payi": ayar.cevap_payi, "butce": butce,
-        "model_yukleme_s": yukleme_s,
-        "sistem_istemi_token": sistem_t,
-        "el": {"arac_sayisi": len(el), "karakter": len(json.dumps(el, ensure_ascii=False)), "token": el_t,
-               "kalan": butce - sistem_t - el_t},
-        "otomatik": {"arac_sayisi": len(oto), "karakter": len(json.dumps(oto, ensure_ascii=False)), "token": oto_t,
-                     "kalan": butce - sistem_t - oto_t},
-        "sayfalar": sayfa,
+    settings = Settings()
+    budget = settings.baglam_token - settings.cevap_payi
+    result = {
+        "model": MODEL, "num_ctx": settings.baglam_token, "cevap_payi": settings.cevap_payi, "butce": budget,
+        "model_yukleme_s": load_seconds,
+        "sistem_istemi_token": system_tokens,
+        "el": {"arac_sayisi": len(manual_tools), "karakter": len(json.dumps(manual_tools, ensure_ascii=False)), "token": manual_tokens,
+               "kalan": budget - system_tokens - manual_tokens},
+        "otomatik": {"arac_sayisi": len(auto_tools), "karakter": len(json.dumps(auto_tools, ensure_ascii=False)), "token": auto_tokens,
+                     "kalan": budget - system_tokens - auto_tokens},
+        "sayfalar": page_stats,
         "not": "kalan: soru, model mesajları ve araç sonuçları için kalan token (bütçe - sistem istemi - araç listesi)",
     }
-    (KOK / "reports" / "faz9_boyut.json").write_text(json.dumps(sonuc, ensure_ascii=False, indent=1) + "\n",
+    (ROOT / "reports" / "faz9_boyut.json").write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n",
                                                     encoding="utf-8")
-    print(json.dumps({k: v for k, v in sonuc.items() if k != "sayfalar"}, ensure_ascii=False, indent=1))
+    print(json.dumps({k: v for k, v in result.items() if k != "sayfalar"}, ensure_ascii=False, indent=1))
 
 
 if __name__ == "__main__":

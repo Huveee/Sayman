@@ -1,6 +1,6 @@
-"""Duman testleri: ortam doğru kurulmuş mu, temel dosyalar yerinde mi?
+"""Smoke tests: is the environment set up correctly, are the basic files in place?
 
-Bu testler internete ve Ollama sunucusuna gitmez.
+These tests do not go to the internet or the Ollama server.
 """
 
 from __future__ import annotations
@@ -9,18 +9,18 @@ import subprocess
 import sys
 from pathlib import Path
 
-from sayman.model_selection.tool_drafts import ARACLAR, ARACLAR_ADA_GORE
-from sayman.model_selection.call_validation import arac_cagrisi_gecerli_mi
-from sayman.model_selection.sample_questions import ORNEK_SORULAR
+from sayman.model_selection.tool_drafts import TOOLS, TOOLS_BY_NAME
+from sayman.model_selection.call_validation import is_tool_call_valid
+from sayman.model_selection.sample_questions import SAMPLE_QUESTIONS
 
-KOK = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_python_surumu_3_11():
+def test_python_version_3_11():
     assert sys.version_info[:2] == (3, 11)
 
 
-def test_paketler_yuklenir():
+def test_packages_import():
     import dotenv  # noqa: F401
     import ollama  # noqa: F401
     import sayman
@@ -28,58 +28,58 @@ def test_paketler_yuklenir():
     assert sayman.__version__
 
 
-def test_gitignore_gizli_dosyalari_disarida_tutar():
-    satirlar = (KOK / ".gitignore").read_text(encoding="utf-8").splitlines()
-    assert ".env" in satirlar
-    assert ".venv/" in satirlar
+def test_gitignore_keeps_secret_files_out():
+    lines = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert ".env" in lines
+    assert ".venv/" in lines
 
 
-def test_env_dosyasi_gitte_izlenmiyor():
-    sonuc = subprocess.run(
-        ["git", "ls-files", "--", ".env"], cwd=KOK, capture_output=True, text=True, check=True
+def test_env_file_is_not_tracked_in_git():
+    result = subprocess.run(
+        ["git", "ls-files", "--", ".env"], cwd=ROOT, capture_output=True, text=True, check=True
     )
-    assert sonuc.stdout.strip() == ""
+    assert result.stdout.strip() == ""
 
 
-def test_on_beş_arac_tanimi_var_ve_adlar_tekil():
-    adlar = [a["function"]["name"] for a in ARACLAR]
-    assert len(adlar) == 15
-    assert len(set(adlar)) == 15
+def test_fifteen_tool_definitions_exist_and_names_are_unique():
+    names = [a["function"]["name"] for a in TOOLS]
+    assert len(names) == 15
+    assert len(set(names)) == 15
 
 
-def test_arac_tanimlari_duzgun():
-    for arac in ARACLAR:
-        assert arac["type"] == "function"
-        fonk = arac["function"]
-        assert fonk["description"].strip()
-        sema = fonk["parameters"]
-        assert sema["type"] == "object"
-        assert sema["additionalProperties"] is False
-        assert set(sema["required"]) <= set(sema["properties"]), fonk["name"]
-        for alan, alt in sema["properties"].items():
-            assert alt["type"] in {"string", "integer", "number", "boolean"}, (fonk["name"], alan)
-            assert alt.get("description", "").strip(), (fonk["name"], alan)
+def test_tool_definitions_are_well_formed():
+    for tool in TOOLS:
+        assert tool["type"] == "function"
+        function = tool["function"]
+        assert function["description"].strip()
+        schema = function["parameters"]
+        assert schema["type"] == "object"
+        assert schema["additionalProperties"] is False
+        assert set(schema["required"]) <= set(schema["properties"]), function["name"]
+        for field, alt in schema["properties"].items():
+            assert alt["type"] in {"string", "integer", "number", "boolean"}, (function["name"], field)
+            assert alt.get("description", "").strip(), (function["name"], field)
             if "enum" in alt:
-                assert alt["enum"], (fonk["name"], alan)
+                assert alt["enum"], (function["name"], field)
 
 
-def test_ornek_sorular_bes_tane_ve_beklenen_araclar_var():
-    assert len(ORNEK_SORULAR) == 5
-    for s in ORNEK_SORULAR:
-        assert s["beklenen_arac"] in ARACLAR_ADA_GORE, s["kimlik"]
-    argumanli = [s for s in ORNEK_SORULAR if s["beklenen_argumanlar"]]
-    assert len(argumanli) >= 2
+def test_five_sample_questions_and_expected_tools_exist():
+    assert len(SAMPLE_QUESTIONS) == 5
+    for s in SAMPLE_QUESTIONS:
+        assert s["beklenen_arac"] in TOOLS_BY_NAME, s["kimlik"]
+    with_arguments = [s for s in SAMPLE_QUESTIONS if s["beklenen_argumanlar"]]
+    assert len(with_arguments) >= 2
 
 
-def test_beklenen_argumanlar_semaya_uygun():
-    """Beklenen argümanlar (eksik zorunlular örnek değerle tamamlanınca) geçerli olmalı."""
-    ornek_deger = {"string": "ornek", "integer": 1, "number": 1.0, "boolean": True}
-    for s in ORNEK_SORULAR:
-        sema = ARACLAR_ADA_GORE[s["beklenen_arac"]]["function"]["parameters"]
-        argumanlar = dict(s["beklenen_argumanlar"])
-        for zorunlu in sema["required"]:
-            if zorunlu not in argumanlar:
-                alt = sema["properties"][zorunlu]
-                argumanlar[zorunlu] = alt["enum"][0] if "enum" in alt else ornek_deger[alt["type"]]
-        gecerli, neden = arac_cagrisi_gecerli_mi({"ad": s["beklenen_arac"], "argumanlar": argumanlar})
-        assert gecerli, (s["kimlik"], neden)
+def test_expected_arguments_fit_schema():
+    """The expected arguments must be valid (once the missing required ones are filled in with an example value)."""
+    example_value = {"string": "ornek", "integer": 1, "number": 1.0, "boolean": True}
+    for s in SAMPLE_QUESTIONS:
+        schema = TOOLS_BY_NAME[s["beklenen_arac"]]["function"]["parameters"]
+        arguments = dict(s["beklenen_argumanlar"])
+        for required_name in schema["required"]:
+            if required_name not in arguments:
+                alt = schema["properties"][required_name]
+                arguments[required_name] = alt["enum"][0] if "enum" in alt else example_value[alt["type"]]
+        valid, reason = is_tool_call_valid({"ad": s["beklenen_arac"], "argumanlar": arguments})
+        assert valid, (s["kimlik"], reason)

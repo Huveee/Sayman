@@ -1,11 +1,11 @@
-"""Veri ambarı: data/uretilen/*.csv tablolarını tek bir DuckDB dosyasına yükler.
+"""Data warehouse: loads the data/uretilen/*.csv tables into a single DuckDB file.
 
-Ambarda yalnızca araçların okuyabileceği tablolar (cikti.SEMA) bulunur; cevap anahtarı
-(data/anahtar) ve simülasyon saati (data/saat.json) ambara girmez. Saat her metriğe tarih
-parametresi olarak verilir; böylece tek saat data/saat.json'dur ve ambar salt okunur açılabilir.
+The warehouse holds only the tables the tools may read (sayman.data.table_io.SCHEMA); the answer key
+(data/anahtar) and the simulation clock (data/saat.json) never enter it. The clock is passed to every metric as a date
+parameter; so data/saat.json is the single clock and the warehouse can be opened read-only.
 
-Sütun tipleri SEMA'daki adlardan açıkça kurulur, CSV'den tahmin edilmez: tutarlar tamsayı kuruş
-(BIGINT), kurlar tam ondalık (DECIMAL), tarihler DATE. Kayan noktalı sayı kullanılmaz.
+Column types are built explicitly from the names in SCHEMA, not guessed from the CSV: amounts are integer cents
+(BIGINT), rates are exact decimals (DECIMAL), dates are DATE. Floating-point numbers are never used.
 """
 
 from __future__ import annotations
@@ -14,63 +14,63 @@ from pathlib import Path
 
 import duckdb
 
-from sayman.data.table_io import MANTIKSAL_SUTUNLAR, SEMA, TAM_SAYI_SUTUNLARI
+from sayman.data.table_io import BOOLEAN_COLUMNS, SCHEMA, INTEGER_COLUMNS
 
-KUR_SUTUNLARI = {"kur", "alis"}
-KUR_TIPI = "DECIMAL(18,6)"
+RATE_COLUMNS = {"kur", "alis"}
+RATE_SQL_TYPE = "DECIMAL(18,6)"
 
-# Eşitlikte çift tarafa yuvarlama (sayman.veri.para.kurusa ile aynı kural). DuckDB'nin round_even'ı
-# kayan noktaya çevirdiği için kullanılmaz; burada tam ondalık aritmetikle yapılır.
-MAKROLAR = (
+# Round half to even (same rule as sayman.data.money.to_cents). DuckDB's round_even is not used because it
+# converts to floating point; here it is done with exact decimal arithmetic.
+MACROS = (
     "CREATE OR REPLACE MACRO yuvarla_cift(x) AS CAST(floor(x) + CASE WHEN x - floor(x) > 0.5 THEN 1 "
     "WHEN x - floor(x) < 0.5 THEN 0 WHEN floor(x) % 2 = 0 THEN 0 ELSE 1 END AS BIGINT)",
-    # kuruş x kur -> kuruş (TL karşılığı)
+    # cents x rate -> cents (TL equivalent)
     "CREATE OR REPLACE MACRO kur_carp(kurus, kur) AS "
     "yuvarla_cift(CAST(kurus AS DECIMAL(38,0)) * CAST(kur AS DECIMAL(18,6)))",
 )
 
 
-def sql_tipi(sutun: str) -> str:
-    if sutun in TAM_SAYI_SUTUNLARI:
+def sql_type(column: str) -> str:
+    if column in INTEGER_COLUMNS:
         return "BIGINT"
-    if sutun in MANTIKSAL_SUTUNLAR:
+    if column in BOOLEAN_COLUMNS:
         return "BOOLEAN"
-    if sutun in KUR_SUTUNLARI:
-        return KUR_TIPI
-    if sutun.endswith("tarihi") or sutun == "tarih":
+    if column in RATE_COLUMNS:
+        return RATE_SQL_TYPE
+    if column.endswith("tarihi") or column == "tarih":
         return "DATE"
     return "VARCHAR"
 
 
-def ambar_kur(klasor: Path, yol: Path | str = ":memory:", veri_hash: str | None = None) -> duckdb.DuckDBPyConnection:
-    """CSV klasöründen ambarı kurar ve bağlantıyı döner. Dosya varsa baştan yazılır."""
-    if str(yol) != ":memory:":
-        yol = Path(yol)
-        yol.parent.mkdir(parents=True, exist_ok=True)
-        for eski in (yol, yol.with_name(yol.name + ".wal")):
-            eski.unlink(missing_ok=True)
-    con = duckdb.connect(str(yol))
-    for ad, sutunlar in SEMA.items():
-        tanim = ", ".join(f"{s} {sql_tipi(s)}" + (" PRIMARY KEY" if i == 0 else "") for i, s in enumerate(sutunlar))
-        con.execute(f"CREATE TABLE {ad} ({tanim})")
-        dosya = (Path(klasor) / f"{ad}.csv").as_posix().replace("'", "''")
-        # Boş hücre NULL olur (cikti.csv_oku ile aynı); başlık satırı sütun sırasını doğrular.
-        con.execute(f"COPY {ad} FROM '{dosya}' (HEADER, DELIMITER ',', QUOTE '\"')")
-        baslik = (Path(klasor) / f"{ad}.csv").read_text(encoding="utf-8").split("\n", 1)[0].strip().split(",")
-        if baslik != sutunlar:
-            raise ValueError(f"{ad}.csv sütunları şemayla uyuşmuyor: {baslik}")
-    for makro in MAKROLAR:
-        con.execute(makro)
+def build_warehouse(directory: Path, path: Path | str = ":memory:", data_digest: str | None = None) -> duckdb.DuckDBPyConnection:
+    """Builds the warehouse from a CSV folder and returns the connection. An existing file is rewritten from scratch."""
+    if str(path) != ":memory:":
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        for old in (path, path.with_name(path.name + ".wal")):
+            old.unlink(missing_ok=True)
+    con = duckdb.connect(str(path))
+    for name, columns in SCHEMA.items():
+        definition = ", ".join(f"{s} {sql_type(s)}" + (" PRIMARY KEY" if i == 0 else "") for i, s in enumerate(columns))
+        con.execute(f"CREATE TABLE {name} ({definition})")
+        csv_file = (Path(directory) / f"{name}.csv").as_posix().replace("'", "''")
+        # An empty cell becomes NULL (same as sayman.data.table_io.read_csv); the header row checks the column order.
+        con.execute(f"COPY {name} FROM '{csv_file}' (HEADER, DELIMITER ',', QUOTE '\"')")
+        header = (Path(directory) / f"{name}.csv").read_text(encoding="utf-8").split("\n", 1)[0].strip().split(",")
+        if header != columns:
+            raise ValueError(f"{name}.csv sütunları şemayla uyuşmuyor: {header}")
+    for macro in MACROS:
+        con.execute(macro)
     con.execute("CREATE TABLE ambar_bilgisi (anahtar VARCHAR PRIMARY KEY, deger VARCHAR)")
-    con.execute("INSERT INTO ambar_bilgisi VALUES ('veri_hash', ?)", [veri_hash])
+    con.execute("INSERT INTO ambar_bilgisi VALUES ('veri_hash', ?)", [data_digest])
     return con
 
 
-def baglan(yol: Path | str, salt_okunur: bool = True) -> duckdb.DuckDBPyConnection:
-    return duckdb.connect(str(yol), read_only=salt_okunur)
+def open_warehouse(path: Path | str, read_only: bool = True) -> duckdb.DuckDBPyConnection:
+    return duckdb.connect(str(path), read_only=read_only)
 
 
-def satirlar(con: duckdb.DuckDBPyConnection, sql: str, parametreler: dict | None = None) -> list[dict]:
-    imlec = con.execute(sql, parametreler or {})
-    adlar = [d[0] for d in imlec.description]
-    return [dict(zip(adlar, s)) for s in imlec.fetchall()]
+def query_rows(con: duckdb.DuckDBPyConnection, sql: str, parameters: dict | None = None) -> list[dict]:
+    cursor = con.execute(sql, parameters or {})
+    names = [d[0] for d in cursor.description]
+    return [dict(zip(names, s)) for s in cursor.fetchall()]

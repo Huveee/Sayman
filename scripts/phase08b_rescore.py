@@ -1,12 +1,18 @@
-"""Faz 8b: kayıtlı Faz 7/8 cevaplarını düzeltilmiş puanlayıcıyla yeniden puanlar (model çalıştırılmaz).
+"""Phase 8b: re-scores the recorded Phase 7/8 answers with the corrected scorer (the model is not run).
 
 Puanlayıcıda iki değişiklik var (README Faz 8b): fatura kimliği anahtarı faturanın kaynak sistem numarasını da kabul
 eder; "alamam", "alamıyorum", "veremiyorum" ret sayılır. Sonuçlar görüldükten sonra yapılan bir değişiklik olduğu için
 üç modelin (kütüphane, kendi temel, ince ayarlı) iki setteki bütün cevapları aynı puanlayıcıyla yeniden puanlanır ve
 eski ile yeni sayılar yan yana yazılır. Faz 7 ve Faz 8 rapor dosyalarına dokunulmaz; çıktı ayrı bir dosyadır.
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz8b_yeniden_puanla.py
+The paragraph above is written verbatim into the report as `aciklama`, so it stays in Turkish. In English: the scorer has
+two changes (README Phase 8b): the invoice identifier key also accepts the source system number of the invoice, and
+"alamam", "alamıyorum", "veremiyorum" count as a refusal. Because this change was made after the results were seen, all the
+answers of the three models (library, own base, fine-tuned) on the two sets are re-scored with the same scorer and the old
+and new counts are written side by side. The Phase 7 and Phase 8 report files are not touched; the output is a separate file.
+
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase08b_rescore.py
 """
 
 from __future__ import annotations
@@ -15,47 +21,47 @@ import json
 import sys
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
-sys.path.insert(0, str(KOK / "scripts"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "scripts"))
 
 import phase07_evaluate  # noqa: E402
 
-RAPOR = KOK / "reports"
-CIKTI = RAPOR / "faz8b_yeniden_puanlama.json"
-ETIKETLER = ("faz7", "faz8_temel_kendi", "faz8_ayarli")
-SETLER = ("gelistirme", "saklanan")
-OLCULER = [("arac", "cevap_dogrulugu"), ("arac", "dogrulanmis_yanlis_sayi"), ("belge", "cevap_dogrulugu"),
+REPORTS = ROOT / "reports"
+OUTPUT = REPORTS / "faz8b_yeniden_puanlama.json"
+LABELS = ("faz7", "faz8_temel_kendi", "faz8_ayarli")
+SET_NAMES = ("gelistirme", "saklanan")
+MEASURES = [("arac", "cevap_dogrulugu"), ("arac", "dogrulanmis_yanlis_sayi"), ("belge", "cevap_dogrulugu"),
            ("yetkisiz", "reddetti"), ("yetkisiz", "sizinti")]
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    veri = json.loads(phase07_evaluate.SORU_SETI.read_text(encoding="utf-8"))
-    kumeler = phase07_evaluate.kapsam_kumeleri()
-    parca_rolleri = {pid: p.roller for pid, p in phase07_evaluate.parcalar().items()}
-    bu_yil = int(veri["simulasyon_gunu"][:4])
-    sonuc = {"aciklama": __doc__.split("\n\n")[1].replace("\n", " "), "kosular": {}}
-    for etiket in ETIKETLER:
-        for set_adi in SETLER:
-            eski = json.loads((RAPOR / f"{etiket}_olcum_{set_adi}.json").read_text(encoding="utf-8"))
-            sorular = [s for s in veri["sorular"] if s["set"] == set_adi]
-            kayitlar = phase07_evaluate.jsonl_oku(RAPOR / f"{etiket}_{set_adi}.jsonl")
-            puanlar, ozet = phase07_evaluate.puanla_hepsi(sorular, kayitlar, kumeler, parca_rolleri, bu_yil)
-            eski_p = {p["soru_id"]: p for p in eski["sorular"]}
-            degisen = []
-            for p in puanlar:
-                e = eski_p[p["soru_id"]]
-                for alan in ("cevap_dogru", "yanlis_sayi_suphesi", "reddetti", "sizinti"):
-                    if alan in p and e.get(alan) != p[alan]:
-                        degisen.append({"soru_id": p["soru_id"], "alan": alan, "eski": e.get(alan), "yeni": p[alan]})
-            olcu = {f"{b}.{m}": {"eski": eski["ozet"][b][m], "yeni": ozet[b][m]} for b, m in OLCULER}
-            sonuc["kosular"][f"{etiket}_{set_adi}"] = {"olculer": olcu, "degisen": degisen}
-            print(f"{etiket}_{set_adi}:", {k: f"{v['eski']} → {v['yeni']}" for k, v in olcu.items()
+    data = json.loads(phase07_evaluate.QUESTION_SET.read_text(encoding="utf-8"))
+    scopes = phase07_evaluate.scope_record_ids()
+    chunk_roles = {pid: p.roller for pid, p in phase07_evaluate.chunks().items()}
+    this_year = int(data["simulasyon_gunu"][:4])
+    result = {"aciklama": __doc__.split("\n\n")[1].replace("\n", " "), "kosular": {}}
+    for label in LABELS:
+        for set_name in SET_NAMES:
+            old_report = json.loads((REPORTS / f"{label}_olcum_{set_name}.json").read_text(encoding="utf-8"))
+            questions = [s for s in data["sorular"] if s["set"] == set_name]
+            records = phase07_evaluate.read_jsonl(REPORTS / f"{label}_{set_name}.jsonl")
+            scores, summary = phase07_evaluate.score_all(questions, records, scopes, chunk_roles, this_year)
+            old_scores = {p["soru_id"]: p for p in old_report["sorular"]}
+            changed = []
+            for p in scores:
+                e = old_scores[p["soru_id"]]
+                for field in ("cevap_dogru", "yanlis_sayi_suphesi", "reddetti", "sizinti"):
+                    if field in p and e.get(field) != p[field]:
+                        changed.append({"soru_id": p["soru_id"], "alan": field, "eski": e.get(field), "yeni": p[field]})
+            measures = {f"{b}.{m}": {"eski": old_report["ozet"][b][m], "yeni": summary[b][m]} for b, m in MEASURES}
+            result["kosular"][f"{label}_{set_name}"] = {"olculer": measures, "degisen": changed}
+            print(f"{label}_{set_name}:", {k: f"{v['eski']} → {v['yeni']}" for k, v in measures.items()
                                            if v["eski"] != v["yeni"]} or "değişmedi",
-                  [(d["soru_id"], d["alan"]) for d in degisen])
-    CIKTI.write_text(json.dumps(sonuc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print("yazıldı:", CIKTI.relative_to(KOK))
+                  [(d["soru_id"], d["alan"]) for d in changed])
+    OUTPUT.write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print("yazıldı:", OUTPUT.relative_to(ROOT))
 
 
 if __name__ == "__main__":

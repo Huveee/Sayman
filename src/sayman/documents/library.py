@@ -1,8 +1,9 @@
-"""Belge kütüphanesi: belgeleri diske yazar, geri okur ve aranacak parçalara ayırır.
+"""Document library: writes documents to disk, reads them back and splits them into searchable chunks.
 
-- Her madde bir parçadır; parça kimliği "BELGE#mN" biçimindedir ve belge yeniden üretilse de değişmez.
-- Her parça, belgesinin rollerini taşır. Bir rol yalnızca rollerinde kendisi bulunan belgelerin parçalarını görür;
-  süzme sıralamadan önce yapılır, görülmeyen parça hiçbir skora girmez.
+- Every article is one chunk; the chunk identifier has the form "<document_id>#mN" and does not change when the
+  document is regenerated.
+- Every chunk carries the roles of its document. A role sees only the chunks of documents that list that role among
+  their roles; filtering is done before ranking, and a chunk that is not visible enters no score.
 """
 
 from __future__ import annotations
@@ -11,42 +12,42 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from sayman.documents.synthetic import Belge, Madde, arama_metni
+from sayman.documents.synthetic import Document, Article, search_text
 
 
 @dataclass(frozen=True)
-class Parca:
+class Chunk:
     parca_id: str
     belge_id: str
     belge_baslik: str
     madde_baslik: str
     roller: tuple[str, ...]
-    metin: str          # maddenin kendi metni; alıntı kontrolü buna bakar
-    arama_metni: str    # belge adı + taraf + madde başlığı + metin; arama buna bakar
+    metin: str          # the article's own text; the citation check looks at this
+    arama_metni: str    # document title + party + article title + text; search looks at this
 
 
-def parcalar(belgeler: list[Belge]) -> list[Parca]:
-    return [Parca(m.parca_id, b.belge_id, b.baslik, m.baslik, tuple(b.roller), m.metin, arama_metni(b, m))
-            for b in belgeler for m in b.maddeler]
+def to_chunks(documents: list[Document]) -> list[Chunk]:
+    return [Chunk(m.parca_id, b.belge_id, b.baslik, m.baslik, tuple(b.roller), m.metin, search_text(b, m))
+            for b in documents for m in b.maddeler]
 
 
-def gorebilir(rol: str, roller: tuple[str, ...]) -> bool:
-    return rol in roller
+def can_see(role: str, roles: tuple[str, ...]) -> bool:
+    return role in roles
 
 
-def yaz(belgeler: list[Belge], yol: Path) -> None:
-    yol.parent.mkdir(parents=True, exist_ok=True)
-    with open(yol, "w", encoding="utf-8", newline="\n") as f:
-        for b in belgeler:
+def write_documents(documents: list[Document], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        for b in documents:
             f.write(json.dumps(asdict(b), ensure_ascii=False) + "\n")
 
 
-def oku(yol: Path) -> list[Belge]:
-    belgeler = []
-    with open(yol, encoding="utf-8") as f:
-        for satir in f:
-            d = json.loads(satir)
+def read_documents(path: Path) -> list[Document]:
+    documents = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            d = json.loads(line)
             d["roller"] = tuple(d["roller"])
-            d["maddeler"] = tuple(Madde(**m) for m in d["maddeler"])
-            belgeler.append(Belge(**d))
-    return belgeler
+            d["maddeler"] = tuple(Article(**m) for m in d["maddeler"])
+            documents.append(Document(**d))
+    return documents

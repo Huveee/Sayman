@@ -1,13 +1,13 @@
-"""Faz 3: Sayman MCP sunucusunu stdio üzerinden başlatır (bir MCP istemcisi bu komutu çalıştırır).
+"""Phase 3: starts the Sayman MCP server over stdio (an MCP client runs this command).
 
-Önce scripts/faz2_ambar_kur.py ve scripts/faz3_anahtar_uret.py çalıştırılmış olmalı.
+scripts/phase02_build_warehouse.py and scripts/phase03_generate_key.py must have been run first.
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz3_sunucu.py [--ambar ...] [--saat ...] [--kayit ...] [--kapsam-klasoru ...]
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase03_server.py [--ambar ...] [--saat ...] [--kayit ...] [--kapsam-klasoru ...]
         [--belge data\\belge] [--belge-yontemi anlam|bm25|karma|karma_sirala]
 
---belge verilmezse belge_ara aracı "kullanilamaz" ile reddedilir (Faz 6). Sıralayıcı (karma_sirala) daha güçlü bir
-bilgisayar için bir ayardır.
+If --belge is not given, the `belge_ara` tool is refused with "kullanilamaz" (Phase 6). The reranker (`karma_sirala`)
+is a setting for a more powerful computer.
 """
 
 import sys

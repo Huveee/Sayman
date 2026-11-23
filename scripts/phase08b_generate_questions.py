@@ -1,20 +1,20 @@
-"""Faz 8b yeni test setini üretir, sızıntıyı denetler ve dondurur (hiçbir model çalıştırılmadan önce).
+"""Phase 8b: generates the new test set, checks leakage and freezes it (before any model is run).
 
-Set: tests/phase08b_questions.py (S, K, T, F, G grupları). Müşteri ve faturalar Faz 7'nin iki setinde kullanılmamış
-olanlardan seçilir. Beklenen değerler Faz 7'deki gibi araç fonksiyonları doğrudan çalıştırılarak bulunur.
+Set: tests/support/phase08b_questions.py (groups S, K, T, F, G). The customers and invoices are chosen from those not used
+in the two Phase 7 sets. The expected values are found by running the tool functions directly, as in Phase 7.
 
-Denetimler (sonuçları dosyaya yazılır):
-- Sızıntı: Faz 8 eğitim verisi (data/egitim/sorular.json) ile bu set arasında Faz 8'in denetimi (kalıp, soru, kimlik,
-  ad, kur). İhlal varsa dosya yazılmaz.
-- Faz 7'ye benzerlik: yeni kalıpların ve soruların Faz 7 setine en yakın benzerliği (bilgi için; Faz 7 setinde
-  eğitilmedi, ama Faz 8b kuralları o sete bakılarak yazıldı).
-- Müşteri ipucu: doğrulayıcının "soru belirli bir müşteriyi soruyor" kararı (musteri_sorusu_mu) bütün sorularda;
-  müşteriye özel sorularda yakalama ve ötekilerde yanlış alarm. Sonuç ne çıktıysa yazılır; kalıplar buna göre
-  değiştirilmez.
+Checks (the results are written to the file):
+- Leakage: the Phase 8 check (pattern, question, identifier, name, rate) between the Phase 8 training data
+  (data/egitim/sorular.json) and this set. If there is a violation the file is not written.
+- Similarity to Phase 7: the closest similarity of the new patterns and questions to the Phase 7 set (for information; it was
+  not trained on the Phase 7 set, but the Phase 8b rules were written by looking at that set).
+- Customer hint: the verifier's decision "the question asks about a specific customer" on all the questions; detection on
+  the customer-specific questions and false alarms on the others. Whatever the result is, it is written; the patterns are
+  not changed accordingly.
 
-Çıktı:  reports/faz8b_soru_seti.json (sorular, hedefler, ön kayıt, denetimler ve özet)
+Output:  reports/faz8b_soru_seti.json (questions, targets, preregistration, checks and digest)
 
-Kullanım (proje kökünden):
+Usage (from the project root):
     .venv\\Scripts\\python -I scripts\\phase08b_generate_questions.py
 """
 
@@ -27,121 +27,121 @@ import tempfile
 from collections import Counter
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
-sys.path.insert(0, str(KOK / "tests"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests"))
 
 import support.phase07_questions as f7  # noqa: E402
 import support.phase08b_questions as y  # noqa: E402
 
-from sayman.assistant.verifier import musteri_sorusu_mu  # noqa: E402
+from sayman.assistant.verifier import is_customer_question  # noqa: E402
 from sayman.documents import library  # noqa: E402
-from sayman.training.leakage import Degerlendirme, denetle, iskelet, jaccard, normal, soru_benzerligi  # noqa: E402
-from sayman.data.clock import saat_oku  # noqa: E402
+from sayman.training.leakage import EvaluationData, audit, skeleton, jaccard, normalize, question_similarity  # noqa: E402
+from sayman.data.clock import read_clock  # noqa: E402
 
-CIKTI = KOK / "reports" / "faz8b_soru_seti.json"
-FAZ7 = KOK / "reports" / "faz7_soru_seti.json"
-EGITIM = KOK / "data" / "egitim" / "sorular.json"
-
-
-def sizinti(sorular: list[dict], varliklar: list[str], egitim: list[dict]) -> dict:
-    kaliplar = [k for sb, _, _ in y.SABLONLAR for k in sb.kaliplar] + [k for k, _ in y.TUM_SIRKET]
-    kurlar = {(a["argumanlar"]["para_birimi"], str(a["anahtarlar"][0]["deger"]))
-              for s in sorular for a in s.get("alternatifler", []) if a["arac"] == "doviz_kuru"}
-    adlar = set()
-    for dosya in ("musteriler.csv", "tedarikciler.csv"):
-        with open(KOK / "data" / "uretilen" / dosya, encoding="utf-8") as f:
-            adlar |= {normal(r["ad"]) for r in csv.DictReader(f)}
-    metinler = {p.metin for p in library.parcalar(library.oku(KOK / "data" / "belge" / "belgeler.jsonl"))}
-    d = Degerlendirme(kaliplar=kaliplar, sorular=[s["soru"] for s in sorular], kimlikler=set(varliklar),
-                      adlar=adlar, madde_metinleri=metinler, kurlar=kurlar)
-    r = denetle(egitim, d)
-    return {"egitim_sorusu": len(egitim), "en_yakin_kalip_benzerligi": round(r.en_yakin_kalip, 3),
-            "en_yakin_soru_benzerligi": round(r.en_yakin_soru, 3),
-            "ihlal_sayisi": {k: len(v) for k, v in r.ihlaller.items()}, "ihlaller": r.ihlaller, "temiz": r.temiz}
+OUTPUT = ROOT / "reports" / "faz8b_soru_seti.json"
+PHASE7_SET = ROOT / "reports" / "faz7_soru_seti.json"
+TRAINING_QUESTIONS = ROOT / "data" / "egitim" / "sorular.json"
 
 
-def faz7_benzerligi(sorular: list[dict], faz7: dict) -> dict:
-    f7_kaliplar = [k for sb in f7.SABLONLAR for k in sb.kaliplar]
-    f7_kaliplar += [k for ks in f7.YASAK_KALIPLARI.values() for k in ks] + list(f7.BASKA_MUSTERI_KALIPLARI)
-    f7_kaliplar += [m for m, _, _ in f7.ROL_KALIPLARI + f7.YONLENDIRME_KALIPLARI]
-    f7_iskelet = {iskelet(k): k for k in f7_kaliplar}
-    kalip = []
-    for k in [k for sb, _, _ in y.SABLONLAR for k in sb.kaliplar] + [k for k, _ in y.TUM_SIRKET]:
-        i = iskelet(k)
-        puan, en = max(((1.0 if i == di else jaccard(i, di)), dk) for di, dk in f7_iskelet.items())
-        kalip.append({"kalip": k, "faz7": en, "benzerlik": round(puan, 3)})
-    kalip.sort(key=lambda x: -x["benzerlik"])
-    f7_sorular = [s["soru"] for s in faz7["sorular"]]
-    soru = []
-    for s in sorular:
-        b, en = max((soru_benzerligi(s["soru"], f), f) for f in f7_sorular)
-        soru.append({"soru_id": s["soru_id"], "soru": s["soru"], "faz7": en, "benzerlik": round(b, 3)})
-    soru.sort(key=lambda x: -x["benzerlik"])
-    return {"en_yakin_kaliplar": kalip[:8], "en_yakin_sorular": soru[:8],
-            "kalip_0_6_ustu": sum(x["benzerlik"] >= 0.6 for x in kalip),
-            "soru_0_8_ustu": sum(x["benzerlik"] >= 0.8 for x in soru)}
+def leakage_check(questions: list[dict], entities: list[str], training_questions: list[dict]) -> dict:
+    patterns = [k for sb, _, _ in y.TEMPLATES for k in sb.patterns] + [k for k, _ in y.COMPANY_WIDE]
+    rate_keys = {(a["argumanlar"]["para_birimi"], str(a["anahtarlar"][0]["deger"]))
+              for s in questions for a in s.get("alternatifler", []) if a["arac"] == "doviz_kuru"}
+    names = set()
+    for file in ("musteriler.csv", "tedarikciler.csv"):
+        with open(ROOT / "data" / "uretilen" / file, encoding="utf-8") as f:
+            names |= {normalize(r["ad"]) for r in csv.DictReader(f)}
+    chunk_texts = {p.metin for p in library.to_chunks(library.read_documents(ROOT / "data" / "belge" / "belgeler.jsonl"))}
+    d = EvaluationData(patterns=patterns, questions=[s["soru"] for s in questions], identifiers=set(entities),
+                      names=names, article_texts=chunk_texts, rates=rate_keys)
+    r = audit(training_questions, d)
+    return {"egitim_sorusu": len(training_questions), "en_yakin_kalip_benzerligi": round(r.closest_pattern, 3),
+            "en_yakin_soru_benzerligi": round(r.closest_question, 3),
+            "ihlal_sayisi": {k: len(v) for k, v in r.violations.items()}, "ihlaller": r.violations, "temiz": r.clean}
 
 
-def ipucu(sorular: list[dict]) -> dict:
-    musteri = [s for s in sorular if s.get("diger_musteri")]
-    oteki = [s for s in sorular if not s.get("diger_musteri")]
-    kacan = [s["soru_id"] for s in musteri if not musteri_sorusu_mu(s["soru"])]
-    alarm = [{"soru_id": s["soru_id"], "soru": s["soru"]} for s in oteki if musteri_sorusu_mu(s["soru"])]
-    return {"musteri_sorusu": len(musteri), "yakalanan": len(musteri) - len(kacan), "kacan": kacan,
-            "oteki_soru": len(oteki), "yanlis_alarm": alarm,
+def phase7_similarity(questions: list[dict], phase7: dict) -> dict:
+    phase7_patterns = [k for sb in f7.TEMPLATES for k in sb.patterns]
+    phase7_patterns += [k for ks in f7.FORBIDDEN_PATTERNS.values() for k in ks] + list(f7.OTHER_CUSTOMER_PATTERNS)
+    phase7_patterns += [m for m, _, _ in f7.ROLE_CLAIM_PATTERNS + f7.INJECTION_PATTERNS]
+    phase7_skeletons = {skeleton(k): k for k in phase7_patterns}
+    pattern_rows = []
+    for k in [k for sb, _, _ in y.TEMPLATES for k in sb.patterns] + [k for k, _ in y.COMPANY_WIDE]:
+        i = skeleton(k)
+        score, closest = max(((1.0 if i == di else jaccard(i, di)), dk) for di, dk in phase7_skeletons.items())
+        pattern_rows.append({"kalip": k, "faz7": closest, "benzerlik": round(score, 3)})
+    pattern_rows.sort(key=lambda x: -x["benzerlik"])
+    phase7_questions = [s["soru"] for s in phase7["sorular"]]
+    question_rows = []
+    for s in questions:
+        b, closest = max((question_similarity(s["soru"], f), f) for f in phase7_questions)
+        question_rows.append({"soru_id": s["soru_id"], "soru": s["soru"], "faz7": closest, "benzerlik": round(b, 3)})
+    question_rows.sort(key=lambda x: -x["benzerlik"])
+    return {"en_yakin_kaliplar": pattern_rows[:8], "en_yakin_sorular": question_rows[:8],
+            "kalip_0_6_ustu": sum(x["benzerlik"] >= 0.6 for x in pattern_rows),
+            "soru_0_8_ustu": sum(x["benzerlik"] >= 0.8 for x in question_rows)}
+
+
+def customer_hint(questions: list[dict]) -> dict:
+    customer_questions = [s for s in questions if s.get("diger_musteri")]
+    other_questions = [s for s in questions if not s.get("diger_musteri")]
+    missed = [s["soru_id"] for s in customer_questions if not is_customer_question(s["soru"])]
+    false_alarms = [{"soru_id": s["soru_id"], "soru": s["soru"]} for s in other_questions if is_customer_question(s["soru"])]
+    return {"musteri_sorusu": len(customer_questions), "yakalanan": len(customer_questions) - len(missed), "kacan": missed,
+            "oteki_soru": len(other_questions), "yanlis_alarm": false_alarms,
             "not": "Kalıpların çoğu doğrulayıcının ipucunu (\"müşterisi\", \"firması\", şirket türü) içerir; bu yüzden "
                    "yakalama oranı kuralın bağımsız bir sınaması değildir, yalnızca bu setteki kapsamını gösterir."}
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    saat = saat_oku(KOK / "data" / "saat.json")
-    faz7 = json.loads(FAZ7.read_text(encoding="utf-8"))
-    egitim = json.loads(EGITIM.read_text(encoding="utf-8"))["sorular"]
-    haric = set(faz7["varliklar"]["gelistirme"]) | set(faz7["varliklar"]["saklanan"])
-    with tempfile.TemporaryDirectory() as gecici:
-        o = y.YeniOrnekleyici(KOK / "data" / "ambar" / "sayman.duckdb", saat.simdi, Path(gecici), haric)
+    clock = read_clock(ROOT / "data" / "saat.json")
+    phase7 = json.loads(PHASE7_SET.read_text(encoding="utf-8"))
+    training_questions = json.loads(TRAINING_QUESTIONS.read_text(encoding="utf-8"))["sorular"]
+    excluded = set(phase7["varliklar"]["gelistirme"]) | set(phase7["varliklar"]["saklanan"])
+    with tempfile.TemporaryDirectory() as temp_dir:
+        o = y.NewSampler(ROOT / "data" / "ambar" / "sayman.duckdb", clock.simdi, Path(temp_dir), excluded)
         try:
-            sorular = y.soru_seti(o, {s["niyet"] for s in egitim})
-            varliklar = sorted(o.varliklar[y.YENI])
-            atlanan = o.tum_sirket_atlanan
+            questions = y.question_set(o, {s["niyet"] for s in training_questions})
+            entities = sorted(o.used_entities[y.NEW_SET])
+            skipped = o.skipped_company_wide
         finally:
-            o.kapat()
-    kimlikler = [s["soru_id"] for s in sorular]
-    assert len(kimlikler) == len(set(kimlikler)), "soru kimlikleri tekil olmalı"
-    assert not set(varliklar) & haric, "Faz 7 varlıkları yeni sette olmamalı"
-    sz = sizinti(sorular, varliklar, egitim)
+            o.close()
+    question_ids = [s["soru_id"] for s in questions]
+    assert len(question_ids) == len(set(question_ids)), "soru kimlikleri tekil olmalı"
+    assert not set(entities) & excluded, "Faz 7 varlıkları yeni sette olmamalı"
+    sz = leakage_check(questions, entities, training_questions)
     print("sızıntı:", json.dumps({k: v for k, v in sz.items() if k != "ihlaller"}, ensure_ascii=False))
     if not sz["temiz"]:
         print(json.dumps(sz["ihlaller"], ensure_ascii=False, indent=1))
         raise SystemExit("sızıntı var; set yazılmadı")
-    veri = {
+    data = {
         "aciklama": "Faz 8b yeni test seti. Hiçbir model (kâhin dahil) çalıştırılmadan önce üretildi ve donduruldu; "
                     "hedefler ve ön kayıt aynı anda yazıldı. Üretim: scripts/phase08b_generate_questions.py, şablonlar: "
                     "tests/phase08b_questions.py.",
-        "yazilma_tarihi": y.YAZILMA_TARIHI, "simulasyon_gunu": saat.simdi.isoformat(),
-        "ozet": f7.ozet(sorular),
-        "sayilar": {"grup": dict(sorted(Counter(s["grup"] for s in sorular).items())),
+        "yazilma_tarihi": y.WRITTEN_ON, "simulasyon_gunu": clock.simdi.isoformat(),
+        "ozet": f7.digest(questions),
+        "sayilar": {"grup": dict(sorted(Counter(s["grup"] for s in questions).items())),
                     "grup_rol": {f"{g}/{r}": n for (g, r), n in sorted(Counter((s["grup"], s["rol"])
-                                                                              for s in sorular).items())},
-                    "egitimde": dict(Counter((s["grup"] + "/" + s["egitimde"]) for s in sorular)),
-                    "niyet": dict(Counter(s["niyet"] for s in sorular))},
-        "sablonlar": {sb.ad: {"grup": g, "niyet": n, "adet": sb.adet, "kaliplar": list(sb.kaliplar)}
-                      for sb, g, n in y.SABLONLAR},
-        "tum_sirket_kaliplari": [k for k, _ in y.TUM_SIRKET], "tum_sirket_atlanan": atlanan,
-        "hedefler": y.HEDEFLER, "hata_turleri": f7.HATA_TURLERI, "on_kayit": y.ON_KAYIT,
-        "denetimler": {"sizinti": sz, "faz7_benzerligi": faz7_benzerligi(sorular, faz7), "musteri_ipucu": ipucu(sorular)},
-        "varliklar": {y.YENI: varliklar},
-        "sorular": sorular,
+                                                                              for s in questions).items())},
+                    "egitimde": dict(Counter((s["grup"] + "/" + s["egitimde"]) for s in questions)),
+                    "niyet": dict(Counter(s["niyet"] for s in questions))},
+        "sablonlar": {sb.name: {"grup": g, "niyet": n, "adet": sb.question_count, "kaliplar": list(sb.patterns)}
+                      for sb, g, n in y.TEMPLATES},
+        "tum_sirket_kaliplari": [k for k, _ in y.COMPANY_WIDE], "tum_sirket_atlanan": skipped,
+        "hedefler": y.TARGETS, "hata_turleri": f7.ERROR_KINDS, "on_kayit": y.PRE_REGISTRATION,
+        "denetimler": {"sizinti": sz, "faz7_benzerligi": phase7_similarity(questions, phase7), "musteri_ipucu": customer_hint(questions)},
+        "varliklar": {y.NEW_SET: entities},
+        "sorular": questions,
     }
-    CIKTI.write_text(json.dumps(veri, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(json.dumps(veri["sayilar"], ensure_ascii=False))
-    d = veri["denetimler"]
+    OUTPUT.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(json.dumps(data["sayilar"], ensure_ascii=False))
+    d = data["denetimler"]
     print("Faz 7 benzerliği:", {k: v for k, v in d["faz7_benzerligi"].items() if not k.startswith("en_yakin")},
           d["faz7_benzerligi"]["en_yakin_kaliplar"][:3], d["faz7_benzerligi"]["en_yakin_sorular"][:3])
     print("ipucu:", {k: v for k, v in d["musteri_ipucu"].items() if k != "not"})
-    print("özet", veri["ozet"])
+    print("özet", data["ozet"])
 
 
 if __name__ == "__main__":

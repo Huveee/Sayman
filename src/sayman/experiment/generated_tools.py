@@ -1,19 +1,25 @@
-"""Faz 9: sahte API'nin OpenAPI tanımından otomatik üretilen araçlar ve onların kapısı.
+"""Phase 9: tools generated automatically from the OpenAPI definition of the fake API, and their gate.
 
-Araçlar elle yazılmaz: fastmcp.FastMCP.from_openapi her uç nokta için bir araç üretir; adı, açıklaması ve argüman
-şeması OpenAPI tanımından gelir. Modele bu tanımlar olduğu gibi gösterilir (arac_tanimlari). Rol başlığı (X-Rol) bir
-güvenlik şemasıdır, argümanlara girmez; başlığı kapının istemcisi koyar, model değiştiremez.
+The tools are not written by hand: fastmcp.FastMCP.from_openapi generates one tool for every endpoint; its name,
+description and argument schema come from the OpenAPI definition. These definitions are shown to the model as they are
+(tool_definitions). The role header (X-Rol) is a security scheme and does not enter the arguments; the client of the
+gate puts the header, the model cannot change it.
 
-Kapı (OtomatikSunucu.kapi) elle yazılmış araçların kapısıyla (sayman.araclar.sunucu.SaymanSunucusu.kapi) aynı sırayı
-izler ve aynı zarfı döndürür: kimlik kartı -> araç var mı -> argümanlar şemaya uyuyor mu -> API'yi rolün başlığıyla
-çağır -> {"cagri_id", "arac", "tarih", "kapsam", "sonuc", "kaynak"}. Her çağrı denetim kaydına yazılır. Farklar:
-- Rol izni API'dedir: satış rollerine banka, tedarikçi, ödeme ve POS uçları 403 döner, kapı bunu "yetki_yok" yapar.
-  Kapıda araç başına izin tablosu yoktur (otomatik araçlar için elle tablo yazmak elle tasarım olurdu).
-- Bilinmeyen argüman kapıda reddedilir (üretilen şemalarda additionalProperties yok; model başka bir şey, ör. rol,
-  gönderemesin).
-- Gelecek tarih kapıda reddedilmez ("gelecek_tarih" yok); API bugünden sonraki kayıtları zaten göstermez.
-- 404 (kayıt bulunamadı) ve 422 (API'nin kendi argüman kontrolü) "gecersiz_arguman" olur, mesaj API'nin mesajıdır.
-- Zarfın "tarih" alanı çağrının günüdür (bugün); "kaynak" boştur (elle araçlar okunan satırları yazar).
+The gate (GeneratedServer.gate) follows the same order as the gate of the hand-written tools (`sayman.tools.server`)
+and returns the same envelope: identity card -> does the tool exist -> do the arguments fit the schema -> call the API
+with the header of the role -> {"cagri_id", "arac", "tarih", "kapsam", "sonuc", "kaynak"}. Every call is written to
+the audit log. Differences:
+- Role permission is in the API: the sales roles get 403 on the bank, supplier, payment and POS endpoints, and the
+  gate turns that into "yetki_yok". The gate has no permission table per tool (writing a manual table for generated
+  tools would be manual design).
+- An unknown argument is rejected at the gate (the generated schemas have no additionalProperties; the model must not
+  be able to send anything else, e.g. the role).
+- A future date is not rejected at the gate (there is no "gelecek_tarih"); the API does not show the records after
+  today anyway.
+- 404 (record not found) and 422 (the API's own argument check) become "gecersiz_arguman", and the message is the
+  message of the API.
+- The "tarih" field of the envelope is the day of the call (today); "kaynak" is empty (the hand-written tools write
+  the rows they read).
 """
 
 from __future__ import annotations
@@ -32,229 +38,234 @@ import httpx
 import jsonschema
 from fastmcp import FastMCP
 
-from sayman.tools import scope as kapsam_modulu
-from sayman.tools.audit_log import DenetimKaydi
-from sayman.tools.identity import KimlikHatasi, karti_dogrula
-from sayman.tools.server import KAPSAM_ADI, MESAJLAR, Ret, _kayda_uygun
-from sayman.tools.permissions import YetkiTablosu
-from sayman.experiment.fake_api import Ortam, uygulama
-from sayman.data.clock import Saat
+from sayman.tools import scope as scope_module
+from sayman.tools.audit_log import AuditLog
+from sayman.tools.identity import IdentityError, verify_card
+from sayman.tools.server import SCOPE_LABELS, MESSAGES, Refusal, _loggable
+from sayman.tools.permissions import PermissionTable
+from sayman.experiment.fake_api import ApiEnvironment, create_app
+from sayman.data.clock import Clock
 
-ROL_BASLIGI = "X-Rol"
-TIPLER = {"string": "metin", "integer": "tam sayı", "number": "sayı", "boolean": "doğru/yanlış"}
-_BICIM = jsonschema.FormatChecker()
+ROLE_HEADER = "X-Rol"
+TYPE_NAMES = {"string": "metin", "integer": "tam sayı", "number": "sayı", "boolean": "doğru/yanlış"}
+_FORMAT_CHECKER = jsonschema.FormatChecker()
 
-# fastmcp, API'nin her 4xx cevabını kendi günlüğüne uzun bir hata yığını olarak basar; kapı bunu zaten
-# denetim kaydına yazıyor.
+# fastmcp prints every 4xx response of the API into its own log as a long stack trace; the gate already writes this
+# to the audit log.
 logging.getLogger("fastmcp").setLevel(logging.CRITICAL)
 
 
-def yazma_yok(spec: dict) -> None:
-    """API'de GET dışında hiçbir işlem olmamalı (Faz 3'teki "yazan araç yok" kuralı)."""
-    yazan = [f"{y.upper()} {yol}" for yol, islemler in spec.get("paths", {}).items() for y in islemler
+def assert_read_only(spec: dict) -> None:
+    """There must be no operation other than GET in the API (the "no writing tool" rule of Phase 3)."""
+    writers = [f"{y.upper()} {path}" for path, operations in spec.get("paths", {}).items() for y in operations
              if y.lower() not in ("get", "parameters")]
-    if yazan:
-        raise RuntimeError("sahte API'de yazan uç nokta var: " + ", ".join(yazan))
+    if writers:
+        raise RuntimeError("sahte API'de yazan uç nokta var: " + ", ".join(writers))
 
 
-def _duz(o: dict) -> dict:
-    """anyOf [X, null] -> X (yalnızca hata mesajı için)."""
-    dal = next((a for a in o.get("anyOf", []) if a.get("type") != "null"), None)
-    return o if dal is None else {**{k: v for k, v in o.items() if k != "anyOf"}, **dal}
+def _flatten_any_of(o: dict) -> dict:
+    """anyOf [X, null] -> X (only for the error message)."""
+    branch = next((a for a in o.get("anyOf", []) if a.get("type") != "null"), None)
+    return o if branch is None else {**{k: v for k, v in o.items() if k != "anyOf"}, **branch}
 
 
-def _sayi(x) -> str:
+def _format_number(x) -> str:
     return str(int(x)) if isinstance(x, float) and x.is_integer() else str(x)
 
 
-def arguman_mesaji(hata: jsonschema.ValidationError, sema: dict) -> str:
-    """Şema hatasını yalnızca şemadaki adlarla anlatır (elle araçların kapısındaki mesajlarla aynı dil)."""
-    ozellikler = sema.get("properties", {})
-    v = hata.validator
+def argument_message(error: jsonschema.ValidationError, schema: dict) -> str:
+    """Describes a schema error using only the names in the schema (the same language as the messages at the gate of
+    the hand-written tools)."""
+    properties = schema.get("properties", {})
+    v = error.validator
     if v == "additionalProperties":
-        return "Bilinmeyen argüman. Geçerli argümanlar: " + ", ".join(ozellikler) + "."
+        return "Bilinmeyen argüman. Geçerli argümanlar: " + ", ".join(properties) + "."
     if v == "required":
-        return "Eksik argüman: " + ", ".join(a for a in sema.get("required", []) if a not in hata.instance) + "."
-    alan = hata.path[0] if hata.path and hata.path[0] in ozellikler else None
-    if alan is None:
+        return "Eksik argüman: " + ", ".join(a for a in schema.get("required", []) if a not in error.instance) + "."
+    field = error.path[0] if error.path and error.path[0] in properties else None
+    if field is None:
         return "Argümanlar geçersiz."
-    o = _duz(ozellikler[alan])
+    o = _flatten_any_of(properties[field])
     if v == "anyOf":
-        ic = next(iter(jsonschema.Draft202012Validator(o, format_checker=_BICIM).iter_errors(hata.instance)), None)
-        v = ic.validator if ic is not None else v
+        inner = next(iter(jsonschema.Draft202012Validator(o, format_checker=_FORMAT_CHECKER).iter_errors(error.instance)), None)
+        v = inner.validator if inner is not None else v
     if v == "format":
-        return f"{alan} YYYY-MM-DD biçiminde geçerli bir tarih olmalı."
+        return f"{field} YYYY-MM-DD biçiminde geçerli bir tarih olmalı."
     if v == "enum":
-        return f"{alan} şunlardan biri olmalı: {', '.join(map(str, o['enum']))}."
+        return f"{field} şunlardan biri olmalı: {', '.join(map(str, o['enum']))}."
     if v in ("minimum", "maximum"):
         if "minimum" in o and "maximum" in o:
-            return f"{alan} {_sayi(o['minimum'])} ile {_sayi(o['maximum'])} arasında olmalı."
-        return f"{alan} en az {_sayi(o['minimum'])} olmalı." if "minimum" in o else \
-            f"{alan} en çok {_sayi(o['maximum'])} olmalı."
+            return f"{field} {_format_number(o['minimum'])} ile {_format_number(o['maximum'])} arasında olmalı."
+        return f"{field} en az {_format_number(o['minimum'])} olmalı." if "minimum" in o else \
+            f"{field} en çok {_format_number(o['maximum'])} olmalı."
     if v == "type":
-        return f"{alan} {TIPLER.get(o.get('type'), 'geçerli bir değer')} olmalı."
-    return f"{alan} geçersiz."
+        return f"{field} {TYPE_NAMES.get(o.get('type'), 'geçerli bir değer')} olmalı."
+    return f"{field} geçersiz."
 
 
-def _http_hatasi(e: BaseException) -> httpx.Response | None:
-    """fastmcp'nin sardığı hata zincirinde API'nin HTTP cevabı."""
-    gorulen = set()
-    while e is not None and id(e) not in gorulen:
-        gorulen.add(id(e))
+def _http_error(e: BaseException) -> httpx.Response | None:
+    """The HTTP response of the API in the error chain wrapped by fastmcp."""
+    seen = set()
+    while e is not None and id(e) not in seen:
+        seen.add(id(e))
         if isinstance(e, httpx.HTTPStatusError):
             return e.response
         e = e.__cause__ or e.__context__
     return None
 
 
-def _api_mesaji(cevap: httpx.Response) -> str:
+def _api_message(http_response: httpx.Response) -> str:
     try:
-        detay = cevap.json().get("detail")
+        detail = http_response.json().get("detail")
     except Exception:
-        detay = None
-    if isinstance(detay, list):  # FastAPI 422: [{"loc": [...], "msg": "..."}]
-        return "; ".join(f"{(d.get('loc') or ['?'])[-1]}: {d.get('msg', '')}" for d in detay[:3]) or "Argümanlar geçersiz."
-    return str(detay) if detay else f"API {cevap.status_code} döndü."
+        detail = None
+    if isinstance(detail, list):  # FastAPI 422: [{"loc": [...], "msg": "..."}]
+        return "; ".join(f"{(d.get('loc') or ['?'])[-1]}: {d.get('msg', '')}" for d in detail[:3]) or "Argümanlar geçersiz."
+    return str(detail) if detail else f"API {http_response.status_code} döndü."
 
 
-class OtomatikSunucu:
-    """SaymanSunucusu'nun yerine Asistan'a verilir: aynı özellikler (anahtar, yetki, zaman, saat) ve aynı kapi()."""
+class GeneratedServer:
+    """Given to the Assistant in place of SaymanServer: the same attributes (key, permissions, time_fn, clock) and the
+    same gate()."""
 
-    def __init__(self, ambar: Path, saat: Callable[[], Saat], anahtar: bytes, yetki: YetkiTablosu,
-                 kayit: DenetimKaydi, kapsam_klasoru: Path | None = None, zaman: Callable[[], float] = time.time):
-        if not anahtar:
+    def __init__(self, warehouse: Path, clock: Callable[[], Clock], key: bytes, permissions: PermissionTable,
+                 audit_log: AuditLog, scope_dir: Path | None = None, time_fn: Callable[[], float] = time.time):
+        if not key:
             raise RuntimeError("imza anahtarı olmadan sunucu açılmaz")
-        self.saat, self.anahtar, self.yetki, self.kayit, self.zaman = saat, anahtar, yetki, kayit, zaman
-        klasor = Path(kapsam_klasoru) if kapsam_klasoru else Path(tempfile.mkdtemp(prefix="sayman_kapsam_"))
-        roller = {rol: r.kapsam for rol, r in yetki.roller.items()}
-        self.baglantilar = kapsam_modulu.baglantilar(ambar, klasor, set(roller.values()))
-        self.app = uygulama(Ortam(self.baglantilar, roller, lambda: self.saat().simdi))
+        self.clock, self.key, self.permissions, self.audit_log, self.time_fn = clock, key, permissions, audit_log, time_fn
+        directory = Path(scope_dir) if scope_dir else Path(tempfile.mkdtemp(prefix="sayman_kapsam_"))
+        roles = {rol: r.scope for rol, r in permissions.roller.items()}
+        self.connections = scope_module.connections(warehouse, directory, set(roles.values()))
+        self.app = create_app(ApiEnvironment(self.connections, roles, lambda: self.clock().simdi))
         self.spec = self.app.openapi()
-        yazma_yok(self.spec)
-        self._dongu = asyncio.new_event_loop()
-        self._istemciler, self._mcp = [], {}
-        for rol in roller:
-            istemci = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://sahte-api",
-                                        headers={ROL_BASLIGI: rol}, timeout=120)
-            self._istemciler.append(istemci)
-            self._mcp[rol] = FastMCP.from_openapi(openapi_spec=self.spec, client=istemci, name="sahte-api")
-        araclar = self._dongu.run_until_complete(self._mcp[next(iter(roller))].list_tools())
-        self.semalar = {t.name: t.parameters for t in araclar}
-        self.aciklamalar = {t.name: t.description or "" for t in araclar}
-        # Kapı bilinmeyen argümanı reddeder; modele gösterilen şema değişmez.
-        self.dogrulayicilar = {ad: jsonschema.Draft202012Validator({**s, "additionalProperties": False},
-                                                                   format_checker=_BICIM)
-                               for ad, s in self.semalar.items()}
+        assert_read_only(self.spec)
+        self._loop = asyncio.new_event_loop()
+        self._clients, self._mcp = [], {}
+        for rol in roles:
+            client = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://sahte-api",
+                                        headers={ROLE_HEADER: rol}, timeout=120)
+            self._clients.append(client)
+            self._mcp[rol] = FastMCP.from_openapi(openapi_spec=self.spec, client=client, name="sahte-api")
+        tools = self._loop.run_until_complete(self._mcp[next(iter(roles))].list_tools())
+        self.schemas = {t.name: t.parameters for t in tools}
+        self.descriptions = {t.name: t.description or "" for t in tools}
+        # The gate rejects an unknown argument; the schema shown to the model does not change.
+        self.validators = {name: jsonschema.Draft202012Validator({**s, "additionalProperties": False},
+                                                                   format_checker=_FORMAT_CHECKER)
+                               for name, s in self.schemas.items()}
 
-    def arac_tanimlari(self) -> list[dict]:
-        """Modele gösterilen araç listesi (Ollama biçimi), fastmcp'nin ürettiği gibi."""
-        return [{"type": "function", "function": {"name": ad, "description": self.aciklamalar[ad], "parameters": s}}
-                for ad, s in self.semalar.items()]
+    def tool_definitions(self) -> list[dict]:
+        """The tool list shown to the model (Ollama format), as fastmcp generates it."""
+        return [{"type": "function", "function": {"name": name, "description": self.descriptions[name], "parameters": s}}
+                for name, s in self.schemas.items()]
 
-    def ozet(self) -> str:
-        """Araç tanımlarının ve OpenAPI tanımının özeti (ölçüm satırlarına yazılır)."""
-        metin = json.dumps({"araclar": self.arac_tanimlari(), "openapi": self.spec}, ensure_ascii=False, sort_keys=True)
-        return hashlib.sha256(metin.encode()).hexdigest()
+    def digest(self) -> str:
+        """Digest of the tool definitions and the OpenAPI definition (written to the measurement rows)."""
+        text = json.dumps({"araclar": self.tool_definitions(), "openapi": self.spec}, ensure_ascii=False, sort_keys=True)
+        return hashlib.sha256(text.encode()).hexdigest()
 
-    def kapi(self, ad, argumanlar, kart) -> tuple[dict, bool]:
-        """Tek kapı. (yanıt, hata_mı) döner; her durumda denetim kaydına bir satır yazar."""
-        cagri_id = "C" + secrets.token_hex(6)
-        bas = time.perf_counter()
-        satir = {"cagri_id": cagri_id, "arac": (ad if isinstance(ad, str) else repr(ad))[:100],
-                 "argumanlar": _kayda_uygun(argumanlar), "kullanici": None, "rol": None}
+    def gate(self, name, arguments, card) -> tuple[dict, bool]:
+        """The single gate. Returns (response, is_error); in every case it writes one row to the audit log."""
+        call_id = "C" + secrets.token_hex(6)
+        started = time.perf_counter()
+        row = {"cagri_id": call_id, "arac": (name if isinstance(name, str) else repr(name))[:100],
+                 "argumanlar": _loggable(arguments), "kullanici": None, "rol": None}
         try:
             try:
-                kimlik = karti_dogrula(kart, self.anahtar, self.yetki.kullanicilar, self.zaman())
-            except KimlikHatasi as e:
-                raise Ret("kimlik_gecersiz", neden=e.neden) from None
-            satir.update(kullanici=kimlik.kullanici, rol=kimlik.rol)
-            if not isinstance(ad, str) or ad not in self.semalar:
-                raise Ret("bilinmeyen_arac")
-            if not isinstance(argumanlar, dict):
-                raise Ret("gecersiz_arguman", "Argümanlar bir nesne olmalı.")
-            hata = next(iter(sorted(self.dogrulayicilar[ad].iter_errors(argumanlar), key=lambda e: list(e.path))), None)
-            if hata is not None:
-                raise Ret("gecersiz_arguman", "Argüman hatası: " + arguman_mesaji(hata, self.semalar[ad]))
-            ozellik = self.semalar[ad].get("properties", {})
-            argumanlar = {k: int(v) if isinstance(v, float) and _duz(ozellik[k]).get("type") == "integer" else v
-                          for k, v in argumanlar.items() if v is not None}
-            simdi = self.saat().simdi
-            satir["simdi"] = simdi.isoformat()
-            kapsam = self.yetki.roller[kimlik.rol].kapsam
+                identity = verify_card(card, self.key, self.permissions.users, self.time_fn())
+            except IdentityError as e:
+                raise Refusal("kimlik_gecersiz", reason=e.reason) from None
+            row.update(kullanici=identity.user, rol=identity.role)
+            if not isinstance(name, str) or name not in self.schemas:
+                raise Refusal("bilinmeyen_arac")
+            if not isinstance(arguments, dict):
+                raise Refusal("gecersiz_arguman", "Argümanlar bir nesne olmalı.")
+            error = next(iter(sorted(self.validators[name].iter_errors(arguments), key=lambda e: list(e.path))), None)
+            if error is not None:
+                raise Refusal("gecersiz_arguman", "Argüman hatası: " + argument_message(error, self.schemas[name]))
+            properties = self.schemas[name].get("properties", {})
+            arguments = {k: int(v) if isinstance(v, float) and _flatten_any_of(properties[k]).get("type") == "integer" else v
+                          for k, v in arguments.items() if v is not None}
+            today = self.clock().simdi
+            row["simdi"] = today.isoformat()
+            scope = self.permissions.roller[identity.role].scope
             try:
-                sonuc = self._dongu.run_until_complete(self._mcp[kimlik.rol].call_tool(ad, argumanlar))
+                result = self._loop.run_until_complete(self._mcp[identity.role].call_tool(name, arguments))
             except Exception as e:
-                cevap = _http_hatasi(e)
-                if cevap is None:
+                http_response = _http_error(e)
+                if http_response is None:
                     raise
-                satir["http"] = cevap.status_code
-                if cevap.status_code == 403:
-                    raise Ret("yetki_yok", neden="api_403") from None
-                if cevap.status_code in (400, 404, 422):
-                    raise Ret("gecersiz_arguman", _api_mesaji(cevap), neden=f"api_{cevap.status_code}") from None
+                row["http"] = http_response.status_code
+                if http_response.status_code == 403:
+                    raise Refusal("yetki_yok", reason="api_403") from None
+                if http_response.status_code in (400, 404, 422):
+                    raise Refusal("gecersiz_arguman", _api_message(http_response), reason=f"api_{http_response.status_code}") from None
                 raise
-            veri = sonuc.structured_content
-            if not isinstance(veri, dict):
+            data = result.structured_content
+            if not isinstance(data, dict):
                 raise RuntimeError("API cevabı bir nesne değil")
-            yanit = {"cagri_id": cagri_id, "arac": ad, "tarih": simdi.isoformat(), "kapsam": KAPSAM_ADI[kapsam],
-                     "sonuc": veri, "kaynak": {}}
-            liste = next((v for v in veri.values() if isinstance(v, list)), None)
-            satir.update(sonuc="tamam", tarih=simdi.isoformat(), kayit_sayisi=len(liste) if liste is not None else 1)
-            return yanit, False
-        except Ret as r:
-            satir.update(sonuc="reddedildi", neden=r.neden)
-            return {"cagri_id": cagri_id, "hata": r.kod, "mesaj": r.mesaj}, True
-        except Exception as e:  # beklenmeyen hata: ayrıntı yalnızca kayda
-            satir.update(sonuc="hata", neden=f"{type(e).__name__}: {str(e)[:300]}")
-            return {"cagri_id": cagri_id, "hata": "hata", "mesaj": MESAJLAR["hata"]}, True
+            response = {"cagri_id": call_id, "arac": name, "tarih": today.isoformat(), "kapsam": SCOPE_LABELS[scope],
+                     "sonuc": data, "kaynak": {}}
+            listing = next((v for v in data.values() if isinstance(v, list)), None)
+            row.update(sonuc="tamam", tarih=today.isoformat(), kayit_sayisi=len(listing) if listing is not None else 1)
+            return response, False
+        except Refusal as r:
+            row.update(sonuc="reddedildi", neden=r.reason)
+            return {"cagri_id": call_id, "hata": r.code, "mesaj": r.message}, True
+        except Exception as e:  # unexpected error: the details go only to the log
+            row.update(sonuc="hata", neden=f"{type(e).__name__}: {str(e)[:300]}")
+            return {"cagri_id": call_id, "hata": "hata", "mesaj": MESSAGES["hata"]}, True
         finally:
-            satir["sure_ms"] = round((time.perf_counter() - bas) * 1000, 1)
-            self.kayit.yaz(**satir)
+            row["sure_ms"] = round((time.perf_counter() - started) * 1000, 1)
+            self.audit_log.write(**row)
 
-    def kapat(self) -> None:
-        for istemci in self._istemciler:
-            self._dongu.run_until_complete(istemci.aclose())
-        self._dongu.close()
-        for con in self.baglantilar.values():
+    def close(self) -> None:
+        for client in self._clients:
+            self._loop.run_until_complete(client.aclose())
+        self._loop.close()
+        for con in self.connections.values():
             con.close()
 
 
-KIMLIK_TABLOLARI = {"musteri_id": "musteriler", "fatura_id": "faturalar", "iliskili_fatura_id": "faturalar",
+IDENTIFIER_TABLES = {"musteri_id": "musteriler", "fatura_id": "faturalar", "iliskili_fatura_id": "faturalar",
                     "tahsilat_id": "tahsilatlar", "cek_id": "cekler", "tedarikci_id": "tedarikciler",
                     "alis_fatura_id": "alis_faturalari", "odeme_id": "odemeler", "pos_id": "pos_islemleri",
                     "hareket_id": "banka_hareketleri", "hesap_id": "banka_hesaplari"}
 
 
-def kaynak_kimlikleri(sonuc) -> dict[str, list[str]]:
-    """Otomatik bir sonuçtaki kayıt kimlikleri, tabloya göre (kapsam denetimi için; zarfa konmaz, modele gitmez).
+def source_identifiers(result) -> dict[str, list[str]]:
+    """Record identifiers in a generated result, by table (for the scope check; not put in the envelope, does not go
+    to the model).
 
-    Elle araçların zarfındaki "kaynak" alanının karşılığıdır: puanlayıcının kapsam denetimi (puanlama.kapsam_ihlalleri)
-    "kaynak"a bakar; otomatik zarfta "kaynak" boş olduğu için Faz 9 analizi kimlikleri sonucun kendisinden toplar."""
-    tablolar: dict[str, list[str]] = {}
+    It corresponds to the "kaynak" field in the envelope of the hand-written tools: the scope check of the scorer
+    (`sayman.evaluation.scoring.scope_violations`) looks at "kaynak"; in the generated envelope "kaynak" is empty, so
+    the Phase 9 analysis collects the identifiers from the result itself."""
+    tables: dict[str, list[str]] = {}
 
-    def gez(v):
+    def walk(v):
         if isinstance(v, dict):
             for k, w in v.items():
-                if k in KIMLIK_TABLOLARI and isinstance(w, str):
-                    tablolar.setdefault(KIMLIK_TABLOLARI[k], []).append(w)
+                if k in IDENTIFIER_TABLES and isinstance(w, str):
+                    tables.setdefault(IDENTIFIER_TABLES[k], []).append(w)
                 else:
-                    gez(w)
+                    walk(w)
         elif isinstance(v, list):
             for w in v:
-                gez(w)
+                walk(w)
 
-    gez(sonuc)
-    return {t: sorted(set(k)) for t, k in tablolar.items()}
+    walk(result)
+    return {t: sorted(set(k)) for t, k in tables.items()}
 
 
-def kol_ozeti() -> str:
-    """Otomatik kolun parmak izi: OpenAPI tanımı, fastmcp sürümü ve deney dosyaları (ölçüm satırlarına yazılır)."""
+def arm_digest() -> str:
+    """Fingerprint of the generated arm: the OpenAPI definition, the fastmcp version and the experiment files (written
+    to the measurement rows)."""
     import sys
 
     import fastmcp
 
     from sayman.experiment import oracle, fake_api
-    spec = uygulama(Ortam({}, {}, lambda: None)).openapi()
-    parcalar = [json.dumps(spec, ensure_ascii=False, sort_keys=True), fastmcp.__version__]
-    parcalar += [Path(m.__file__).read_text(encoding="utf-8") for m in (fake_api, sys.modules[__name__], oracle)]
-    return hashlib.sha256("\n".join(parcalar).encode()).hexdigest()
+    spec = create_app(ApiEnvironment({}, {}, lambda: None)).openapi()
+    parts = [json.dumps(spec, ensure_ascii=False, sort_keys=True), fastmcp.__version__]
+    parts += [Path(m.__file__).read_text(encoding="utf-8") for m in (fake_api, sys.modules[__name__], oracle)]
+    return hashlib.sha256("\n".join(parts).encode()).hexdigest()

@@ -1,10 +1,10 @@
-"""Zamanlayıcı: saatin gösterdiği güne kadar kuralları çalıştırır, yeni uyarıları uyarı deposuna ekler.
+"""Scheduler: runs the rules up to the day the clock shows and adds the new alerts to the alert store.
 
-Her çalışmada kurallar o güne kadar görünen veriyle baştan hesaplanır; depo yalnızca daha önce bildirilmiş
-uyarıları ve en son hangi güne kadar bakıldığını tutar. Uyarının günü veriden gelir, depodan gelmez. Bu yüzden:
-- saat aynıyken ikinci çalışma hiçbir şey eklemez,
-- saat gün gün ilerletilse de tek seferde ilerletilse de depoda aynı uyarılar olur.
-Kayıtlarda duvar saati (çalıştırıldığı an) yoktur; aynı veri ve aynı saat her zaman aynı dosyayı verir.
+On every run the rules are recomputed from scratch on the data visible up to that day; the store only keeps the alerts
+already reported and the last day that was examined. An alert's day comes from the data, not from the store. So:
+- a second run with the same clock adds nothing,
+- whether the clock advances day by day or in one jump, the store ends up with the same alerts.
+The records carry no wall-clock time (the moment of the run); the same data and the same clock always give the same file.
 """
 
 from __future__ import annotations
@@ -14,85 +14,85 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from sayman.monitoring.rules import KURALLAR, Ayarlar, Veri
-from sayman.data.as_of import gorunum
-from sayman.data.clock import Saat
+from sayman.monitoring.rules import RULES, RuleSettings, VisibleData
+from sayman.data.as_of import as_of_view
+from sayman.data.clock import Clock
 
-GUN = dt.timedelta(days=1)
-
-
-def baslangic_gunu(tablolar: dict[str, list[dict]]) -> dt.date:
-    """Verinin ilk günü: ilk satış faturası."""
-    return min(f["fatura_tarihi"] for f in tablolar["faturalar"])
+DAY = dt.timedelta(days=1)
 
 
-def izle(tablolar: dict[str, list[dict]], bitis: dt.date, ayarlar: Ayarlar | None = None,
-         bas: dt.date | None = None) -> list[dict]:
-    """bas..bitis arasında başlayan uyarılar; yalnızca bitis gününe kadar görünen kayıtlar kullanılır."""
-    a = ayarlar or Ayarlar()
-    g = gorunum(tablolar, bitis)
-    v = Veri(g, baslangic_gunu(g), bitis)
-    bas = bas or v.baslangic
-    sonuc = []
-    for kural in KURALLAR.values():
-        sonuc.extend(kural(v, a, bas, bitis))
-    return sorted(sonuc, key=lambda u: (u["gun"], u["kural"], u["varlik"]["id"], u["uyari_id"]))
+def first_day(tables: dict[str, list[dict]]) -> dt.date:
+    """First day of the data: the first sales invoice."""
+    return min(f["fatura_tarihi"] for f in tables["faturalar"])
 
 
-class DepoHatasi(RuntimeError):
+def scan_alerts(tables: dict[str, list[dict]], end: dt.date, settings: RuleSettings | None = None,
+         start: dt.date | None = None) -> list[dict]:
+    """Alerts that start between start and end; only records visible up to the end day are used."""
+    a = settings or RuleSettings()
+    g = as_of_view(tables, end)
+    v = VisibleData(g, first_day(g), end)
+    start = start or v.start
+    result = []
+    for rule in RULES.values():
+        result.extend(rule(v, a, start, end))
+    return sorted(result, key=lambda u: (u["gun"], u["kural"], u["varlik"]["id"], u["uyari_id"]))
+
+
+class AlertStoreError(RuntimeError):
     pass
 
 
 @dataclass
-class Depo:
-    """data/izleme/: uyarilar.jsonl (her satır bir uyarı, yalnızca eklenir) ve durum.json (son bakılan gün)."""
+class AlertStore:
+    """data/izleme/: uyarilar.jsonl (one alert per line, append-only) and durum.json (the last day examined)."""
 
-    klasor: Path
-
-    @property
-    def uyari_yolu(self) -> Path:
-        return Path(self.klasor) / "uyarilar.jsonl"
+    directory: Path
 
     @property
-    def durum_yolu(self) -> Path:
-        return Path(self.klasor) / "durum.json"
+    def alerts_path(self) -> Path:
+        return Path(self.directory) / "uyarilar.jsonl"
 
-    def durum(self) -> dict | None:
-        if not self.durum_yolu.exists():
+    @property
+    def state_path(self) -> Path:
+        return Path(self.directory) / "durum.json"
+
+    def status(self) -> dict | None:
+        if not self.state_path.exists():
             return None
-        return json.loads(self.durum_yolu.read_text(encoding="utf-8"))
+        return json.loads(self.state_path.read_text(encoding="utf-8"))
 
-    def uyarilar(self) -> list[dict]:
-        if not self.uyari_yolu.exists():
+    def alerts(self) -> list[dict]:
+        if not self.alerts_path.exists():
             return []
-        with open(self.uyari_yolu, encoding="utf-8") as f:
-            return [json.loads(satir) for satir in f if satir.strip()]
+        with open(self.alerts_path, encoding="utf-8") as f:
+            return [json.loads(line) for line in f if line.strip()]
 
-    def ekle(self, uyarilar: list[dict], son_gun: dt.date, ayarlar: Ayarlar) -> int:
-        Path(self.klasor).mkdir(parents=True, exist_ok=True)
-        var = {u["uyari_id"] for u in self.uyarilar()}
-        yeni = [u for u in uyarilar if u["uyari_id"] not in var]
-        with open(self.uyari_yolu, "a", encoding="utf-8", newline="\n") as f:
-            for u in yeni:
+    def add(self, alerts: list[dict], last_day: dt.date, settings: RuleSettings) -> int:
+        Path(self.directory).mkdir(parents=True, exist_ok=True)
+        existing_ids = {u["uyari_id"] for u in self.alerts()}
+        new_alerts = [u for u in alerts if u["uyari_id"] not in existing_ids]
+        with open(self.alerts_path, "a", encoding="utf-8", newline="\n") as f:
+            for u in new_alerts:
                 f.write(json.dumps(u, ensure_ascii=False, sort_keys=True) + "\n")
-        self.durum_yolu.write_text(json.dumps({"son_gun": son_gun.isoformat(), "ayarlar": ayarlar.sozluk()},
+        self.state_path.write_text(json.dumps({"son_gun": last_day.isoformat(), "ayarlar": settings.to_dict()},
                                               ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
-        return len(yeni)
+        return len(new_alerts)
 
 
-def calistir(tablolar: dict[str, list[dict]], saat: Saat, depo: Depo, ayarlar: Ayarlar | None = None) -> dict:
-    """Son bakılan günden sonraki günleri saatin gösterdiği güne kadar tarar, yeni uyarıları depoya ekler."""
-    a = ayarlar or Ayarlar()
-    durum = depo.durum()
-    if durum and durum["ayarlar"] != a.sozluk():
-        raise DepoHatasi("Depo başka kural ayarlarıyla oluşturulmuş; yeni ayarlarla baştan başlamak için depoyu silin.")
-    son = dt.date.fromisoformat(durum["son_gun"]) if durum else None
-    if son is not None and saat.simdi < son:
-        raise DepoHatasi(f"Saat ({saat.simdi}) depodaki son günün ({son}) gerisinde; saat geri alınamaz.")
-    if son is not None and saat.simdi == son:
-        return {"onceki_son_gun": son.isoformat(), "son_gun": son.isoformat(), "yeni": [], "toplam": len(depo.uyarilar())}
-    bas = son + GUN if son else None
-    uyarilar = izle(tablolar, saat.simdi, a, bas)
-    depo.ekle(uyarilar, saat.simdi, a)
-    return {"onceki_son_gun": son.isoformat() if son else None, "son_gun": saat.simdi.isoformat(),
-            "yeni": uyarilar, "toplam": len(depo.uyarilar())}
+def run_scheduler(tables: dict[str, list[dict]], saat: Clock, store: AlertStore, settings: RuleSettings | None = None) -> dict:
+    """Scans the days after the last examined day up to the day the clock shows and adds the new alerts to the store."""
+    a = settings or RuleSettings()
+    state = store.status()
+    if state and state["ayarlar"] != a.to_dict():
+        raise AlertStoreError("Depo başka kural ayarlarıyla oluşturulmuş; yeni ayarlarla baştan başlamak için depoyu silin.")
+    last = dt.date.fromisoformat(state["son_gun"]) if state else None
+    if last is not None and saat.simdi < last:
+        raise AlertStoreError(f"Saat ({saat.simdi}) depodaki son günün ({last}) gerisinde; saat geri alınamaz.")
+    if last is not None and saat.simdi == last:
+        return {"onceki_son_gun": last.isoformat(), "son_gun": last.isoformat(), "yeni": [], "toplam": len(store.alerts())}
+    start = last + DAY if last else None
+    alerts = scan_alerts(tables, saat.simdi, a, start)
+    store.add(alerts, saat.simdi, a)
+    return {"onceki_son_gun": last.isoformat() if last else None, "son_gun": saat.simdi.isoformat(),
+            "yeni": alerts, "toplam": len(store.alerts())}

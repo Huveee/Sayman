@@ -1,1 +1,1 @@
-"""Faz 1: gerçek kaynak veri, sentetik şirket üretici, olaylar ve simülasyon saati."""
+"""Phase 1: real source data, synthetic company generator, events and the simulation clock."""

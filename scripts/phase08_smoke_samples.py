@@ -1,13 +1,13 @@
-"""Kaggle deneme eğitimi (duman testi) için az sayıda gerçek biçimli örnek üretir.
+"""Produces a small number of real-format samples for the Kaggle trial training (smoke test).
 
-Örnekler geliştirme setinden, kâhin modelle gerçek orkestratörden geçirilerek üretilir: her model çağrısı bir örnektir
-(istem = Ollama'nın o çağrıda çizdiği metin, tamamlama = kâhinin cevabı). Bu örnekler yalnızca düzeneği sınar
-(bellek, hız, kayıp, dışa aktarma); asıl eğitimde kullanılmaz ve bu eğitimle elde edilen model ölçülmez.
-Geliştirme seti değerlendirme için ayrılmış kalır.
+The samples come from the development set, run through the real orchestrator with the oracle model: every model call is one
+sample (prompt = the text Ollama rendered for that call, completion = the oracle's answer). These samples only test the setup
+(memory, speed, loss, export); they are not used in the real training and the model obtained from this training is not measured.
+The development set stays reserved for evaluation.
 
-Çıktı: data/egitim/duman/ornekler.jsonl
-Kullanım (proje kökünden, Ollama açıkken):
-    .venv\\Scripts\\python -I scripts\\faz8_duman_ornek.py
+Output: data/egitim/duman/ornekler.jsonl
+Usage (from the project root, with Ollama running):
+    .venv\\Scripts\\python -I scripts\\phase08_smoke_samples.py
 """
 
 from __future__ import annotations
@@ -18,77 +18,77 @@ import sys
 import tempfile
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-from sayman.tools.audit_log import DenetimKaydi  # noqa: E402
-from sayman.tools.identity import kart_uret  # noqa: E402
-from sayman.tools.server import SaymanSunucusu  # noqa: E402
-from sayman.tools.permissions import yetki_oku  # noqa: E402
-from sayman.assistant.orchestrator import Asistan, Ayar  # noqa: E402
+from sayman.tools.audit_log import AuditLog  # noqa: E402
+from sayman.tools.identity import generate_card  # noqa: E402
+from sayman.tools.server import SaymanServer  # noqa: E402
+from sayman.tools.permissions import read_permissions  # noqa: E402
+from sayman.assistant.orchestrator import Assistant, Settings  # noqa: E402
 from sayman.documents import library  # noqa: E402
-from sayman.training.prompt import KayitciModel, istem_ciz, tamamlama  # noqa: E402
-from sayman.evaluation.oracle import Kahin, KahinArayici  # noqa: E402
-from sayman.data.clock import saat_oku  # noqa: E402
+from sayman.training.prompt import RecordingModel, render_prompt, completion  # noqa: E402
+from sayman.evaluation.oracle import Oracle, OracleSearcher  # noqa: E402
+from sayman.data.clock import read_clock  # noqa: E402
 
-CIKTI = KOK / "data" / "egitim" / "duman" / "ornekler.jsonl"
-SORULAR = ["G-nakit_toplam-01", "G-yas_toplam-01", "G-gec_ikinci-01", "G-dso_donem-01", "G-kur_bugun-01",
+OUTPUT = ROOT / "data" / "egitim" / "duman" / "ornekler.jsonl"
+QUESTION_IDS = ["G-nakit_toplam-01", "G-yas_toplam-01", "G-gec_ikinci-01", "G-dso_donem-01", "G-kur_bugun-01",
            "G-oz_acik_fatura-01", "G-fat_bilgi-01", "G-akis_ilk_hafta-01", "G-belge-01", "G-belge-02", "G-belge-03",
            "G-yetkisiz-baska-01", "G-yetkisiz-yasak-01"]
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    veri = json.loads((KOK / "reports" / "faz7_soru_seti.json").read_text(encoding="utf-8"))
-    gelistirme = [s for s in veri["sorular"] if s["set"] == "gelistirme"]
-    secili = [s for s in gelistirme if s["soru_id"] in SORULAR]
-    if len(secili) != len(SORULAR):
+    data = json.loads((ROOT / "reports" / "faz7_soru_seti.json").read_text(encoding="utf-8"))
+    development = [s for s in data["sorular"] if s["set"] == "gelistirme"]
+    selected = [s for s in development if s["soru_id"] in QUESTION_IDS]
+    if len(selected) != len(QUESTION_IDS):
         raise SystemExit("geliştirme setinde olmayan soru kimliği")
-    parcalar = {p.parca_id: p for p in library.parcalar(library.oku(KOK / "data" / "belge" / "belgeler.jsonl"))}
-    model = KayitciModel(Kahin(None, parcalar))
-    arayici = KahinArayici(parcalar)
-    saat = saat_oku(KOK / "data" / "saat.json")
-    anahtar = secrets.token_bytes(32)
-    ornekler = []
-    with tempfile.TemporaryDirectory() as gecici:
-        sunucu = SaymanSunucusu(ambar=KOK / "data" / "ambar" / "sayman.duckdb", saat=lambda: saat, anahtar=anahtar,
-                                yetki=yetki_oku(), kayit=DenetimKaydi(Path(gecici) / "denetim.jsonl"),
-                                kapsam_klasoru=Path(gecici) / "kapsam", belge=arayici, belge_yontemi="anlam")
+    chunks = {p.parca_id: p for p in library.to_chunks(library.read_documents(ROOT / "data" / "belge" / "belgeler.jsonl"))}
+    model = RecordingModel(Oracle(None, chunks))
+    searcher = OracleSearcher(chunks)
+    clock = read_clock(ROOT / "data" / "saat.json")
+    signing_key = secrets.token_bytes(32)
+    samples = []
+    with tempfile.TemporaryDirectory() as temp_dir:
+        server = SaymanServer(warehouse=ROOT / "data" / "ambar" / "sayman.duckdb", clock=lambda: clock, key=signing_key,
+                                permissions=read_permissions(), audit_log=AuditLog(Path(temp_dir) / "denetim.jsonl"),
+                                scope_dir=Path(temp_dir) / "kapsam", belge=searcher, search_method="anlam")
         try:
-            asistan = Asistan(sunucu, model, Ayar())
-            for s in secili:
-                model.soru = arayici.soru = s
-                tur = asistan.sor(s["soru"], kart_uret(s["kullanici"], anahtar, 900))
-                for adim, c in enumerate(model.bosalt(), 1):
-                    ornekler.append({"soru_id": s["soru_id"], "adim": adim, "durum": tur.durum,
-                                     "istem": istem_ciz(c["mesajlar"], c["araclar"]),
-                                     "tamamlama": tamamlama(c["cevap"])})
-                print(s["soru_id"], tur.durum, tur.model_cagrisi, flush=True)
+            assistant = Assistant(server, model, Settings())
+            for s in selected:
+                model.soru = searcher.soru = s
+                turn = assistant.ask(s["soru"], generate_card(s["kullanici"], signing_key, 900))
+                for step, c in enumerate(model.drain(), 1):
+                    samples.append({"soru_id": s["soru_id"], "adim": step, "durum": turn.status,
+                                     "istem": render_prompt(c["mesajlar"], c["araclar"]),
+                                     "tamamlama": completion(c["cevap"])})
+                print(s["soru_id"], turn.status, turn.model_calls, flush=True)
         finally:
-            sunucu.kapat()
-    # Kontrol: ilk istemi Ollama'ya ham (raw) verip temel modelin kendiliğinden ne yazdığını ve istemin Ollama'da kaç
-    # token tuttuğunu kaydet. Kaggle'daki HF token sayısı bununla karşılaştırılır (önbellek isabeti sayıyı düşürebilir).
+            server.close()
+    # Check: give the first prompt to Ollama raw and record what the base model writes on its own and how many
+    # tokens the prompt takes in Ollama. The HF token count on Kaggle is compared with this (a cache hit can lower the count).
     import httpx
 
-    from sayman.assistant.model import MODEL, SECENEKLER
+    from sayman.assistant.model import MODEL, OPTIONS
 
     r = httpx.post("http://127.0.0.1:11434/api/generate", timeout=600, json={
-        "model": MODEL, "prompt": ornekler[0]["istem"], "raw": True, "stream": False,
-        "options": {**SECENEKLER, "num_predict": 200}})
+        "model": MODEL, "prompt": samples[0]["istem"], "raw": True, "stream": False,
+        "options": {**OPTIONS, "num_predict": 200}})
     r.raise_for_status()
-    ham = r.json()
-    ornekler[0]["ollama_istem_token"] = ham.get("prompt_eval_count")
-    CIKTI.parent.mkdir(parents=True, exist_ok=True)
-    (CIKTI.parent / "ham_uretim.json").write_text(json.dumps(
-        {"soru_id": ornekler[0]["soru_id"], "prompt_eval_count": ham.get("prompt_eval_count"),
-         "cevap": ham.get("response"), "beklenen": ornekler[0]["tamamlama"]}, ensure_ascii=False, indent=1),
+    raw = r.json()
+    samples[0]["ollama_istem_token"] = raw.get("prompt_eval_count")
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    (OUTPUT.parent / "ham_uretim.json").write_text(json.dumps(
+        {"soru_id": samples[0]["soru_id"], "prompt_eval_count": raw.get("prompt_eval_count"),
+         "cevap": raw.get("response"), "beklenen": samples[0]["tamamlama"]}, ensure_ascii=False, indent=1),
         encoding="utf-8")
 
-    with open(CIKTI, "w", encoding="utf-8", newline="\n") as f:
-        for o in ornekler:
+    with open(OUTPUT, "w", encoding="utf-8", newline="\n") as f:
+        for o in samples:
             f.write(json.dumps(o, ensure_ascii=False) + "\n")
-    print(len(ornekler), "örnek;", "en uzun istem", max(len(o["istem"]) for o in ornekler), "karakter")
-    print("ham üretim:", repr(ham.get("response", "")[:300]), "| istem tokeni:", ham.get("prompt_eval_count"))
+    print(len(samples), "örnek;", "en uzun istem", max(len(o["istem"]) for o in samples), "karakter")
+    print("ham üretim:", repr(raw.get("response", "")[:300]), "| istem tokeni:", raw.get("prompt_eval_count"))
 
 
 if __name__ == "__main__":

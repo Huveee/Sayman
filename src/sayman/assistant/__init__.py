@@ -1,1 +1,1 @@
-"""Faz 6: model ile araçlar arasındaki döngü (orkestratör) ve cevap doğrulayıcı."""
+"""Phase 6: the loop between the model and the tools (orchestrator) and the answer verifier."""

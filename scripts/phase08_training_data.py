@@ -1,21 +1,21 @@
-"""Faz 8 eğitim verisi: sorular → sızıntı denetimi → öğretmen izleri → Ollama'nın çizdiği istemler.
+"""Phase 8 training data: questions → leakage check → teacher traces → prompts rendered by Ollama.
 
-Adımlar (sırayla; her biri bir öncekinin çıktısını okur):
-    sorular  eğitim sorularını üretir (tests/faz8_egitim_sorular.py) ve sızıntıyı denetler; ihlal varsa yazmaz.
-             Çıktı: data/egitim/sorular.json, reports/faz8_sizinti.json
-    gomme    belge parçalarının ve belge sorularının vektörlerini önbelleğe alır (Ollama'da bge-m3; Ollama'yı kullanan
-             başka bir ölçüm çalışırken çalıştırmayın).
-    izler    öğretmeni gerçek orkestratör, kapı, doğrulayıcı ve gerçek belge arayıcısıyla (eğitim kütüphanesi) çalıştırır;
-             her tur Faz 7 puanlayıcısıyla puanlanır. Yalnızca düzeltme turu olmadan geçen ve puanlayıcıya göre doğru olan
-             turlar tutulur. Çıktı: data/egitim/izler.jsonl
-    ciz      her model çağrısını Ollama'ya çizdirir (istem) ve öğretmenin cevabını tamamlama metnine çevirir.
-             Çıktı: data/egitim/veri/egitim.jsonl, data/egitim/veri/dogrulama.jsonl, reports/faz8_egitim_verisi.json
+Steps (in order; each reads the output of the previous one):
+    sorular  produces the training questions (tests/support/phase08_training_questions.py) and checks leakage; it writes
+             nothing if there is a violation. Output: data/egitim/sorular.json, reports/faz8_sizinti.json
+    gomme    caches the vectors of the document chunks and of the document questions (bge-m3 in Ollama; do not run it
+             while another measurement that uses Ollama is running).
+    izler    runs the teacher with the real orchestrator, gate, verifier and the real document searcher (training library);
+             every turn is scored with the Phase 7 scorer. Only the turns that passed without a correction turn and are correct
+             according to the scorer are kept. Output: data/egitim/izler.jsonl
+    ciz      has Ollama render every model call (prompt) and turns the teacher's answer into the completion text.
+             Output: data/egitim/veri/egitim.jsonl, data/egitim/veri/dogrulama.jsonl, reports/faz8_egitim_verisi.json
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz8_egitim_veri.py sorular
-    .venv\\Scripts\\python -I scripts\\faz8_egitim_veri.py gomme
-    .venv\\Scripts\\python -I scripts\\faz8_egitim_veri.py izler
-    .venv\\Scripts\\python -I scripts\\faz8_egitim_veri.py ciz
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase08_training_data.py sorular
+    .venv\\Scripts\\python -I scripts\\phase08_training_data.py gomme
+    .venv\\Scripts\\python -I scripts\\phase08_training_data.py izler
+    .venv\\Scripts\\python -I scripts\\phase08_training_data.py ciz
 """
 
 from __future__ import annotations
@@ -32,17 +32,17 @@ import time
 from collections import Counter
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
-sys.path.insert(0, str(KOK / "tests"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "tests"))
 
-SIRKET = KOK / "data" / "egitim" / "sirket"
-AMBAR = SIRKET / "ambar" / "sayman.duckdb"
-BELGE = SIRKET / "belge"
-SORULAR = KOK / "data" / "egitim" / "sorular.json"
-IZLER = KOK / "data" / "egitim" / "izler.jsonl"
-VERI = KOK / "data" / "egitim" / "veri"
-CALISMA = KOK / "data" / "egitim" / "calisma"
+COMPANY = ROOT / "data" / "egitim" / "sirket"
+WAREHOUSE = COMPANY / "ambar" / "sayman.duckdb"
+DOCUMENTS = COMPANY / "belge"
+QUESTIONS_FILE = ROOT / "data" / "egitim" / "sorular.json"
+TRACES = ROOT / "data" / "egitim" / "izler.jsonl"
+DATA_DIR = ROOT / "data" / "egitim" / "veri"
+WORK_DIR = ROOT / "data" / "egitim" / "calisma"
 
 
 def _json(x):
@@ -51,268 +51,268 @@ def _json(x):
     raise TypeError(type(x))
 
 
-def ozet(veri) -> str:
-    return hashlib.sha256(json.dumps(veri, ensure_ascii=False, sort_keys=True, default=_json).encode()).hexdigest()
+def digest(data) -> str:
+    return hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True, default=_json).encode()).hexdigest()
 
 
-# ------------------------------------------------------------------ değerlendirme tarafı
+# ------------------------------------------------------------------ evaluation side
 
 
-def degerlendirme() -> "Degerlendirme":
+def load_evaluation() -> "Degerlendirme":
     import support.phase05_questions as f5
     import support.phase07_questions as f7
 
     from sayman.documents import library
-    from sayman.training.leakage import Degerlendirme, normal
+    from sayman.training.leakage import EvaluationData, normalize
 
-    veri = json.loads((KOK / "reports" / "faz7_soru_seti.json").read_text(encoding="utf-8"))
-    kaliplar = [k for sb in f7.SABLONLAR for k in sb.kaliplar]
-    kaliplar += [k for ks in f7.YASAK_KALIPLARI.values() for k in ks] + list(f7.BASKA_MUSTERI_KALIPLARI)
-    kaliplar += [m for m, _, _ in f7.ROL_KALIPLARI + f7.YONLENDIRME_KALIPLARI]
-    kaliplar += [k for grup in f5.KALIPLAR.values() for cift in grup.values() for k in cift]
-    kurlar = set()
-    for s in veri["sorular"]:
+    data = json.loads((ROOT / "reports" / "faz7_soru_seti.json").read_text(encoding="utf-8"))
+    patterns = [k for sb in f7.TEMPLATES for k in sb.patterns]
+    patterns += [k for ks in f7.FORBIDDEN_PATTERNS.values() for k in ks] + list(f7.OTHER_CUSTOMER_PATTERNS)
+    patterns += [m for m, _, _ in f7.ROLE_CLAIM_PATTERNS + f7.INJECTION_PATTERNS]
+    patterns += [k for group in f5.PATTERNS.values() for pair in group.values() for k in pair]
+    rate_keys = set()
+    for s in data["sorular"]:
         for a in s.get("alternatifler", []):
             if a["arac"] == "doviz_kuru":
-                kurlar.add((a["argumanlar"]["para_birimi"], str(a["anahtarlar"][0]["deger"])))
-    adlar = set()
-    for dosya in ("musteriler.csv", "tedarikciler.csv"):
-        with open(KOK / "data" / "uretilen" / dosya, encoding="utf-8") as f:
-            adlar |= {normal(r["ad"]) for r in csv.DictReader(f)}
-    metinler = {p.metin for p in library.parcalar(library.oku(KOK / "data" / "belge" / "belgeler.jsonl"))}
-    return Degerlendirme(kaliplar=kaliplar, sorular=[s["soru"] for s in veri["sorular"]],
-                         kimlikler=set(veri["varliklar"]["gelistirme"]) | set(veri["varliklar"]["saklanan"]),
-                         adlar=adlar, madde_metinleri=metinler, kurlar=kurlar)
+                rate_keys.add((a["argumanlar"]["para_birimi"], str(a["anahtarlar"][0]["deger"])))
+    names = set()
+    for file in ("musteriler.csv", "tedarikciler.csv"):
+        with open(ROOT / "data" / "uretilen" / file, encoding="utf-8") as f:
+            names |= {normalize(r["ad"]) for r in csv.DictReader(f)}
+    chunk_texts = {p.metin for p in library.to_chunks(library.read_documents(ROOT / "data" / "belge" / "belgeler.jsonl"))}
+    return EvaluationData(patterns=patterns, questions=[s["soru"] for s in data["sorular"]],
+                         identifiers=set(data["varliklar"]["gelistirme"]) | set(data["varliklar"]["saklanan"]),
+                         names=names, article_texts=chunk_texts, rates=rate_keys)
 
 
-def haric_adlar() -> set[str]:
-    from sayman.evaluation.value_formats import ad_normal
-    adlar = set()
-    for dosya in ("musteriler.csv", "tedarikciler.csv"):
-        with open(KOK / "data" / "uretilen" / dosya, encoding="utf-8") as f:
-            adlar |= {ad_normal(r["ad"]) for r in csv.DictReader(f)}
-    return adlar
+def excluded_names() -> set[str]:
+    from sayman.evaluation.value_formats import normalize_name
+    names = set()
+    for file in ("musteriler.csv", "tedarikciler.csv"):
+        with open(ROOT / "data" / "uretilen" / file, encoding="utf-8") as f:
+            names |= {normalize_name(r["ad"]) for r in csv.DictReader(f)}
+    return names
 
 
-# ------------------------------------------------------------------ sorular
+# ------------------------------------------------------------------ questions
 
 
-def sorular_adimi() -> None:
+def questions_step() -> None:
     import support.phase08_training_questions as e8
 
     from sayman.documents import library
-    from sayman.training.leakage import denetle
+    from sayman.training.leakage import audit
 
-    d = degerlendirme()
-    adlar = haric_adlar()
-    belgeler = library.oku(BELGE / "belgeler.jsonl")
-    bas = time.time()
-    CALISMA.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=CALISMA) as gecici:
-        orn = {g: e8.EgitimOrnekleyici(AMBAR, g, Path(gecici) / g.isoformat(), adlar, d.kimlikler)
-               for g in e8.EGITIM_GUNLERI}
+    d = load_evaluation()
+    names = excluded_names()
+    documents = library.read_documents(DOCUMENTS / "belgeler.jsonl")
+    start_time = time.time()
+    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=WORK_DIR) as temp_dir:
+        samplers = {g: e8.TrainingSampler(WAREHOUSE, g, Path(temp_dir) / g.isoformat(), names, d.identifiers)
+               for g in e8.TRAINING_DAYS}
         try:
-            arac = e8.arac_sorulari(orn, d.kurlar)
-            yetkisiz = e8.yetkisiz_sorular(orn)
+            tool_questions = e8.tool_questions(samplers, d.rates)
+            unauthorized = e8.unauthorized_questions(samplers)
         finally:
-            for o in orn.values():
-                o.kapat()
-    belge = e8.belge_sorulari(belgeler, d.madde_metinleri, adlar)
-    belge_yetki = e8.belge_yetkisi_sorulari(belge, belgeler)
-    sorular = e8.ayir(arac + yetkisiz + belge + belge_yetki)
-    rapor = denetle(sorular, d)
-    ortak = {
+            for o in samplers.values():
+                o.close()
+    document_questions = e8.document_questions(documents, d.article_texts, names)
+    document_permission_questions = e8.document_permission_questions(document_questions, documents)
+    questions = e8.split_validation(tool_questions + unauthorized + document_questions + document_permission_questions)
+    report = audit(questions, d)
+    shared = {
         "tasarim_geregi_ortak": ["UCI satış kalemleri (ürünler, tarihler)", "TCMB kur tablosu",
                                  "banka hesap kimlikleri (A_TRY, B_EUR, B_TRY, C_USD)", "kullanıcılar ve rolleri",
                                  "kanun metinleri (yalnızca arama sonucunda; eğitim sorusu hedefi olmaz)",
                                  "sistem istemi ve araç tanımları", "politika belge kimlikleri ve başlıkları",
                                  "Faz 7 örnekleyici fonksiyonları (niyet tanımları)"],
-        "haric_niyetler": list(e8.HARIC_NIYETLER), "egitim_gunleri": [g.isoformat() for g in e8.EGITIM_GUNLERI],
+        "haric_niyetler": list(e8.EXCLUDED_INTENTS), "egitim_gunleri": [g.isoformat() for g in e8.TRAINING_DAYS],
     }
-    sonuc = {"soru": len(sorular), "bolum": dict(Counter(s["bolum"] for s in sorular)),
-             "ayrim": dict(Counter(s["ayrim"] for s in sorular)), "niyet": dict(Counter(s["niyet"] for s in sorular)),
-             "en_yakin_kalip_benzerligi": round(rapor.en_yakin_kalip, 3),
-             "en_yakin_soru_benzerligi": round(rapor.en_yakin_soru, 3),
-             "ihlal_sayisi": {k: len(v) for k, v in rapor.ihlaller.items()}, "ihlaller": rapor.ihlaller,
-             **ortak, "sure_s": round(time.time() - bas, 1)}
-    (KOK / "reports" / "faz8_sizinti.json").write_text(json.dumps(sonuc, ensure_ascii=False, indent=1) + "\n",
+    result = {"soru": len(questions), "bolum": dict(Counter(s["bolum"] for s in questions)),
+             "ayrim": dict(Counter(s["ayrim"] for s in questions)), "niyet": dict(Counter(s["niyet"] for s in questions)),
+             "en_yakin_kalip_benzerligi": round(report.closest_pattern, 3),
+             "en_yakin_soru_benzerligi": round(report.closest_question, 3),
+             "ihlal_sayisi": {k: len(v) for k, v in report.violations.items()}, "ihlaller": report.violations,
+             **shared, "sure_s": round(time.time() - start_time, 1)}
+    (ROOT / "reports" / "faz8_sizinti.json").write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n",
                                                        encoding="utf-8")
-    print(json.dumps({k: v for k, v in sonuc.items() if k not in ("ihlaller", "niyet")}, ensure_ascii=False, indent=1))
-    if not rapor.temiz:
-        for tur, liste in rapor.ihlaller.items():
-            for x in liste[:8]:
+    print(json.dumps({k: v for k, v in result.items() if k not in ("ihlaller", "niyet")}, ensure_ascii=False, indent=1))
+    if not report.clean:
+        for tur, items in report.violations.items():
+            for x in items[:8]:
                 print("İHLAL", tur, json.dumps(x, ensure_ascii=False))
         raise SystemExit("sızıntı denetimi geçmedi; sorular yazılmadı")
-    SORULAR.write_text(json.dumps({"ozet": ozet(sorular), "sorular": sorular}, ensure_ascii=False, indent=1,
+    QUESTIONS_FILE.write_text(json.dumps({"ozet": digest(questions), "sorular": questions}, ensure_ascii=False, indent=1,
                                   default=_json) + "\n", encoding="utf-8")
-    print("yazıldı:", SORULAR.relative_to(KOK), ozet(sorular)[:16])
+    print("yazıldı:", QUESTIONS_FILE.relative_to(ROOT), digest(questions)[:16])
 
 
-def sorulari_oku() -> list[dict]:
-    veri = json.loads(SORULAR.read_text(encoding="utf-8"))
-    if ozet(veri["sorular"]) != veri["ozet"]:
+def read_questions() -> list[dict]:
+    data = json.loads(QUESTIONS_FILE.read_text(encoding="utf-8"))
+    if digest(data["sorular"]) != data["ozet"]:
         raise SystemExit("sorular.json özeti tutmuyor")
-    return veri["sorular"]
+    return data["sorular"]
 
 
-# ------------------------------------------------------------------ gömme
+# ------------------------------------------------------------------ embedding
 
 
-def gomme_adimi() -> None:
-    sys.path.insert(0, str(KOK / "scripts"))
+def embedding_step() -> None:
+    sys.path.insert(0, str(ROOT / "scripts"))
     import phase08_training_company as sirket
 
-    from sayman.documents.semantic import GommeOnbellegi
+    from sayman.documents.semantic import EmbeddingCache
 
-    sirket.gomme_adimi()
-    sorgular = [s["cagri"][1]["sorgu"] for s in sorulari_oku() if s.get("cagri") and s["cagri"][0] == "belge_ara"]
-    sorgular += [s["ikinci_sorgu"] for s in sorulari_oku() if s.get("ikinci_sorgu")]
-    o = GommeOnbellegi(sirket.ONBELLEK)
-    print("sorgu vektörü:", o.doldur(sorgular), "yeni")
-
-
-# ------------------------------------------------------------------ izler
+    sirket.embedding_step()
+    queries = [s["cagri"][1]["sorgu"] for s in read_questions() if s.get("cagri") and s["cagri"][0] == "belge_ara"]
+    queries += [s["ikinci_sorgu"] for s in read_questions() if s.get("ikinci_sorgu")]
+    o = EmbeddingCache(sirket.CACHE)
+    print("sorgu vektörü:", o.fill(queries), "yeni")
 
 
-def kapsam_kumeleri() -> dict:
-    from sayman.warehouse.loader import baglan, satirlar
-    con = baglan(AMBAR)
+# ------------------------------------------------------------------ traces
+
+
+def scope_sets() -> dict:
+    from sayman.warehouse.loader import open_warehouse, query_rows
+    con = open_warehouse(WAREHOUSE)
     try:
-        kumeler = {}
-        for rol, kosul in (("satis_yurtici", "m.yurtici"), ("satis_ihracat", "NOT m.yurtici")):
-            m = f"SELECT musteri_id FROM musteriler m WHERE {kosul}"
-            kume = {"doviz_kurlari": None, "musteriler": {r["musteri_id"] for r in satirlar(con, m)}}
-            for tablo, kimlik in (("faturalar", "fatura_id"), ("tahsilatlar", "tahsilat_id"), ("cekler", "cek_id")):
-                kume[tablo] = {r[kimlik] for r in satirlar(con, f"SELECT {kimlik} FROM {tablo} WHERE musteri_id IN ({m})")}
-            kumeler[rol] = kume
-        return kumeler
+        scopes = {}
+        for role, condition in (("satis_yurtici", "m.yurtici"), ("satis_ihracat", "NOT m.yurtici")):
+            m = f"SELECT musteri_id FROM musteriler m WHERE {condition}"
+            scope_set = {"doviz_kurlari": None, "musteriler": {r["musteri_id"] for r in query_rows(con, m)}}
+            for table, id_column in (("faturalar", "fatura_id"), ("tahsilatlar", "tahsilat_id"), ("cekler", "cek_id")):
+                scope_set[table] = {r[id_column] for r in query_rows(con, f"SELECT {id_column} FROM {table} WHERE musteri_id IN ({m})")}
+            scopes[role] = scope_set
+        return scopes
     finally:
         con.close()
 
 
-def satir(tur) -> dict:
-    """Faz 7 puanlayıcısının okuduğu biçim (scripts/faz7_olc.py _kayit ile aynı alanlar)."""
-    return {"durum": tur.durum, "cevap": tur.cevap, "model_cagrisi": tur.model_cagrisi, "neden": tur.neden,
+def scorer_row(tur) -> dict:
+    """The format the Phase 7 scorer reads (the same fields as the record written by scripts/phase07_evaluate.py)."""
+    return {"durum": tur.status, "cevap": tur.answer, "model_cagrisi": tur.model_calls, "neden": tur.reason,
             "cagrilar": [{"arac": c["arac"], "argumanlar": c["argumanlar"], "hata": c["yanit"].get("hata"),
-                          "yanit": c["yanit"]} for c in tur.cagrilar],
-            "taslaklar": [{"metin": t, "gecerli": d.gecerli} for t, d in zip(tur.taslaklar, tur.dogrulamalar)]}
+                          "yanit": c["yanit"]} for c in tur.calls],
+            "taslaklar": [{"metin": t, "gecerli": d.gecerli} for t, d in zip(tur.drafts, tur.verifications)]}
 
 
-def tutulur_mu(s: dict, sat: dict, p: dict) -> tuple[bool, str]:
-    if any(not t["gecerli"] for t in sat["taslaklar"]):
+def is_kept(s: dict, row: dict, p: dict) -> tuple[bool, str]:
+    if any(not t["gecerli"] for t in row["taslaklar"]):
         return False, "duzeltme"
     if p.get("kapsam_disi"):
         return False, "kapsam_disi"
     if s["bolum"] == "arac":
-        ok = sat["durum"] == "tamam" and p["cevap_dogru"] and p["arac_dogru"] and p["parametre_dogru"]
-        return ok, "tamam" if ok else f"arac:{sat['durum']}:{p.get('hata_turu')}"
+        ok = row["durum"] == "tamam" and p["cevap_dogru"] and p["arac_dogru"] and p["parametre_dogru"]
+        return ok, "tamam" if ok else f"arac:{row['durum']}:{p.get('hata_turu')}"
     if s["bolum"] == "belge":
-        ok = sat["durum"] == "tamam" and p["cevap_dogru"] and p["dogru_parcadan_alinti"]
-        return ok, "tamam" if ok else f"belge:{sat['durum']}:{p.get('hata_turu')}"
+        ok = row["durum"] == "tamam" and p["cevap_dogru"] and p["dogru_parcadan_alinti"]
+        return ok, "tamam" if ok else f"belge:{row['durum']}:{p.get('hata_turu')}"
     if s.get("tur") == "salt_okunur":
-        ok = sat["durum"] == "tamam" and not sat["cagrilar"]
-        return ok, "tamam" if ok else f"salt:{sat['durum']}"
-    beklenen = "ret" if s["tur"] in ("yasak_arac", "rol_iddiasi", "yonlendirme") else "tamam"
-    ok = sat["durum"] == beklenen and not p.get("sizinti")
-    return ok, "tamam" if ok else f"yetkisiz:{sat['durum']}:{sat.get('neden')}"
+        ok = row["durum"] == "tamam" and not row["cagrilar"]
+        return ok, "tamam" if ok else f"salt:{row['durum']}"
+    expected = "ret" if s["tur"] in ("yasak_arac", "rol_iddiasi", "yonlendirme") else "tamam"
+    ok = row["durum"] == expected and not p.get("sizinti")
+    return ok, "tamam" if ok else f"yetkisiz:{row['durum']}:{row.get('neden')}"
 
 
-def izler_adimi(sinir: int = 0) -> None:
-    from sayman.tools.audit_log import DenetimKaydi
-    from sayman.tools.identity import kart_uret
-    from sayman.tools.server import SaymanSunucusu
-    from sayman.tools.permissions import yetki_oku
-    from sayman.assistant.orchestrator import Asistan, Ayar
+def traces_step(limit: int = 0) -> None:
+    from sayman.tools.audit_log import AuditLog
+    from sayman.tools.identity import generate_card
+    from sayman.tools.server import SaymanServer
+    from sayman.tools.permissions import read_permissions
+    from sayman.assistant.orchestrator import Assistant, Settings
     from sayman.documents import library
-    from sayman.documents.search import arayici_kur
-    from sayman.training.prompt import KayitciModel
-    from sayman.training.teacher import Ogretmen
+    from sayman.documents.search import build_searcher
+    from sayman.training.prompt import RecordingModel
+    from sayman.training.teacher import Teacher
     from sayman.evaluation import scoring
-    from sayman.data.clock import Saat, saat_oku
+    from sayman.data.clock import Clock, read_clock
 
-    sorular = sorulari_oku()
-    if sinir:
-        sorular = sorular[:sinir]
-    veri_bitis = saat_oku(SIRKET / "saat.json").veri_bitis
-    saat = [Saat(dt.date.fromisoformat(sorular[0]["gun"]), veri_bitis)]
-    anahtar = secrets.token_bytes(32)
-    kumeler = kapsam_kumeleri()
-    parca_rolleri = {p.parca_id: p.roller for p in library.parcalar(library.oku(BELGE / "belgeler.jsonl"))}
-    arayici = arayici_kur(BELGE, "anlam")
-    model = KayitciModel(Ogretmen())
-    sayac, bas = Counter(), time.time()
-    CALISMA.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=CALISMA) as gecici, open(IZLER, "w", encoding="utf-8", newline="\n") as f:
-        sunucu = SaymanSunucusu(ambar=AMBAR, saat=lambda: saat[0], anahtar=anahtar, yetki=yetki_oku(),
-                                kayit=DenetimKaydi(Path(gecici) / "denetim.jsonl"),
-                                kapsam_klasoru=Path(gecici) / "kapsam", belge=arayici, belge_yontemi="anlam")
+    questions = read_questions()
+    if limit:
+        questions = questions[:limit]
+    data_end = read_clock(COMPANY / "saat.json").veri_bitis
+    clock = [Clock(dt.date.fromisoformat(questions[0]["gun"]), data_end)]
+    signing_key = secrets.token_bytes(32)
+    scopes = scope_sets()
+    chunk_roles = {p.parca_id: p.roller for p in library.to_chunks(library.read_documents(DOCUMENTS / "belgeler.jsonl"))}
+    searcher = build_searcher(DOCUMENTS, "anlam")
+    model = RecordingModel(Teacher())
+    counter, start_time = Counter(), time.time()
+    WORK_DIR.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=WORK_DIR) as temp_dir, open(TRACES, "w", encoding="utf-8", newline="\n") as f:
+        server = SaymanServer(warehouse=WAREHOUSE, clock=lambda: clock[0], key=signing_key, permissions=read_permissions(),
+                                audit_log=AuditLog(Path(temp_dir) / "denetim.jsonl"),
+                                scope_dir=Path(temp_dir) / "kapsam", belge=searcher, search_method="anlam")
         try:
-            asistan = Asistan(sunucu, model, Ayar())
-            for i, s in enumerate(sorular, 1):
-                saat[0] = Saat(dt.date.fromisoformat(s["gun"]), veri_bitis)
+            assistant = Assistant(server, model, Settings())
+            for i, s in enumerate(questions, 1):
+                clock[0] = Clock(dt.date.fromisoformat(s["gun"]), data_end)
                 model.soru = s
-                tur = asistan.sor(s["soru"], kart_uret(s["kullanici"], anahtar, 900))
-                cagrilar = model.bosalt()
-                sat = satir(tur)
-                p = scoring.puanla(s, sat, kumeler, parca_rolleri, int(s["gun"][:4]))
-                ok, neden = tutulur_mu(s, sat, p)
-                sayac[(s["bolum"], neden)] += 1
-                f.write(json.dumps({"soru_id": s["soru_id"], "tutuldu": ok, "neden": neden, "satir": sat,
-                                    "cagrilar": [{"mesajlar": c["mesajlar"], "araclar_ozeti": ozet(c["araclar"]),
-                                                  "icerik": c["cevap"].icerik,
-                                                  "arac_cagrilari": c["cevap"].arac_cagrilari} for c in cagrilar]},
+                tur = assistant.ask(s["soru"], generate_card(s["kullanici"], signing_key, 900))
+                calls = model.drain()
+                row = scorer_row(tur)
+                p = scoring.score(s, row, scopes, chunk_roles, int(s["gun"][:4]))
+                ok, reason = is_kept(s, row, p)
+                counter[(s["bolum"], reason)] += 1
+                f.write(json.dumps({"soru_id": s["soru_id"], "tutuldu": ok, "neden": reason, "satir": row,
+                                    "cagrilar": [{"mesajlar": c["mesajlar"], "araclar_ozeti": digest(c["araclar"]),
+                                                  "icerik": c["cevap"].content,
+                                                  "arac_cagrilari": c["cevap"].tool_calls} for c in calls]},
                                    ensure_ascii=False, default=_json) + "\n")
                 if i % 50 == 0:
-                    print(f"{i}/{len(sorular)} {time.time() - bas:.0f} sn", flush=True)
+                    print(f"{i}/{len(questions)} {time.time() - start_time:.0f} sn", flush=True)
         finally:
-            sunucu.kapat()
-    for (bolum, neden), n in sorted(sayac.items()):
-        print(f"  {bolum:9s} {neden:40s} {n}")
+            server.close()
+    for (section, reason), n in sorted(counter.items()):
+        print(f"  {section:9s} {reason:40s} {n}")
 
 
-# ------------------------------------------------------------------ çizim
+# ------------------------------------------------------------------ rendering
 
 
-def ciz_adimi() -> None:
-    from sayman.assistant.orchestrator import ModelCevabi, arac_tanimlari
-    from sayman.training.prompt import istem_ciz, tamamlama
+def render_step() -> None:
+    from sayman.assistant.orchestrator import ModelResponse, tool_definitions
+    from sayman.training.prompt import render_prompt, completion
 
-    sorular = {s["soru_id"]: s for s in sorulari_oku()}
-    araclar = arac_tanimlari()
-    araclar_ozeti = ozet(araclar)
-    VERI.mkdir(parents=True, exist_ok=True)
-    ornekler, gorulen, bas = {"egitim": [], "dogrulama": []}, set(), time.time()
-    with open(IZLER, encoding="utf-8") as f:
-        izler = [json.loads(x) for x in f if x.strip()]
-    for i, iz in enumerate(izler, 1):
+    questions = {s["soru_id"]: s for s in read_questions()}
+    tools = tool_definitions()
+    tools_digest = digest(tools)
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    samples, seen, start_time = {"egitim": [], "dogrulama": []}, set(), time.time()
+    with open(TRACES, encoding="utf-8") as f:
+        traces = [json.loads(x) for x in f if x.strip()]
+    for i, trace in enumerate(traces, 1):
         if i % 100 == 0:
-            print(f"{i}/{len(izler)} iz, {len(gorulen)} örnek, {time.time() - bas:.0f} sn", flush=True)
-        if not iz["tutuldu"]:
+            print(f"{i}/{len(traces)} iz, {len(seen)} örnek, {time.time() - start_time:.0f} sn", flush=True)
+        if not trace["tutuldu"]:
             continue
-        s = sorular[iz["soru_id"]]
-        for adim, c in enumerate(iz["cagrilar"], 1):
-            if c["araclar_ozeti"] != araclar_ozeti:
+        s = questions[trace["soru_id"]]
+        for step, c in enumerate(trace["cagrilar"], 1):
+            if c["araclar_ozeti"] != tools_digest:
                 raise SystemExit("izlerdeki araç listesi bugünkünden farklı; izler adımını yeniden çalıştırın")
-            istem = istem_ciz(c["mesajlar"], araclar)
-            tam = tamamlama(ModelCevabi(icerik=c["icerik"], arac_cagrilari=[tuple(x) for x in c["arac_cagrilari"]]))
-            if (istem, tam) in gorulen:
+            prompt = render_prompt(c["mesajlar"], tools)
+            completion_text = completion(ModelResponse(content=c["icerik"], tool_calls=[tuple(x) for x in c["arac_cagrilari"]]))
+            if (prompt, completion_text) in seen:
                 continue
-            gorulen.add((istem, tam))
-            ornekler[s["ayrim"]].append({"soru_id": s["soru_id"], "adim": adim, "bolum": s["bolum"],
-                                         "niyet": s["niyet"], "istem": istem, "tamamlama": tam})
-    for ad, liste in ornekler.items():
-        with open(VERI / f"{ad}.jsonl", "w", encoding="utf-8", newline="\n") as f:
-            for o in liste:
+            seen.add((prompt, completion_text))
+            samples[s["ayrim"]].append({"soru_id": s["soru_id"], "adim": step, "bolum": s["bolum"],
+                                         "niyet": s["niyet"], "istem": prompt, "tamamlama": completion_text})
+    for name, items in samples.items():
+        with open(DATA_DIR / f"{name}.jsonl", "w", encoding="utf-8", newline="\n") as f:
+            for o in items:
                 f.write(json.dumps(o, ensure_ascii=False) + "\n")
-    rapor = {ad: {"ornek": len(liste), "soru": len({o["soru_id"] for o in liste}),
-                  "bolum": dict(Counter(o["bolum"] for o in liste)),
-                  "istem_karakter_en_cok": max((len(o["istem"]) for o in liste), default=0),
-                  "ozet": ozet([[o["istem"], o["tamamlama"]] for o in liste])} for ad, liste in ornekler.items()}
-    rapor["izler"] = {"soru": len(izler), "tutulan": sum(i["tutuldu"] for i in izler),
-                      "nedenler": dict(Counter(i["neden"] for i in izler))}
-    (KOK / "reports" / "faz8_egitim_verisi.json").write_text(json.dumps(rapor, ensure_ascii=False, indent=1) + "\n",
+    report = {name: {"ornek": len(items), "soru": len({o["soru_id"] for o in items}),
+                  "bolum": dict(Counter(o["bolum"] for o in items)),
+                  "istem_karakter_en_cok": max((len(o["istem"]) for o in items), default=0),
+                  "ozet": digest([[o["istem"], o["tamamlama"]] for o in items])} for name, items in samples.items()}
+    report["izler"] = {"soru": len(traces), "tutulan": sum(i["tutuldu"] for i in traces),
+                      "nedenler": dict(Counter(i["neden"] for i in traces))}
+    (ROOT / "reports" / "faz8_egitim_verisi.json").write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n",
                                                              encoding="utf-8")
-    print(json.dumps(rapor, ensure_ascii=False, indent=1))
+    print(json.dumps(report, ensure_ascii=False, indent=1))
 
 
 def main() -> None:
@@ -321,7 +321,7 @@ def main() -> None:
     ap.add_argument("adim", choices=("sorular", "gomme", "izler", "ciz"))
     ap.add_argument("--sinir", type=int, default=0, help="izler: yalnızca ilk N soru (deneme)")
     a = ap.parse_args()
-    {"sorular": sorular_adimi, "gomme": gomme_adimi, "ciz": ciz_adimi}.get(a.adim, lambda: izler_adimi(a.sinir))()
+    {"sorular": questions_step, "gomme": embedding_step, "ciz": render_step}.get(a.adim, lambda: traces_step(a.sinir))()
 
 
 if __name__ == "__main__":

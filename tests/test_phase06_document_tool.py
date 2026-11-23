@@ -1,7 +1,7 @@
-"""Faz 6: belge_ara aracı (14. araç) Faz 3'ün tek kapısından geçer.
+"""Phase 6: the `belge_ara` tool (the 14th tool) goes through the single gate of Phase 3.
 
-Küçük bir belge kütüphanesiyle, modelleri çalıştırmadan: anlam araması sahte vektörlerle (her metne kelimelerinden
-türeyen bir vektör), kelime araması gerçek BM25 ile. Elle ambar Faz 3 testlerindekiyle aynıdır.
+With a small document library and without running the models: semantic search uses fake vectors (each text gets a vector
+derived from its words), keyword search uses the real BM25. The hand-built warehouse is the same as in the Phase 3 tests.
 """
 
 import datetime as dt
@@ -9,170 +9,170 @@ import zlib
 
 import numpy as np
 import pytest
-from test_phase02_warehouse import D, _elle_tablolar
+from test_phase02_warehouse import AS_OF, _hand_built_tables
 
-from sayman.warehouse.loader import ambar_kur
+from sayman.warehouse.loader import build_warehouse
 from sayman.tools import catalog as araclar_modulu
-from sayman.tools.audit_log import DenetimKaydi
-from sayman.tools.identity import kart_uret
-from sayman.tools.server import SaymanSunucusu
-from sayman.tools.permissions import yetki_oku
-from sayman.documents.semantic import AnlamDizini, GommeOnbellegi, anahtar
-from sayman.documents.search import Arayici, terimler
-from sayman.documents.library import Parca
-from sayman.data.table_io import csv_yaz
-from sayman.data.clock import Saat
+from sayman.tools.audit_log import AuditLog
+from sayman.tools.identity import generate_card
+from sayman.tools.server import SaymanServer
+from sayman.tools.permissions import read_permissions
+from sayman.documents.semantic import SemanticIndex, EmbeddingCache, cache_key
+from sayman.documents.search import Searcher, terms
+from sayman.documents.library import Chunk
+from sayman.data.table_io import write_csv
+from sayman.data.clock import Clock
 
-ANAHTAR = bytes(range(32))
-ZAMAN = 1_750_000_000.0
-CFO, YURTICI, IHRACAT = "selin.aydin", "murat.kaya", "deniz.arslan"
-UZUN = "Madde metni " + "uzun bir açıklama cümlesi " * 120  # ~3.100 karakter
-
-
-def P(pid, baslik, metin, roller):
-    return Parca(pid, pid.split("#")[0], baslik, "Ödeme Koşulları", roller, metin, f"{baslik} {metin}")
+SIGNING_KEY = bytes(range(32))
+NOW_EPOCH = 1_750_000_000.0
+CFO, DOMESTIC, EXPORT = "selin.aydin", "murat.kaya", "deniz.arslan"
+LONG_TEXT = "Madde metni " + "uzun bir açıklama cümlesi " * 120  # ~3,100 characters
 
 
-PARCALAR = [
-    P("SOZ-M1#m3", "Satış Sözleşmesi — Alfa Ltd.", "Alıcı faturayı 30 gün içinde öder.", ("cfo", "satis_yurtici")),
-    P("SOZ-M2#m3", "Satış Sözleşmesi — Beta GmbH", "Der Käufer zahlt binnen 60 Tagen; alıcı 60 gün içinde öder.",
+def make_chunk(chunk_id, title, text, roles):
+    return Chunk(chunk_id, chunk_id.split("#")[0], title, "Ödeme Koşulları", roles, text, f"{title} {text}")
+
+
+CHUNKS = [
+    make_chunk("SOZ-M1#m3", "Satış Sözleşmesi — Alfa Ltd.", "Alıcı faturayı 30 gün içinde öder.", ("cfo", "satis_yurtici")),
+    make_chunk("SOZ-M2#m3", "Satış Sözleşmesi — Beta GmbH", "Der Käufer zahlt binnen 60 Tagen; alıcı 60 gün içinde öder.",
       ("cfo", "satis_ihracat")),
-    P("POL-NAKIT#m2", "Nakit Politikası", "Ana TL hesabının en düşük bakiyesi 5 milyon TL'dir.", ("cfo",)),
-    P("POL-CEK#m2", "Çek Politikası", "En uzun vadeli çek 120 gün olabilir.", ("cfo", "satis_yurtici", "satis_ihracat")),
-    P("KANUN-6102#m21", "Türk Ticaret Kanunu", UZUN, ("cfo", "satis_yurtici", "satis_ihracat")),
+    make_chunk("POL-NAKIT#m2", "Nakit Politikası", "Ana TL hesabının en düşük bakiyesi 5 milyon TL'dir.", ("cfo",)),
+    make_chunk("POL-CEK#m2", "Çek Politikası", "En uzun vadeli çek 120 gün olabilir.", ("cfo", "satis_yurtici", "satis_ihracat")),
+    make_chunk("KANUN-6102#m21", "Türk Ticaret Kanunu", LONG_TEXT, ("cfo", "satis_yurtici", "satis_ihracat")),
 ]
 
 
-def _vektor(metin: str) -> np.ndarray:
-    """Kelime köklerinden türeyen sahte gömme: ortak kelimesi çok olan metinler birbirine yakın düşer."""
+def _vector(text: str) -> np.ndarray:
+    """Fake embedding derived from word stems: texts that share many words land close to each other."""
     v = np.zeros(1024, dtype=np.float32)
-    for t in terimler(metin):
+    for t in terms(text):
         v[zlib.crc32(t.encode()) % 1024] += 1.0
     n = np.linalg.norm(v)
     return v / n if n else v
 
 
-class SahteOnbellek(GommeOnbellegi):
+class FakeCache(EmbeddingCache):
     def __init__(self):
         self.v = {}
 
-    def al(self, metinler):
-        return np.stack([_vektor(m) for m in metinler])
+    def fetch(self, texts):
+        return np.stack([_vector(m) for m in texts])
 
 
 @pytest.fixture(scope="module")
-def ortam(tmp_path_factory):
-    klasor = tmp_path_factory.mktemp("faz6_belge")
-    csv_yaz(_elle_tablolar(), klasor / "csv")
-    ambar_kur(klasor / "csv", klasor / "sayman.duckdb").close()
-    dizin = AnlamDizini(PARCALAR, SahteOnbellek())
+def server_env(tmp_path_factory):
+    folder = tmp_path_factory.mktemp("faz6_belge")
+    write_csv(_hand_built_tables(), folder / "csv")
+    build_warehouse(folder / "csv", folder / "sayman.duckdb").close()
+    index = SemanticIndex(CHUNKS, FakeCache())
 
-    def kur(ad, belge, yontem="anlam"):
-        return SaymanSunucusu(ambar=klasor / "sayman.duckdb", saat=lambda: Saat(D, dt.date(2025, 6, 30)),
-                              anahtar=ANAHTAR, yetki=yetki_oku(), kayit=DenetimKaydi(klasor / f"kayit_{ad}.jsonl"),
-                              kapsam_klasoru=klasor / f"kapsam_{ad}", zaman=lambda: ZAMAN, belge=belge,
-                              belge_yontemi=yontem)
+    def build_server(name, document, method="anlam"):
+        return SaymanServer(warehouse=folder / "sayman.duckdb", clock=lambda: Clock(AS_OF, dt.date(2025, 6, 30)),
+                              key=SIGNING_KEY, permissions=read_permissions(), audit_log=AuditLog(folder / f"kayit_{name}.jsonl"),
+                              scope_dir=folder / f"kapsam_{name}", time_fn=lambda: NOW_EPOCH, belge=document,
+                              search_method=method)
 
-    sunucular = {"anlam": kur("anlam", Arayici(PARCALAR, dizin)), "bm25": kur("bm25", Arayici(PARCALAR), "bm25"),
-                 "yok": kur("yok", None)}
-    yield sunucular
-    for s in sunucular.values():
-        s.kapat()
-    dizin.kapat()
-
-
-def ara(sunucu, kullanici, **args):
-    return sunucu.kapi("belge_ara", args, kart_uret(kullanici, ANAHTAR, 3600, ZAMAN))
+    servers = {"anlam": build_server("anlam", Searcher(CHUNKS, index)), "bm25": build_server("bm25", Searcher(CHUNKS), "bm25"),
+                 "yok": build_server("yok", None)}
+    yield servers
+    for s in servers.values():
+        s.close()
+    index.close()
 
 
-def kimlikler(yanit):
-    return [s["parca_id"] for s in yanit["sonuc"]["sonuclar"]]
+def search_documents(server, user, **args):
+    return server.gate("belge_ara", args, generate_card(user, SIGNING_KEY, 3600, NOW_EPOCH))
 
 
-def test_her_rol_belge_ara_cagirabilir():
-    yetki = yetki_oku()
-    assert all("belge_ara" in r.araclar for r in yetki.roller.values())
-    assert "belge_ara" in araclar_modulu.ARACLAR_ADA_GORE and len(araclar_modulu.ARACLAR) == 14
+def chunk_ids(response):
+    return [s["parca_id"] for s in response["sonuc"]["sonuclar"]]
 
 
-def test_sonuc_bicimi_ve_kaynak(ortam):
-    yanit, hata = ara(ortam["anlam"], CFO, sorgu="Alfa Ltd. faturayı kaç günde öder")
-    assert not hata
-    assert set(yanit) == {"cagri_id", "arac", "tarih", "kapsam", "sonuc", "kaynak"}
-    assert yanit["tarih"] == D.isoformat() and yanit["arac"] == "belge_ara"
-    ilk = yanit["sonuc"]["sonuclar"][0]
-    assert ilk == {"parca_id": "SOZ-M1#m3", "belge": "Satış Sözleşmesi — Alfa Ltd.", "madde": "Ödeme Koşulları",
+def test_every_role_can_call_document_search():
+    permissions = read_permissions()
+    assert all("belge_ara" in r.tools for r in permissions.roller.values())
+    assert "belge_ara" in araclar_modulu.TOOLS_BY_NAME and len(araclar_modulu.TOOLS) == 14
+
+
+def test_result_format_and_source(server_env):
+    response, error = search_documents(server_env["anlam"], CFO, sorgu="Alfa Ltd. faturayı kaç günde öder")
+    assert not error
+    assert set(response) == {"cagri_id", "arac", "tarih", "kapsam", "sonuc", "kaynak"}
+    assert response["tarih"] == AS_OF.isoformat() and response["arac"] == "belge_ara"
+    first = response["sonuc"]["sonuclar"][0]
+    assert first == {"parca_id": "SOZ-M1#m3", "belge": "Satış Sözleşmesi — Alfa Ltd.", "madde": "Ödeme Koşulları",
                    "metin": "Alıcı faturayı 30 gün içinde öder."}
-    assert yanit["kaynak"] == {"belge_parcalari": kimlikler(yanit)}
-    assert len(kimlikler(yanit)) == 3  # varsayılan
+    assert response["kaynak"] == {"belge_parcalari": chunk_ids(response)}
+    assert len(chunk_ids(response)) == 3  # default
 
 
-@pytest.mark.parametrize("yontem", ["anlam", "bm25"])
-def test_rolun_goremedigi_belge_hicbir_yontemle_donmez(ortam, yontem):
-    s = ortam[yontem]
-    yurtici = kimlikler(ara(s, YURTICI, sorgu="Beta GmbH ödeme süresi 60 gün", en_fazla=3)[0])
-    ihracat = kimlikler(ara(s, IHRACAT, sorgu="Beta GmbH ödeme süresi 60 gün", en_fazla=3)[0])
-    assert "SOZ-M2#m3" not in yurtici and "POL-NAKIT#m2" not in yurtici
-    assert "SOZ-M1#m3" not in ihracat and "POL-NAKIT#m2" not in ihracat
-    assert ihracat[0] == "SOZ-M2#m3"
-    assert "POL-NAKIT#m2" in kimlikler(ara(s, CFO, sorgu="Ana TL hesabının en düşük bakiyesi", en_fazla=3)[0])
+@pytest.mark.parametrize("method", ["anlam", "bm25"])
+def test_document_hidden_from_role_is_never_returned_by_any_method(server_env, method):
+    s = server_env[method]
+    domestic_ids = chunk_ids(search_documents(s, DOMESTIC, sorgu="Beta GmbH ödeme süresi 60 gün", en_fazla=3)[0])
+    export_ids = chunk_ids(search_documents(s, EXPORT, sorgu="Beta GmbH ödeme süresi 60 gün", en_fazla=3)[0])
+    assert "SOZ-M2#m3" not in domestic_ids and "POL-NAKIT#m2" not in domestic_ids
+    assert "SOZ-M1#m3" not in export_ids and "POL-NAKIT#m2" not in export_ids
+    assert export_ids[0] == "SOZ-M2#m3"
+    assert "POL-NAKIT#m2" in chunk_ids(search_documents(s, CFO, sorgu="Ana TL hesabının en düşük bakiyesi", en_fazla=3)[0])
 
 
-def test_uzun_madde_kelime_sinirinda_kesilir(ortam):
-    yanit, _ = ara(ortam["anlam"], CFO, sorgu="uzun bir açıklama cümlesi", en_fazla=1)
-    [s] = yanit["sonuc"]["sonuclar"]
+def test_long_article_is_cut_at_word_boundary(server_env):
+    response, _ = search_documents(server_env["anlam"], CFO, sorgu="uzun bir açıklama cümlesi", en_fazla=1)
+    [s] = response["sonuc"]["sonuclar"]
     assert s["parca_id"] == "KANUN-6102#m21" and s["metin_kesildi"] is True
-    assert len(s["metin"]) <= araclar_modulu.BELGE_METIN_SINIRI + 2 and s["metin"].endswith(" …")
-    assert UZUN.startswith(s["metin"][:-2])
+    assert len(s["metin"]) <= araclar_modulu.DOCUMENT_TEXT_LIMIT + 2 and s["metin"].endswith(" …")
+    assert LONG_TEXT.startswith(s["metin"][:-2])
 
 
-def test_denetim_kaydi_ve_sema(ortam):
-    s = ortam["anlam"]
-    once = len(s.kayit.satirlar)
-    _, hata = ara(s, YURTICI, sorgu="çek vadesi")
-    assert not hata
-    r1, h1 = ara(s, YURTICI, sorgu="ab")
-    r2, h2 = ara(s, YURTICI, sorgu="x" * 301)
-    r3, h3 = ara(s, YURTICI, sorgu="çek", en_fazla=4)
-    r4, h4 = ara(s, YURTICI)
-    assert h1 and r1["mesaj"] == "Argüman hatası: sorgu en az 3 karakter olmalı."
-    assert h2 and r2["mesaj"] == "Argüman hatası: sorgu en çok 300 karakter olabilir."
-    assert h3 and r3["mesaj"] == "Argüman hatası: en_fazla en çok 3 olabilir; 3 ile yeniden deneyin."
-    assert h4 and r4["mesaj"] == "Argüman hatası: Eksik argüman: sorgu."
-    kayit = s.kayit.satirlar[once:]
-    assert [(k["arac"], k["kullanici"], k["rol"], k["sonuc"]) for k in kayit] == \
-        [("belge_ara", YURTICI, "satis_yurtici", "tamam")] + [("belge_ara", YURTICI, "satis_yurtici", "reddedildi")] * 4
-    assert kayit[0]["kayit_sayisi"] == 3
+def test_audit_log_and_schema(server_env):
+    s = server_env["anlam"]
+    before = len(s.audit_log.rows)
+    _, error = search_documents(s, DOMESTIC, sorgu="çek vadesi")
+    assert not error
+    r1, err1 = search_documents(s, DOMESTIC, sorgu="ab")
+    r2, err2 = search_documents(s, DOMESTIC, sorgu="x" * 301)
+    r3, err3 = search_documents(s, DOMESTIC, sorgu="çek", en_fazla=4)
+    r4, err4 = search_documents(s, DOMESTIC)
+    assert err1 and r1["mesaj"] == "Argüman hatası: sorgu en az 3 karakter olmalı."
+    assert err2 and r2["mesaj"] == "Argüman hatası: sorgu en çok 300 karakter olabilir."
+    assert err3 and r3["mesaj"] == "Argüman hatası: en_fazla en çok 3 olabilir; 3 ile yeniden deneyin."
+    assert err4 and r4["mesaj"] == "Argüman hatası: Eksik argüman: sorgu."
+    log_rows = s.audit_log.rows[before:]
+    assert [(k["arac"], k["kullanici"], k["rol"], k["sonuc"]) for k in log_rows] == \
+        [("belge_ara", DOMESTIC, "satis_yurtici", "tamam")] + [("belge_ara", DOMESTIC, "satis_yurtici", "reddedildi")] * 4
+    assert log_rows[0]["kayit_sayisi"] == 3
 
 
-def test_kimliksiz_cagri_reddedilir(ortam):
-    yanit, hata = ortam["anlam"].kapi("belge_ara", {"sorgu": "çek vadesi"}, None)
-    assert hata and yanit["hata"] == "kimlik_gecersiz"
+def test_call_without_identity_is_rejected(server_env):
+    response, error = server_env["anlam"].gate("belge_ara", {"sorgu": "çek vadesi"}, None)
+    assert error and response["hata"] == "kimlik_gecersiz"
 
 
-def test_kutuphane_yoksa_kullanilamaz(ortam):
-    s = ortam["yok"]
-    yanit, hata = ara(s, CFO, sorgu="çek vadesi")
-    assert hata and yanit == {"cagri_id": yanit["cagri_id"], "hata": "kullanilamaz",
+def test_unavailable_when_library_is_missing(server_env):
+    s = server_env["yok"]
+    response, error = search_documents(s, CFO, sorgu="çek vadesi")
+    assert error and response == {"cagri_id": response["cagri_id"], "hata": "kullanilamaz",
                               "mesaj": "Belge araması şu an kullanılamıyor."}
-    assert s.kayit.satirlar[-1]["neden"] == "kullanilamaz"
+    assert s.audit_log.rows[-1]["neden"] == "kullanilamaz"
 
 
-def test_yeni_soru_vektoru_yalnizca_bellekte(tmp_path):
-    gorulen = []
+def test_new_question_vector_stays_in_memory_only(tmp_path):
+    seen_texts = []
 
-    def gomucu(metinler):
-        gorulen.extend(metinler)
-        return np.stack([_vektor(m) for m in metinler])
+    def embedder(texts):
+        seen_texts.extend(texts)
+        return np.stack([_vector(m) for m in texts])
 
-    onbellek = GommeOnbellegi(tmp_path / "yok.npz")
-    for p in PARCALAR:
-        onbellek.v[anahtar(p.arama_metni)] = _vektor(p.arama_metni)
-    dizin = AnlamDizini(PARCALAR, onbellek, gomucu=gomucu)
+    cache = EmbeddingCache(tmp_path / "yok.npz")
+    for p in CHUNKS:
+        cache.v[cache_key(p.arama_metni)] = _vector(p.arama_metni)
+    index = SemanticIndex(CHUNKS, cache, embedder=embedder)
     try:
-        assert dizin.skorlar("çek vadesi", "cfo")
-        assert dizin.skorlar("çek vadesi", "cfo")
-        assert gorulen == ["çek vadesi"]  # ikinci kez modele gitmedi
-        assert not (tmp_path / "yok.npz").exists()  # diske yazılmadı
+        assert index.scores("çek vadesi", "cfo")
+        assert index.scores("çek vadesi", "cfo")
+        assert seen_texts == ["çek vadesi"]  # the second time it did not go to the model
+        assert not (tmp_path / "yok.npz").exists()  # not written to disk
     finally:
-        dizin.kapat()
+        index.close()

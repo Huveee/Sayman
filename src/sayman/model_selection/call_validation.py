@@ -1,14 +1,13 @@
-"""Araç çağrısı geçerlilik kontrolü ve Faz 0 model seçim kuralı.
+"""Tool call validity check and the Phase 0 model selection rule.
 
-Geçerli araç çağrısı: araç adı listede var, argümanlar bir JSON nesnesi olarak
-okunabiliyor, zorunlu alanlar mevcut, listede olmayan alan yok, tipler ve seçenek
-(enum) değerleri doğru. Tipler JSON Schema'ya göre katı kontrol edilir: tamsayı
-beklenen yerde "60" metni geçersizdir.
+A valid tool call: the tool name is in the list, the arguments can be read as a JSON object, the required fields are
+present, there is no field outside the list, the types and the option (enum) values are right. Types are checked
+strictly by JSON Schema: where an integer is expected, the text "60" is invalid.
 
-Seçim kuralı (Faz 0 kabul ölçütü): ön bellek ısındıktan sonra her araç çağırma turunu
-en fazla 30 saniyede bitiren ve 5 örnek sorunun 5'inde geçerli araç çağrısı üreten
-en büyük model demo modeli olur. Hiçbir aday sağlamazsa kural gevşetilmez; sonuç
-"seçilemedi" olarak raporlanır.
+Selection rule (Phase 0 acceptance criterion): after the cache is warm, the largest model that finishes every
+tool-calling turn in at most 30 seconds and produces a valid tool call in 5 of the 5 sample questions becomes the demo
+model. If no candidate satisfies it, the rule is not relaxed; the result is reported as "seçilemedi" (could not be
+selected).
 """
 
 from __future__ import annotations
@@ -18,122 +17,122 @@ import json
 import re
 from typing import Any
 
-from sayman.model_selection.tool_drafts import ARACLAR_ADA_GORE
+from sayman.model_selection.tool_drafts import TOOLS_BY_NAME
 
-SURE_ESIGI_S = 30.0
-GEREKEN_GECERLI = 5
+DURATION_THRESHOLD_S = 30.0
+REQUIRED_VALID = 5
 
-_TARIH_DESENI = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
-def argumanlari_coz(argumanlar: Any) -> tuple[dict | None, str | None]:
-    """Argümanları sözlüğe çevirir. Hata varsa (None, neden) döner."""
-    if isinstance(argumanlar, dict):
-        return argumanlar, None
-    if isinstance(argumanlar, str):
+def parse_arguments(arguments: Any) -> tuple[dict | None, str | None]:
+    """Converts the arguments to a dictionary. If there is an error, returns (None, reason)."""
+    if isinstance(arguments, dict):
+        return arguments, None
+    if isinstance(arguments, str):
         try:
-            cozulen = json.loads(argumanlar)
+            parsed = json.loads(arguments)
         except json.JSONDecodeError:
             return None, "argümanlar JSON olarak okunamadı"
-        if not isinstance(cozulen, dict):
+        if not isinstance(parsed, dict):
             return None, "argümanlar bir JSON nesnesi değil"
-        return cozulen, None
-    if argumanlar is None:
+        return parsed, None
+    if arguments is None:
         return {}, None
-    return None, f"argüman tipi beklenmiyor: {type(argumanlar).__name__}"
+    return None, f"argüman tipi beklenmiyor: {type(arguments).__name__}"
 
 
-def _deger_gecerli_mi(alan: str, deger: Any, sema: dict) -> str | None:
-    tip = sema.get("type")
-    if tip == "string":
-        if not isinstance(deger, str):
-            return f"'{alan}' metin olmalı"
-        if "enum" in sema and deger not in sema["enum"]:
-            return f"'{alan}' için izin verilmeyen değer: {deger!r}"
-        if sema.get("format") == "date":
-            if not _TARIH_DESENI.match(deger):
-                return f"'{alan}' YYYY-MM-DD biçiminde değil"
+def _check_value(field: str, value: Any, schema: dict) -> str | None:
+    type_name = schema.get("type")
+    if type_name == "string":
+        if not isinstance(value, str):
+            return f"'{field}' metin olmalı"
+        if "enum" in schema and value not in schema["enum"]:
+            return f"'{field}' için izin verilmeyen değer: {value!r}"
+        if schema.get("format") == "date":
+            if not _DATE_PATTERN.match(value):
+                return f"'{field}' YYYY-MM-DD biçiminde değil"
             try:
-                _dt.date.fromisoformat(deger)
+                _dt.date.fromisoformat(value)
             except ValueError:
-                return f"'{alan}' geçerli bir tarih değil"
+                return f"'{field}' geçerli bir tarih değil"
         return None
-    if tip == "integer":
-        if isinstance(deger, bool) or not isinstance(deger, int):
-            return f"'{alan}' tamsayı olmalı"
+    if type_name == "integer":
+        if isinstance(value, bool) or not isinstance(value, int):
+            return f"'{field}' tamsayı olmalı"
         return None
-    if tip == "number":
-        if isinstance(deger, bool) or not isinstance(deger, (int, float)):
-            return f"'{alan}' sayı olmalı"
+    if type_name == "number":
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return f"'{field}' sayı olmalı"
         return None
-    if tip == "boolean":
-        if not isinstance(deger, bool):
-            return f"'{alan}' doğru/yanlış olmalı"
+    if type_name == "boolean":
+        if not isinstance(value, bool):
+            return f"'{field}' doğru/yanlış olmalı"
         return None
-    return f"'{alan}' için bilinmeyen şema tipi: {tip}"
+    return f"'{field}' için bilinmeyen şema tipi: {type_name}"
 
 
-def arac_cagrisi_gecerli_mi(cagri: dict, araclar: dict | None = None) -> tuple[bool, str]:
-    """Tek bir araç çağrısını kontrol eder. cagri = {"ad": ..., "argumanlar": ...}."""
-    araclar = ARACLAR_ADA_GORE if araclar is None else araclar
-    ad = cagri.get("ad")
-    if ad not in araclar:
-        return False, f"bilinmeyen araç: {ad!r}"
-    argumanlar, hata = argumanlari_coz(cagri.get("argumanlar"))
-    if hata:
-        return False, hata
-    sema = araclar[ad]["function"]["parameters"]
-    ozellikler = sema.get("properties", {})
-    eksik = [z for z in sema.get("required", []) if z not in argumanlar]
-    if eksik:
-        return False, "eksik zorunlu alan: " + ", ".join(eksik)
-    fazla = [k for k in argumanlar if k not in ozellikler]
-    if fazla and sema.get("additionalProperties") is False:
-        return False, "tanımsız alan: " + ", ".join(fazla)
-    for alan, deger in argumanlar.items():
-        hata = _deger_gecerli_mi(alan, deger, ozellikler[alan])
-        if hata:
-            return False, hata
+def is_tool_call_valid(call: dict, tools: dict | None = None) -> tuple[bool, str]:
+    """Checks a single tool call. call = {"ad": ..., "argumanlar": ...}."""
+    tools = TOOLS_BY_NAME if tools is None else tools
+    name = call.get("ad")
+    if name not in tools:
+        return False, f"bilinmeyen araç: {name!r}"
+    arguments, error = parse_arguments(call.get("argumanlar"))
+    if error:
+        return False, error
+    schema = tools[name]["function"]["parameters"]
+    properties = schema.get("properties", {})
+    missing = [z for z in schema.get("required", []) if z not in arguments]
+    if missing:
+        return False, "eksik zorunlu alan: " + ", ".join(missing)
+    extra = [k for k in arguments if k not in properties]
+    if extra and schema.get("additionalProperties") is False:
+        return False, "tanımsız alan: " + ", ".join(extra)
+    for field, value in arguments.items():
+        error = _check_value(field, value, properties[field])
+        if error:
+            return False, error
     return True, "geçerli"
 
 
-def cevap_gecerli_mi(cagrilar: list[dict], araclar: dict | None = None) -> tuple[bool, str]:
-    """Bir model cevabındaki bütün araç çağrılarını kontrol eder; en az bir çağrı gerekir."""
-    if not cagrilar:
+def is_response_valid(calls: list[dict], tools: dict | None = None) -> tuple[bool, str]:
+    """Checks all the tool calls in a model response; at least one call is required."""
+    if not calls:
         return False, "araç çağrısı yok"
-    for cagri in cagrilar:
-        gecerli, neden = arac_cagrisi_gecerli_mi(cagri, araclar)
-        if not gecerli:
-            return False, neden
+    for call in calls:
+        valid, reason = is_tool_call_valid(call, tools)
+        if not valid:
+            return False, reason
     return True, "geçerli"
 
 
-def beklenen_cagri_mi(cagrilar: list[dict], beklenen_arac: str, beklenen_argumanlar: dict) -> bool:
-    """Çağrılardan biri beklenen araç mı ve beklenen argümanları birebir taşıyor mu?"""
-    for cagri in cagrilar:
-        if cagri.get("ad") != beklenen_arac:
+def is_expected_call(calls: list[dict], expected_tool: str, expected_arguments: dict) -> bool:
+    """Is one of the calls the expected tool, and does it carry the expected arguments exactly?"""
+    for call in calls:
+        if call.get("ad") != expected_tool:
             continue
-        argumanlar, hata = argumanlari_coz(cagri.get("argumanlar"))
-        if hata:
+        arguments, error = parse_arguments(call.get("argumanlar"))
+        if error:
             continue
-        if all(argumanlar.get(k) == v for k, v in beklenen_argumanlar.items()):
+        if all(arguments.get(k) == v for k, v in expected_arguments.items()):
             return True
     return False
 
 
-def kurali_sagliyor_mu(aday: dict, esik_s: float = SURE_ESIGI_S, gereken: int = GEREKEN_GECERLI) -> bool:
-    """aday = {"model", "parametre_milyar", "turlar": [{"sure_s", "gecerli"}, ...]}."""
-    turlar = aday.get("turlar", [])
-    if len(turlar) < gereken:
+def meets_rule(candidate: dict, threshold_s: float = DURATION_THRESHOLD_S, required: int = REQUIRED_VALID) -> bool:
+    """candidate = {"model", "parametre_milyar", "turlar": [{"sure_s", "gecerli"}, ...]}."""
+    turns = candidate.get("turlar", [])
+    if len(turns) < required:
         return False
-    if any(t["sure_s"] > esik_s for t in turlar):
+    if any(t["sure_s"] > threshold_s for t in turns):
         return False
-    return sum(1 for t in turlar if t["gecerli"]) >= gereken
+    return sum(1 for t in turns if t["gecerli"]) >= required
 
 
-def secim_kurali(adaylar: list[dict], esik_s: float = SURE_ESIGI_S, gereken: int = GEREKEN_GECERLI) -> str | None:
-    """Kuralı sağlayan en büyük modelin adını, kimse sağlamıyorsa None döner."""
-    gecenler = [a for a in adaylar if kurali_sagliyor_mu(a, esik_s, gereken)]
-    if not gecenler:
+def selection_rule(candidates: list[dict], threshold_s: float = DURATION_THRESHOLD_S, required: int = REQUIRED_VALID) -> str | None:
+    """The name of the largest model that satisfies the rule, None if none of them does."""
+    passing = [a for a in candidates if meets_rule(a, threshold_s, required)]
+    if not passing:
         return None
-    return max(gecenler, key=lambda a: a["parametre_milyar"])["model"]
+    return max(passing, key=lambda a: a["parametre_milyar"])["model"]

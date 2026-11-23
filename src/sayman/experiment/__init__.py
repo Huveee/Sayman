@@ -1,1 +1,1 @@
-"""Faz 9 araç deneyi: sahte ERP ve banka API'si, ondan otomatik üretilen araçlar ve onların kapısı."""
+"""Phase 9 tool experiment: fake ERP and bank API, the tools generated automatically from it, and their gate."""

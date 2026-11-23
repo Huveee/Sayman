@@ -1,12 +1,12 @@
-"""Olay katmanı: temel verinin kopyasına, sayısı ayarda yazılı olaylar ekler.
+"""Event layer: adds the number of events given in the settings to a copy of the base data.
 
-Her olayın doğru cevabı (ne oldu, hangi kayıtlar etkilendi) cevap anahtarına yazılır; anahtar
-araçların okuduğu tablolara girmez. Her türün son olayı "şimdi"den sonraya düşer: as-of görünümü
-bunları göstermez, saat ileri sarılınca ortaya çıkarlar.
+The correct answer of every event (what happened, which records were affected) is written to the answer key; the key
+never enters the tables the tools read. The last event of each kind falls after "now": the as-of view
+does not show them, they appear once the clock is advanced.
 
-Sıra: önce nakit dışı olaylar, sonra kalıcı para çıkışları, en son geçici nakit sıkışmaları. Çıkış ve
-sıkışmalar o anki defterden boyutlanır, böylece hiçbir hesap eksiye düşmez. Nakit sıkışması kalıcı çıkış
-değildir: tedarikçi ödemeleri öne çekilir, eski vadeleri geçince bakiye temel veriye döner.
+Order: first non-cash events, then permanent cash outflows, last the temporary cash squeezes. Outflows and
+squeezes are sized from the ledger as it is at that moment, so no account goes negative. A cash squeeze is not a
+permanent outflow: supplier payments are pulled forward, and once their old due dates pass the balance returns to the base data.
 """
 
 from __future__ import annotations
@@ -15,333 +15,333 @@ import copy
 import datetime as dt
 from decimal import Decimal
 
-from sayman.data.money import kurusa, kurustan
-from sayman.data.generator import AD_ILK, AD_TUR, GUN, akis, is_gunune_al, yeni_id
+from sayman.data.money import to_cents, from_cents
+from sayman.data.generator import NAME_WORDS, NAME_SUFFIXES, DAY, rng_stream, roll_to_business_day, new_id
 
-KARSI_TARAF = ["Vega", "Orion", "Delta", "Lima", "Sigma", "Kappa", "Nova", "Polar"]
-CIKIS_NEDENI = ["DANIŞMANLIK BEDELİ", "MAKİNE AVANSI", "GAYRİMENKUL KAPORASI", "ORTAK CARİ HESAP"]
-NAKIT_DISI = ("buyuk_musteri_gecikmesi", "karsiliksiz_cek", "mukerrer_odeme", "eslesmeyen_tahsilat_birikimi")
-NAKIT = ("olagandisi_buyuk_cikis", "nakit_sikismasi")
-CIKIS_KATI = (Decimal("2.0"), Decimal("3.0"))  # olağandışı çıkış, tedarikçi ödemelerinin 95. yüzdeliğinin bu katları arası
-CIKIS_TAVANI = Decimal("0.8")  # olağandışı çıkış, o günden sonraki en düşük A_TRY bakiyesinin bu kadarını geçemez
-SIKISMA_PENCERESI = 14  # gün: nakit sıkışmasının bakiyeyi eşiğin altına indirdiği süre
-ONE_CEKME_UFKU = 120  # gün: öne çekilebilecek tedarikçi ödemelerinin en uzak tarihi
+COUNTERPARTIES = ["Vega", "Orion", "Delta", "Lima", "Sigma", "Kappa", "Nova", "Polar"]
+OUTFLOW_REASONS = ["DANIŞMANLIK BEDELİ", "MAKİNE AVANSI", "GAYRİMENKUL KAPORASI", "ORTAK CARİ HESAP"]
+NON_CASH_EVENTS = ("buyuk_musteri_gecikmesi", "karsiliksiz_cek", "mukerrer_odeme", "eslesmeyen_tahsilat_birikimi")
+CASH_EVENTS = ("olagandisi_buyuk_cikis", "nakit_sikismasi")
+OUTFLOW_MULTIPLES = (Decimal("2.0"), Decimal("3.0"))  # unusual outflow: between these multiples of the 95th percentile of supplier payments
+OUTFLOW_CEILING = Decimal("0.8")  # unusual outflow: cannot exceed this share of the lowest A_TRY balance after that day
+SQUEEZE_WINDOW = 14  # days: how long a cash squeeze keeps the balance below the threshold
+PULL_FORWARD_HORIZON = 120  # days: the farthest date of the supplier payments that can be pulled forward
 
 
-class AdayYok(RuntimeError):
+class NoCandidateError(RuntimeError):
     pass
 
 
-def esik_kurus(u) -> int:
-    """Nakit sıkışması eşiği: ortalama aylık satışın %5'i."""
-    return kurusa(kurustan(u.ortalama_aylik_satis) * Decimal("0.05"))
+def threshold_cents(u) -> int:
+    """Cash squeeze threshold: 5% of the average monthly sales."""
+    return to_cents(from_cents(u.average_monthly_sales) * Decimal("0.05"))
 
 
-def _gun_sec(u, rng, sonra: bool) -> tuple[dt.date, dt.date, dt.date]:
-    """(olay günü, aramanın en erken günü, aramanın en geç günü)."""
-    if sonra:
-        alt, ust = u.a.simdi + 7 * GUN, u.bitis - 30 * GUN
-        en_erken, sinir = u.a.simdi + GUN, u.bitis
+def _pick_day(u, rng, after: bool) -> tuple[dt.date, dt.date, dt.date]:
+    """(event day, earliest day of the search, latest day of the search)."""
+    if after:
+        lower, upper = u.settings.simdi + 7 * DAY, u.end - 30 * DAY
+        earliest, limit = u.settings.simdi + DAY, u.end
     else:
-        alt, ust = u.baslangic + 90 * GUN, u.a.simdi - 45 * GUN
-        en_erken, sinir = u.baslangic + 60 * GUN, u.a.simdi - GUN
-    ust = max(ust, alt)
-    return is_gunune_al(alt + rng.randint(0, (ust - alt).days) * GUN), en_erken, sinir
+        lower, upper = u.start + 90 * DAY, u.settings.simdi - 45 * DAY
+        earliest, limit = u.start + 60 * DAY, u.settings.simdi - DAY
+    upper = max(upper, lower)
+    return roll_to_business_day(lower + rng.randint(0, (upper - lower).days) * DAY), earliest, limit
 
 
-def a_try_gunluk(u, kayitlar, acilis) -> dict[dt.date, tuple[int, int]]:
-    """A_TRY'nin her gün (gün içi en düşük, gün sonu) bakiyesi. Gün içi en düşük, günün açılışını
-    (bir önceki günün kapanışını) da kapsar."""
-    satirlar = [s for s in u.defter(kayitlar["tahsilatlar"], kayitlar["odemeler"], acilis) if s["hesap_id"] == "A_TRY"]
-    gunluk, i, kapanis, gun = {}, 0, acilis["A_TRY"], u.baslangic
-    while gun <= u.bitis:
-        en_dusuk = kapanis
-        while i < len(satirlar) and satirlar[i]["tarih"] == gun:
-            kapanis = satirlar[i]["bakiye_kurus"]
-            en_dusuk = min(en_dusuk, kapanis)
+def a_try_daily(u, records, opening) -> dict[dt.date, tuple[int, int]]:
+    """Balance of A_TRY for every day (lowest within the day, end of day). The lowest within the day also covers the
+    opening of the day (the closing of the previous day)."""
+    rows = [s for s in u.ledger(records["tahsilatlar"], records["odemeler"], opening) if s["hesap_id"] == "A_TRY"]
+    daily, i, closing, day = {}, 0, opening["A_TRY"], u.start
+    while day <= u.end:
+        lowest = closing
+        while i < len(rows) and rows[i]["tarih"] == day:
+            closing = rows[i]["bakiye_kurus"]
+            lowest = min(lowest, closing)
             i += 1
-        gunluk[gun] = (en_dusuk, kapanis)
-        gun += GUN
-    return gunluk
+        daily[day] = (lowest, closing)
+        day += DAY
+    return daily
 
 
-def a_try_gunluk_en_dusuk(u, kayitlar, acilis) -> dict[dt.date, int]:
-    return {g: v[0] for g, v in a_try_gunluk(u, kayitlar, acilis).items()}
+def a_try_daily_lowest(u, records, opening) -> dict[dt.date, int]:
+    return {g: v[0] for g, v in a_try_daily(u, records, opening).items()}
 
 
-def _cakisir(kullanilan: set, bas: dt.date, bit: dt.date) -> bool:
-    """Para çıkışı olaylarının etki aralıkları üst üste binmesin: her sıkışma tek bir olayın sonucu olsun."""
-    return any(isinstance(k, tuple) and k[0] == "nakit" and k[1] <= bit and bas <= k[2] for k in kullanilan)
+def _overlaps(used: set, start: dt.date, end: dt.date) -> bool:
+    """Impact ranges of the cash outflow events must not overlap: every squeeze should be the result of a single event."""
+    return any(isinstance(k, tuple) and k[0] == "nakit" and k[1] <= end and start <= k[2] for k in used)
 
 
-def _tedarikci_p95(kayitlar) -> int:
-    tutarlar = sorted(o["tutar_kurus"] for o in kayitlar["odemeler"] if o["tur"] == "tedarikci")
-    return tutarlar[len(tutarlar) * 95 // 100]
+def _supplier_p95(records) -> int:
+    amounts = sorted(o["tutar_kurus"] for o in records["odemeler"] if o["tur"] == "tedarikci")
+    return amounts[len(amounts) * 95 // 100]
 
 
-# ---------------------------------------------------------------- nakit dışı olaylar
+# ---------------------------------------------------------------- non-cash events
 
 
-def buyuk_musteri_gecikmesi(u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik):
-    for bas in (gun, en_erken):
-        bit = min(bas + 90 * GUN, sinir)
-        adaylar = {}
-        for t in kayitlar["tahsilatlar"]:
-            if (bas <= t["tarih"] <= bit and t["yontem"] in ("havale", "swift") and t["eslesme"] == "eslesti"
-                    and t["musteri_id"] not in kullanilan and not u.musteri_ada[t["musteri_id"]]["_batik"]):
-                adaylar.setdefault(t["musteri_id"], []).append(t)
-        adaylar = {m: v for m, v in adaylar.items() if len(v) >= 3}
-        if adaylar:
+def large_customer_delay(u, records, opening, rng, day, earliest, limit, used, rng_ids):
+    for start in (day, earliest):
+        end = min(start + 90 * DAY, limit)
+        candidates = {}
+        for t in records["tahsilatlar"]:
+            if (start <= t["tarih"] <= end and t["yontem"] in ("havale", "swift") and t["eslesme"] == "eslesti"
+                    and t["musteri_id"] not in used and not u.customers_by_id[t["musteri_id"]]["_batik"]):
+                candidates.setdefault(t["musteri_id"], []).append(t)
+        candidates = {m: v for m, v in candidates.items() if len(v) >= 3}
+        if candidates:
             break
     else:
-        raise AdayYok("büyük müşteri gecikmesi için aday yok")
-    sirali = sorted(adaylar, key=lambda m: (-u.musteri_toplam[m], m))
-    musteri = sirali[rng.randrange(min(3, len(sirali)))]
-    kullanilan.add(musteri)
-    gecikme = rng.randint(45, 90)
-    etkilenen, silinen = [], set()
-    for t in sorted(adaylar[musteri], key=lambda t: (t["tarih"], t["tahsilat_id"])):
-        eski, yeni = t["tarih"], is_gunune_al(t["tarih"] + gecikme * GUN)
-        etkilenen.append({"tahsilat_id": t["tahsilat_id"], "fatura_id": t["fatura_id"], "eski_tarih": eski.isoformat(),
-                          "yeni_tarih": yeni.isoformat() if yeni <= u.bitis else None})
-        if yeni > u.bitis:
-            silinen.add(t["tahsilat_id"])
+        raise NoCandidateError("büyük müşteri gecikmesi için aday yok")
+    ordered = sorted(candidates, key=lambda m: (-u.customer_totals[m], m))
+    customer = ordered[rng.randrange(min(3, len(ordered)))]
+    used.add(customer)
+    delay = rng.randint(45, 90)
+    affected, removed = [], set()
+    for t in sorted(candidates[customer], key=lambda t: (t["tarih"], t["tahsilat_id"])):
+        old_date, new_date = t["tarih"], roll_to_business_day(t["tarih"] + delay * DAY)
+        affected.append({"tahsilat_id": t["tahsilat_id"], "fatura_id": t["fatura_id"], "eski_tarih": old_date.isoformat(),
+                          "yeni_tarih": new_date.isoformat() if new_date <= u.end else None})
+        if new_date > u.end:
+            removed.add(t["tahsilat_id"])
         else:
-            t["tarih"] = yeni
-    kayitlar["tahsilatlar"] = [t for t in kayitlar["tahsilatlar"] if t["tahsilat_id"] not in silinen]
+            t["tarih"] = new_date
+    records["tahsilatlar"] = [t for t in records["tahsilatlar"] if t["tahsilat_id"] not in removed]
     return {
-        "tarih": etkilenen[0]["eski_tarih"], "musteri_id": musteri, "gecikme_gun": gecikme, "tahsilatlar": etkilenen,
-        "aciklama": f"Büyük bir müşteri ödemelerini {gecikme} gün geciktirmeye başladı.",
-        "etkilenen": {"tahsilatlar": [e["tahsilat_id"] for e in etkilenen]},
+        "tarih": affected[0]["eski_tarih"], "musteri_id": customer, "gecikme_gun": delay, "tahsilatlar": affected,
+        "aciklama": f"Büyük bir müşteri ödemelerini {delay} gün geciktirmeye başladı.",
+        "etkilenen": {"tahsilatlar": [e["tahsilat_id"] for e in affected]},
     }
 
 
-def karsiliksiz_cek(u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik):
-    tutarlar = sorted(c["tutar_kurus"] for c in kayitlar["cekler"])
-    if not tutarlar:
-        raise AdayYok("çek yok")
-    esik = tutarlar[len(tutarlar) * 3 // 4]
-    cek_ada = {c["cek_id"]: c for c in kayitlar["cekler"]}
-    for bas in (gun, en_erken):
-        adaylar = sorted(
-            (h for h in kayitlar["cek_hareketleri"]
-             if h["durum"] == "tahsil_edildi" and bas <= h["tarih"] <= sinir and h["cek_id"] not in kullanilan
-             and cek_ada[h["cek_id"]]["tutar_kurus"] >= esik),
+def bounced_cheque(u, records, opening, rng, day, earliest, limit, used, rng_ids):
+    amounts = sorted(c["tutar_kurus"] for c in records["cekler"])
+    if not amounts:
+        raise NoCandidateError("çek yok")
+    threshold = amounts[len(amounts) * 3 // 4]
+    cheques_by_id = {c["cek_id"]: c for c in records["cekler"]}
+    for start in (day, earliest):
+        candidates = sorted(
+            (h for h in records["cek_hareketleri"]
+             if h["durum"] == "tahsil_edildi" and start <= h["tarih"] <= limit and h["cek_id"] not in used
+             and cheques_by_id[h["cek_id"]]["tutar_kurus"] >= threshold),
             key=lambda h: (h["tarih"], h["cek_id"]))
-        if adaylar:
+        if candidates:
             break
     else:
-        raise AdayYok("karşılıksız çek için aday yok")
-    hareket = adaylar[rng.randrange(min(5, len(adaylar)))]
-    cek = cek_ada[hareket["cek_id"]]
-    kullanilan.add(cek["cek_id"])
-    hareket["durum"] = "karsiliksiz"
-    silinen = [t["tahsilat_id"] for t in kayitlar["tahsilatlar"] if t["cek_id"] == cek["cek_id"]]
-    kayitlar["tahsilatlar"] = [t for t in kayitlar["tahsilatlar"] if t["cek_id"] != cek["cek_id"]]
+        raise NoCandidateError("karşılıksız çek için aday yok")
+    movement = candidates[rng.randrange(min(5, len(candidates)))]
+    cheque = cheques_by_id[movement["cek_id"]]
+    used.add(cheque["cek_id"])
+    movement["durum"] = "karsiliksiz"
+    removed = [t["tahsilat_id"] for t in records["tahsilatlar"] if t["cek_id"] == cheque["cek_id"]]
+    records["tahsilatlar"] = [t for t in records["tahsilatlar"] if t["cek_id"] != cheque["cek_id"]]
     return {
-        "tarih": hareket["tarih"].isoformat(), "cek_id": cek["cek_id"], "musteri_id": cek["musteri_id"],
-        "tutar_kurus": cek["tutar_kurus"],
+        "tarih": movement["tarih"].isoformat(), "cek_id": cheque["cek_id"], "musteri_id": cheque["musteri_id"],
+        "tutar_kurus": cheque["tutar_kurus"],
         "aciklama": "Büyük tutarlı bir müşteri çeki vadesinde karşılıksız çıktı; fatura açık kaldı.",
-        "etkilenen": {"cek_hareketleri": [hareket["cek_hareket_id"]], "tahsilatlar": silinen},
+        "etkilenen": {"cek_hareketleri": [movement["cek_hareket_id"]], "tahsilatlar": removed},
     }
 
 
-def mukerrer_odeme(u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik):
-    tutarlar = sorted(o["tutar_kurus"] for o in kayitlar["odemeler"] if o["tur"] == "tedarikci")
-    orta = tutarlar[len(tutarlar) // 2]
-    for bas in (gun, en_erken):
-        adaylar = sorted(
-            (o for o in kayitlar["odemeler"]
-             if o["tur"] == "tedarikci" and o["yontem"] == "havale" and bas <= o["tarih"] <= sinir
-             and o["tutar_kurus"] >= orta and o["odeme_id"] not in kullanilan),
+def duplicate_payment(u, records, opening, rng, day, earliest, limit, used, rng_ids):
+    amounts = sorted(o["tutar_kurus"] for o in records["odemeler"] if o["tur"] == "tedarikci")
+    median = amounts[len(amounts) // 2]
+    for start in (day, earliest):
+        candidates = sorted(
+            (o for o in records["odemeler"]
+             if o["tur"] == "tedarikci" and o["yontem"] == "havale" and start <= o["tarih"] <= limit
+             and o["tutar_kurus"] >= median and o["odeme_id"] not in used),
             key=lambda o: (o["tarih"], o["odeme_id"]))
-        if adaylar:
+        if candidates:
             break
     else:
-        raise AdayYok("mükerrer ödeme için aday yok")
-    asil = adaylar[rng.randrange(min(10, len(adaylar)))]
-    kullanilan.add(asil["odeme_id"])
-    kopya = copy.deepcopy(asil)
-    kopya["odeme_id"] = yeni_id("O", rng_kimlik, {o["odeme_id"] for o in kayitlar["odemeler"]})
-    yeni_gun = is_gunune_al(asil["tarih"] + rng.randint(0, 2) * GUN)
-    kopya["tarih"] = yeni_gun if yeni_gun <= sinir else asil["tarih"]
-    kayitlar["odemeler"].append(kopya)
+        raise NoCandidateError("mükerrer ödeme için aday yok")
+    original = candidates[rng.randrange(min(10, len(candidates)))]
+    used.add(original["odeme_id"])
+    duplicate = copy.deepcopy(original)
+    duplicate["odeme_id"] = new_id("O", rng_ids, {o["odeme_id"] for o in records["odemeler"]})
+    new_day = roll_to_business_day(original["tarih"] + rng.randint(0, 2) * DAY)
+    duplicate["tarih"] = new_day if new_day <= limit else original["tarih"]
+    records["odemeler"].append(duplicate)
     return {
-        "tarih": kopya["tarih"].isoformat(), "asil_odeme_id": asil["odeme_id"], "mukerrer_odeme_id": kopya["odeme_id"],
-        "tedarikci_id": asil["tedarikci_id"], "alis_fatura_id": asil["alis_fatura_id"], "tutar_kurus": asil["tutar_kurus"],
+        "tarih": duplicate["tarih"].isoformat(), "asil_odeme_id": original["odeme_id"], "mukerrer_odeme_id": duplicate["odeme_id"],
+        "tedarikci_id": original["tedarikci_id"], "alis_fatura_id": original["alis_fatura_id"], "tutar_kurus": original["tutar_kurus"],
         "aciklama": "Aynı tedarikçi faturası iki kez ödendi.",
-        "etkilenen": {"odemeler": [kopya["odeme_id"]]},
+        "etkilenen": {"odemeler": [duplicate["odeme_id"]]},
     }
 
 
-def eslesmeyen_tahsilat_birikimi(u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik):
-    for bas in (gun, en_erken):
-        bit = min(bas + 21 * GUN, sinir)
-        adaylar = {}
-        for t in kayitlar["tahsilatlar"]:
-            if (bas <= t["tarih"] <= bit and t["yontem"] == "havale" and t["eslesme"] == "eslesti"
-                    and t["musteri_id"] not in kullanilan):
-                adaylar.setdefault(t["musteri_id"], []).append(t)
-        if sum(len(v) for v in adaylar.values()) >= 4:
+def unmatched_collection_buildup(u, records, opening, rng, day, earliest, limit, used, rng_ids):
+    for start in (day, earliest):
+        end = min(start + 21 * DAY, limit)
+        candidates = {}
+        for t in records["tahsilatlar"]:
+            if (start <= t["tarih"] <= end and t["yontem"] == "havale" and t["eslesme"] == "eslesti"
+                    and t["musteri_id"] not in used):
+                candidates.setdefault(t["musteri_id"], []).append(t)
+        if sum(len(v) for v in candidates.values()) >= 4:
             break
     else:
-        raise AdayYok("eşleşmeyen tahsilat birikimi için aday yok")
-    musteriler = sorted(adaylar, key=lambda m: (-len(adaylar[m]), m))[:3]
-    secilen = sorted((t for m in musteriler for t in adaylar[m]), key=lambda t: (t["tarih"], t["tahsilat_id"]))[:8]
-    for t in secilen:
+        raise NoCandidateError("eşleşmeyen tahsilat birikimi için aday yok")
+    customers = sorted(candidates, key=lambda m: (-len(candidates[m]), m))[:3]
+    chosen = sorted((t for m in customers for t in candidates[m]), key=lambda t: (t["tarih"], t["tahsilat_id"]))[:8]
+    for t in chosen:
         t["fatura_id"] = None
         t["eslesme"] = "bilerek_eslesmemis"
-    kullanilan.update(musteriler)
+    used.update(customers)
     return {
-        "tarih": secilen[0]["tarih"].isoformat(), "bitis": secilen[-1]["tarih"].isoformat(),
-        "tahsilatlar": [{"tahsilat_id": t["tahsilat_id"], "gercek_fatura_id": t["_gercek_fatura"]} for t in secilen],
+        "tarih": chosen[0]["tarih"].isoformat(), "bitis": chosen[-1]["tarih"].isoformat(),
+        "tahsilatlar": [{"tahsilat_id": t["tahsilat_id"], "gercek_fatura_id": t["_gercek_fatura"]} for t in chosen],
         "aciklama": "Kısa sürede, açıklamasında fatura bilgisi olmayan çok sayıda havale geldi.",
-        "etkilenen": {"tahsilatlar": [t["tahsilat_id"] for t in secilen]},
+        "etkilenen": {"tahsilatlar": [t["tahsilat_id"] for t in chosen]},
     }
 
 
-# ---------------------------------------------------------------- para çıkışı yaratan olaylar
+# ---------------------------------------------------------------- events that create a cash outflow
 
 
-def olagandisi_buyuk_cikis(u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik):
-    """Kalıcı çıkış: tutar, o günden veri sonuna kadarki en düşük A_TRY bakiyesinin %80'ini geçemez."""
-    p95 = _tedarikci_p95(kayitlar)
-    kat = Decimal(rng.randint(int(CIKIS_KATI[0] * 100), int(CIKIS_KATI[1] * 100))) / 100
-    tutar = kurusa(kurustan(p95) * kat)
-    if _cakisir(kullanilan, gun - SIKISMA_PENCERESI * GUN, gun + SIKISMA_PENCERESI * GUN):
-        raise AdayYok("başka bir para çıkışı olayına çok yakın")
-    gunluk = a_try_gunluk_en_dusuk(u, kayitlar, acilis)
-    if tutar > kurusa(kurustan(min(b for g, b in gunluk.items() if g >= gun)) * CIKIS_TAVANI):
-        raise AdayYok("olağandışı çıkış için bakiye yetersiz")
-    karsi = f"{rng.choice(KARSI_TARAF)} {rng.choice(AD_ILK)} {rng.choice(AD_TUR)}"
-    odeme = {
-        "odeme_id": yeni_id("O", rng_kimlik, {o["odeme_id"] for o in kayitlar["odemeler"]}), "tur": "diger",
-        "tedarikci_id": None, "alis_fatura_id": None, "musteri_id": None, "iade_fatura_id": None, "tarih": gun,
-        "tutar_kurus": tutar, "yontem": "havale", "banka_hesap_id": "A_TRY",
-        "aciklama": f"EFT GİDEN {karsi} {rng.choice(CIKIS_NEDENI)}",
+def unusual_large_outflow(u, records, opening, rng, day, earliest, limit, used, rng_ids):
+    """Permanent outflow: the amount cannot exceed 80% of the lowest A_TRY balance from that day to the end of the data."""
+    p95 = _supplier_p95(records)
+    multiple = Decimal(rng.randint(int(OUTFLOW_MULTIPLES[0] * 100), int(OUTFLOW_MULTIPLES[1] * 100))) / 100
+    amount = to_cents(from_cents(p95) * multiple)
+    if _overlaps(used, day - SQUEEZE_WINDOW * DAY, day + SQUEEZE_WINDOW * DAY):
+        raise NoCandidateError("başka bir para çıkışı olayına çok yakın")
+    daily = a_try_daily_lowest(u, records, opening)
+    if amount > to_cents(from_cents(min(b for g, b in daily.items() if g >= day)) * OUTFLOW_CEILING):
+        raise NoCandidateError("olağandışı çıkış için bakiye yetersiz")
+    counterparty = f"{rng.choice(COUNTERPARTIES)} {rng.choice(NAME_WORDS)} {rng.choice(NAME_SUFFIXES)}"
+    payment = {
+        "odeme_id": new_id("O", rng_ids, {o["odeme_id"] for o in records["odemeler"]}), "tur": "diger",
+        "tedarikci_id": None, "alis_fatura_id": None, "musteri_id": None, "iade_fatura_id": None, "tarih": day,
+        "tutar_kurus": amount, "yontem": "havale", "banka_hesap_id": "A_TRY",
+        "aciklama": f"EFT GİDEN {counterparty} {rng.choice(OUTFLOW_REASONS)}",
     }
-    kayitlar["odemeler"].append(odeme)
-    kullanilan.add(("nakit", gun, gun))
+    records["odemeler"].append(payment)
+    used.add(("nakit", day, day))
     return {
-        "tarih": gun.isoformat(), "odeme_id": odeme["odeme_id"], "tutar_kurus": tutar,
-        "tedarikci_odemesi_p95_kurus": p95, "p95_kati": str(kat),
-        "aciklama": f"Daha önce görülmemiş bir karşı tarafa, tedarikçi ödemelerinin 95. yüzdeliğinin {kat} katı "
+        "tarih": day.isoformat(), "odeme_id": payment["odeme_id"], "tutar_kurus": amount,
+        "tedarikci_odemesi_p95_kurus": p95, "p95_kati": str(multiple),
+        "aciklama": f"Daha önce görülmemiş bir karşı tarafa, tedarikçi ödemelerinin 95. yüzdeliğinin {multiple} katı "
                     "tutarında faturasız para çıkışı.",
-        "etkilenen": {"odemeler": [odeme["odeme_id"]]},
+        "etkilenen": {"odemeler": [payment["odeme_id"]]},
     }
 
 
-def nakit_sikismasi(u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik):
-    """Geçici sıkışma: ileri vadeli tedarikçi ödemeleri olay gününe çekilir (erken ödeme). Pencere boyunca
-    A_TRY eşiğin altına iner; öne çekilen ödemelerin eski tarihleri geçince bakiye temel veriye döner."""
-    esik = esik_kurus(u)
-    gunluk_iki = a_try_gunluk(u, kayitlar, acilis)
-    gunluk = {g: v[0] for g, v in gunluk_iki.items()}
-    pencere_son = min(gun + SIKISMA_PENCERESI * GUN, u.bitis)
-    pencere_en_dusuk = min(b for g, b in gunluk.items() if gun <= g <= pencere_son)
-    if pencere_en_dusuk < esik:
-        raise AdayYok("bakiye olaydan önce zaten eşiğin altında")
-    # Ödemeler en yakın vadeliden başlayarak tek tek öne çekilir. Öne çekilen ödeme, olay günüyle eski tarihi
-    # arasındaki her günü kendi tutarı kadar düşürür (eski günü de, temkinli olarak). Bir günü eksiye indirecek
-    # ödeme atlanır; pencere içindeki en düşük bakiye eşiğin altına inince durulur. Olay gününde öne çekilen
-    # ödemeler o gün gelen paralardan sonra düşer: olay gününün açılışı değil kapanışı azalır.
-    ufuk = min(gun + ONE_CEKME_UFKU * GUN, u.bitis)
-    gunler = [g for g in sorted(gunluk) if gun <= g <= ufuk]
-    dusus = {g: 0 for g in gunler}
+def cash_squeeze(u, records, opening, rng, day, earliest, limit, used, rng_ids):
+    """Temporary squeeze: supplier payments with later due dates are pulled to the event day (early payment). Over the window
+    A_TRY drops below the threshold; once the old dates of the pulled-forward payments pass, the balance returns to the base data."""
+    threshold = threshold_cents(u)
+    daily_both = a_try_daily(u, records, opening)
+    daily = {g: v[0] for g, v in daily_both.items()}
+    window_end = min(day + SQUEEZE_WINDOW * DAY, u.end)
+    window_lowest = min(b for g, b in daily.items() if day <= g <= window_end)
+    if window_lowest < threshold:
+        raise NoCandidateError("bakiye olaydan önce zaten eşiğin altında")
+    # Payments are pulled forward one by one, starting with the nearest due date. A pulled-forward payment lowers every day
+    # between the event day and its old date by its own amount (the old day too, to be conservative). A payment that would
+    # push a day negative is skipped; it stops when the lowest balance in the window falls below the threshold. Payments
+    # pulled forward on the event day are deducted after that day's incoming money: the closing of the event day drops, not its opening.
+    horizon = min(day + PULL_FORWARD_HORIZON * DAY, u.end)
+    days = [g for g in sorted(daily) if day <= g <= horizon]
+    drop = {g: 0 for g in days}
 
-    def pencere_degeri(g):
-        return (gunluk_iki[g][1] if g == gun else gunluk[g]) - dusus[g]
+    def window_value(g):
+        return (daily_both[g][1] if g == day else daily[g]) - drop[g]
 
-    # Başka bir olaya ait ödeme aday değildir: asıl ödemeler kullanılanlarda düz kimlikle, olayların etkilediği
-    # ödemeler (ör. mükerrer ödemenin kopyası) ("olay_odemesi", kimlik) etiketiyle durur. Öne çekilselerdi o olayın
-    # cevap anahtarındaki tarihi verideki tarihle uyuşmazdı.
-    adaylar = sorted((o for o in kayitlar["odemeler"]
-                      if o["tur"] == "tedarikci" and pencere_son < o["tarih"] <= ufuk and o["odeme_id"] not in kullanilan
-                      and ("olay_odemesi", o["odeme_id"]) not in kullanilan),
+    # A payment that belongs to another event is not a candidate: original payments sit in `used` by plain identifier, payments
+    # affected by events (e.g. the copy of a duplicate payment) sit under the tag ("olay_odemesi", identifier). If they were pulled
+    # forward, the date in that event's answer key would not match the date in the data.
+    candidates = sorted((o for o in records["odemeler"]
+                      if o["tur"] == "tedarikci" and window_end < o["tarih"] <= horizon and o["odeme_id"] not in used
+                      and ("olay_odemesi", o["odeme_id"]) not in used),
                      key=lambda o: (o["tarih"], o["odeme_id"]))
-    secilen, toplam = [], 0
-    for o in adaylar:
-        etkilenen_gunler = [g for g in gunler if g <= o["tarih"]]
-        if any(gunluk[g] - dusus[g] - o["tutar_kurus"] < 0 for g in etkilenen_gunler):
+    chosen, total = [], 0
+    for o in candidates:
+        affected_days = [g for g in days if g <= o["tarih"]]
+        if any(daily[g] - drop[g] - o["tutar_kurus"] < 0 for g in affected_days):
             continue
-        for g in etkilenen_gunler:
-            dusus[g] += o["tutar_kurus"]
-        secilen.append(o)
-        toplam += o["tutar_kurus"]
-        if min(pencere_degeri(g) for g in gunler if g <= pencere_son) < esik:
+        for g in affected_days:
+            drop[g] += o["tutar_kurus"]
+        chosen.append(o)
+        total += o["tutar_kurus"]
+        if min(window_value(g) for g in days if g <= window_end) < threshold:
             break
     else:
-        raise AdayYok("öne çekilecek tedarikçi ödemesi yetmiyor")
-    biter = max(o["tarih"] for o in secilen)  # son öne çekilen ödemenin eski tarihi: sıkışma en geç burada biter
-    if _cakisir(kullanilan, gun - SIKISMA_PENCERESI * GUN, biter + SIKISMA_PENCERESI * GUN):
-        raise AdayYok("başka bir para çıkışı olayıyla çakışıyor")
-    tasinan = [{"odeme_id": o["odeme_id"], "eski_tarih": o["tarih"].isoformat()} for o in secilen]
-    for o in secilen:
-        o["tarih"] = gun
-        kullanilan.add(o["odeme_id"])
-    kullanilan.add(("nakit", gun, biter))
-    sonra = a_try_gunluk_en_dusuk(u, kayitlar, acilis)
-    altinda = sorted(g for g, b in sonra.items() if gun <= g <= biter and b < esik)
+        raise NoCandidateError("öne çekilecek tedarikçi ödemesi yetmiyor")
+    ends_on = max(o["tarih"] for o in chosen)  # old date of the last pulled-forward payment: the squeeze ends at the latest here
+    if _overlaps(used, day - SQUEEZE_WINDOW * DAY, ends_on + SQUEEZE_WINDOW * DAY):
+        raise NoCandidateError("başka bir para çıkışı olayıyla çakışıyor")
+    moved = [{"odeme_id": o["odeme_id"], "eski_tarih": o["tarih"].isoformat()} for o in chosen]
+    for o in chosen:
+        o["tarih"] = day
+        used.add(o["odeme_id"])
+    used.add(("nakit", day, ends_on))
+    after = a_try_daily_lowest(u, records, opening)
+    below = sorted(g for g, b in after.items() if day <= g <= ends_on and b < threshold)
     return {
-        "tarih": gun.isoformat(), "bitis": biter.isoformat(), "esik_kurus": esik, "one_cekilen_toplam_kurus": toplam,
-        "odemeler": tasinan,
-        "olay_oncesi_pencere_en_dusuk_kurus": pencere_en_dusuk,
-        "pencere_en_dusuk_kurus": min(b for g, b in sonra.items() if gun <= g <= pencere_son),
-        "esik_alti_ilk_gun": altinda[0].isoformat() if altinda else None,
-        "esik_alti_son_gun": altinda[-1].isoformat() if altinda else None,
+        "tarih": day.isoformat(), "bitis": ends_on.isoformat(), "esik_kurus": threshold, "one_cekilen_toplam_kurus": total,
+        "odemeler": moved,
+        "olay_oncesi_pencere_en_dusuk_kurus": window_lowest,
+        "pencere_en_dusuk_kurus": min(b for g, b in after.items() if day <= g <= window_end),
+        "esik_alti_ilk_gun": below[0].isoformat() if below else None,
+        "esik_alti_son_gun": below[-1].isoformat() if below else None,
         "aciklama": "İleri vadeli tedarikçi ödemeleri erken yapıldı; A_TRY bakiyesi ortalama aylık satışın %5'inin "
                     "altına indi.",
-        "etkilenen": {"odemeler": [o["odeme_id"] for o in secilen]},
+        "etkilenen": {"odemeler": [o["odeme_id"] for o in chosen]},
     }
 
 
-OLAY_FONKSIYONLARI = {
-    "buyuk_musteri_gecikmesi": buyuk_musteri_gecikmesi,
-    "karsiliksiz_cek": karsiliksiz_cek,
-    "mukerrer_odeme": mukerrer_odeme,
-    "eslesmeyen_tahsilat_birikimi": eslesmeyen_tahsilat_birikimi,
-    "olagandisi_buyuk_cikis": olagandisi_buyuk_cikis,
-    "nakit_sikismasi": nakit_sikismasi,
+EVENT_FUNCTIONS = {
+    "buyuk_musteri_gecikmesi": large_customer_delay,
+    "karsiliksiz_cek": bounced_cheque,
+    "mukerrer_odeme": duplicate_payment,
+    "eslesmeyen_tahsilat_birikimi": unmatched_collection_buildup,
+    "olagandisi_buyuk_cikis": unusual_large_outflow,
+    "nakit_sikismasi": cash_squeeze,
 }
 
 
-def uygula(u, kayitlar: dict, acilis: dict[str, int]) -> dict:
-    sayilar = dict(u.a.olay_sayilari)
-    if set(sayilar) - set(OLAY_FONKSIYONLARI):
-        raise ValueError(f"bilinmeyen olay türü: {set(sayilar) - set(OLAY_FONKSIYONLARI)}")
-    rng, rng_kimlik = akis(u.a, "olay"), akis(u.a, "kimlik:olay")
-    kullanilan: set = set()
-    sonuclar = []
+def apply_events(u, records: dict, opening: dict[str, int]) -> dict:
+    counts = dict(u.settings.olay_sayilari)
+    if set(counts) - set(EVENT_FUNCTIONS):
+        raise ValueError(f"bilinmeyen olay türü: {set(counts) - set(EVENT_FUNCTIONS)}")
+    rng, rng_ids = rng_stream(u.settings, "olay"), rng_stream(u.settings, "kimlik:olay")
+    used: set = set()
+    results = []
 
-    def planla(turler):
-        planlar = []
-        for tur in turler:
-            adet = sayilar.get(tur, 0)
-            for i in range(adet):
-                sonra = tur in u.a.simdiden_sonra_olay and i == adet - 1
-                planlar.append((tur, sonra, _gun_sec(u, rng, sonra)))
-        return planlar
+    def plan_events(kinds):
+        plans = []
+        for kind in kinds:
+            count = counts.get(kind, 0)
+            for i in range(count):
+                after = kind in u.settings.simdiden_sonra_olay and i == count - 1
+                plans.append((kind, after, _pick_day(u, rng, after)))
+        return plans
 
-    # Sıra: nakit dışı olaylar (tür sırasıyla), kalıcı çıkışlar, geçici sıkışmalar (ikisi de tarih sırasıyla).
-    # Sıkışmalar en sonda: bilerek düşürdükleri bakiye, sonradan eklenen kalıcı bir çıkışın tavanını belirlemesin.
-    sirali = planla(NAKIT_DISI)
-    for tur in NAKIT:
-        sirali += sorted(planla([tur]), key=lambda p: p[2][0])
-    for tur, sonra, (gun, en_erken, sinir) in sirali:
-        for deneme in range(20):  # aday bulunamazsa başka bir gün denenir
-            if deneme:
-                gun, en_erken, sinir = _gun_sec(u, rng, sonra)
+    # Order: non-cash events (in kind order), permanent outflows, temporary squeezes (both in date order).
+    # Squeezes go last: the balance they lower on purpose must not set the ceiling of a permanent outflow added later.
+    ordered = plan_events(NON_CASH_EVENTS)
+    for kind in CASH_EVENTS:
+        ordered += sorted(plan_events([kind]), key=lambda p: p[2][0])
+    for kind, after, (day, earliest, limit) in ordered:
+        for attempt in range(20):  # if no candidate is found, another day is tried
+            if attempt:
+                day, earliest, limit = _pick_day(u, rng, after)
             try:
-                sonuc = OLAY_FONKSIYONLARI[tur](u, kayitlar, acilis, rng, gun, en_erken, sinir, kullanilan, rng_kimlik)
-                sonuclar.append((tur, sonuc))
-                # Olayın etkilediği ödemeler etiketle işaretlenir; sonraki nakit sıkışmaları onları öne çekmez.
-                # Düz kimlik değil etiket: düz kimlik, sonraki mükerrer ödeme olaylarının aday listesini de daraltırdı.
-                kullanilan.update(("olay_odemesi", i) for i in sonuc["etkilenen"].get("odemeler", []))
+                result = EVENT_FUNCTIONS[kind](u, records, opening, rng, day, earliest, limit, used, rng_ids)
+                results.append((kind, result))
+                # Payments affected by an event are marked with a tag; later cash squeezes do not pull them forward.
+                # A tag, not a plain identifier: a plain identifier would also narrow the candidate list of later duplicate payment events.
+                used.update(("olay_odemesi", i) for i in result["etkilenen"].get("odemeler", []))
                 break
-            except AdayYok:
-                if deneme == 19:
+            except NoCandidateError:
+                if attempt == 19:
                     raise
-    for i, (tur, sonuc) in enumerate(sorted(sonuclar, key=lambda x: (x[1]["tarih"], x[0])), start=1):
-        u.anahtar["olaylar"].append({"olay_id": f"E{i:02d}", "tur": tur,
-                                     "simdiden_sonra": dt.date.fromisoformat(sonuc["tarih"]) > u.a.simdi, **sonuc})
-    return kayitlar
+    for i, (kind, result) in enumerate(sorted(results, key=lambda x: (x[1]["tarih"], x[0])), start=1):
+        u.key["olaylar"].append({"olay_id": f"E{i:02d}", "tur": kind,
+                                     "simdiden_sonra": dt.date.fromisoformat(result["tarih"]) > u.settings.simdi, **result})
+    return records

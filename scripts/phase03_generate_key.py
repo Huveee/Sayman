@@ -1,43 +1,43 @@
-"""Faz 3: kimlik kartlarını imzalayan anahtarı üretir ve .env dosyasına yazar.
+"""Phase 3: generates the key that signs the identity cards and writes it to the .env file.
 
-Anahtar zaten varsa dokunulmaz. Anahtar ekrana yazılmaz; .env git'e girmez. Dosyadaki diğer satırlar
-(ör. EVDS_API_KEY) olduğu gibi kalır.
+An existing key is left untouched. The key is never printed; .env is not committed to git. The other lines in
+the file (e.g. EVDS_API_KEY) are kept as they are.
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz3_anahtar_uret.py
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase03_generate_key.py
 """
 
 import secrets
 import sys
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-from sayman.tools.identity import ANAHTAR_DEGISKENI, anahtar_oku  # noqa: E402
+from sayman.tools.identity import KEY_ENV_VAR, read_key  # noqa: E402
 
 
 def main() -> int:
-    for akis in (sys.stdout, sys.stderr):
-        akis.reconfigure(encoding="utf-8", errors="replace")
-    env = KOK / ".env"
-    metin = env.read_text(encoding="utf-8") if env.exists() else ""
-    satirlar = metin.splitlines()
-    mevcut = [s for s in satirlar if s.split("=", 1)[0].strip() == ANAHTAR_DEGISKENI]
-    if any(s.split("=", 1)[1].strip() for s in mevcut if "=" in s):
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+    env = ROOT / ".env"
+    text = env.read_text(encoding="utf-8") if env.exists() else ""
+    lines = text.splitlines()
+    existing = [s for s in lines if s.split("=", 1)[0].strip() == KEY_ENV_VAR]
+    if any(s.split("=", 1)[1].strip() for s in existing if "=" in s):
         from dotenv import dotenv_values
 
-        anahtar_oku(dotenv_values(env))  # geçerli mi? (değer yazdırılmaz)
-        print(f"{ANAHTAR_DEGISKENI} zaten .env dosyasında; değiştirilmedi.")
+        read_key(dotenv_values(env))  # is it valid? (the value is not printed)
+        print(f"{KEY_ENV_VAR} zaten .env dosyasında; değiştirilmedi.")
         return 0
-    yeni = f"{ANAHTAR_DEGISKENI}={secrets.token_hex(32)}"
-    if mevcut:  # boş bırakılmış satırı doldur
-        satirlar = [yeni if s in mevcut else s for s in satirlar]
-        env.write_text("\n".join(satirlar) + "\n", encoding="utf-8")
+    new_line = f"{KEY_ENV_VAR}={secrets.token_hex(32)}"
+    if existing:  # fill in the line that was left empty
+        lines = [new_line if s in existing else s for s in lines]
+        env.write_text("\n".join(lines) + "\n", encoding="utf-8")
     else:
         with open(env, "a", encoding="utf-8", newline="\n") as f:
-            f.write(("" if not metin or metin.endswith("\n") else "\n") + yeni + "\n")
-    print(f"{ANAHTAR_DEGISKENI} .env dosyasına yazıldı (32 bayt, onaltılık; değer ekrana yazılmadı).")
+            f.write(("" if not text or text.endswith("\n") else "\n") + new_line + "\n")
+    print(f"{KEY_ENV_VAR} .env dosyasına yazıldı (32 bayt, onaltılık; değer ekrana yazılmadı).")
     return 0
 
 

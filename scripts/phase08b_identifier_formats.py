@@ -1,4 +1,4 @@
-"""Faz 8b kimlik ölçümü, biçim tablosu: doğrulayıcı hangi kimlik yazılışlarını yakalıyor? (model çalıştırılmaz)
+"""Phase 8b identifier measurement, spelling table: which identifier spellings does the verifier catch? (no model is run)
 
 Her satır, tek cümlelik yapay bir taslağı bugünkü doğrulayıcıdan geçirir. Araç sonucunda yalnızca gerçek kayıtlar
 vardır: fatura F035473 (kaynak numarası 489434), çek C025774, tahsilat T00039E4A, banka hareketi H0001234.
@@ -6,10 +6,16 @@ vardır: fatura F035473 (kaynak numarası 489434), çek C025774, tahsilat T00039
   de kaçırıyor mu?
 - Gerçek kimliğin başka yazılışları (sonuçta var): yanlışlıkla durduruluyor mu?
 
-Kural ölçüm boyunca değiştirilmez; bu tablo kuralın bugünkü kapsamını gösterir.
+The paragraph above is written verbatim into the report as `aciklama`, so it stays in Turkish. In English: each row passes
+a one-sentence artificial draft through today's verifier; the tool result holds only real records: invoice F035473 (source
+number 489434), cheque C025774, collection T00039E4A, bank transaction H0001234. Fabricated identifiers (not in the result):
+does the new rule (kimliksiz) or the old number rule (kaynaksiz) catch them, or do both miss them? Other spellings of a real
+identifier (present in the result): is it stopped by mistake?
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz8b_kimlik_bicim.py
+The rule is not changed during the measurement; this table shows the present coverage of the rule.
+
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase08b_identifier_formats.py
 """
 
 from __future__ import annotations
@@ -19,33 +25,33 @@ import json
 import sys
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-from sayman.assistant.verifier import dogrula  # noqa: E402
+from sayman.assistant.verifier import verify  # noqa: E402
 
-CIKTI = KOK / "reports" / "faz8b_kimlik_bicim.json"
-BUGUN = dt.date(2026, 9, 1)
-SORU = "Bu kaydın numarası ne?"
-
-
-def _cagri(arac, sonuc, cid):
-    return {"arac": arac, "argumanlar": {}, "hata_mi": False,
-            "yanit": {"cagri_id": cid, "arac": arac, "tarih": "2026-09-01", "kapsam": "tüm şirket", "sonuc": sonuc}}
+OUTPUT = ROOT / "reports" / "faz8b_kimlik_bicim.json"
+TODAY = dt.date(2026, 9, 1)
+QUESTION = "Bu kaydın numarası ne?"
 
 
-CAGRILAR = [
-    _cagri("fatura_ara", {"bulunan": 1, "faturalar": [{"fatura_id": "F035473", "kaynak_fatura_no": "489434",
+def _call(tool, result, call_id):
+    return {"arac": tool, "argumanlar": {}, "hata_mi": False,
+            "yanit": {"cagri_id": call_id, "arac": tool, "tarih": "2026-09-01", "kapsam": "tüm şirket", "sonuc": result}}
+
+
+CALLS = [
+    _call("fatura_ara", {"bulunan": 1, "faturalar": [{"fatura_id": "F035473", "kaynak_fatura_no": "489434",
                                                        "fatura_tarihi": "2026-08-20", "tutar": "1200.00"}]}, "C1"),
-    _cagri("cek_portfoyu", {"cekler": [{"cek_id": "C025774", "vade_tarihi": "2026-09-02", "tutar_tl": "9521.42"}]}, "C2"),
-    _cagri("musteri_ozeti", {"son_tahsilatlar": [{"tahsilat_id": "T00039E4A", "tarih": "2026-08-15",
+    _call("cek_portfoyu", {"cekler": [{"cek_id": "C025774", "vade_tarihi": "2026-09-02", "tutar_tl": "9521.42"}]}, "C2"),
+    _call("musteri_ozeti", {"son_tahsilatlar": [{"tahsilat_id": "T00039E4A", "tarih": "2026-08-15",
                                                   "tutar": "500.00", "fatura_id": "F035473"}]}, "C3"),
-    _cagri("banka_hareketleri", {"hareketler": [{"hareket_id": "H0001234", "tarih": "2026-08-31",
+    _call("banka_hareketleri", {"hareketler": [{"hareket_id": "H0001234", "tarih": "2026-08-31",
                                                  "tutar": "-750.00"}]}, "C4"),
 ]
 
-# (grup, yazılış, açıklama)
-SATIRLAR = [
+# (group, spelling, description)
+ROWS = [
     ("uydurma", "F035999", "sistem biçimi, fatura"),
     ("uydurma", "C560878", "kaynak biçimi (Faz 8'de görülen)"),
     ("uydurma", "A000999", "sistem biçimi, tedarikçi faturası"),
@@ -74,18 +80,18 @@ SATIRLAR = [
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    sonuc = []
-    for grup, yazilis, aciklama in SATIRLAR:
-        d = dogrula(f"Kaydın numarası {yazilis}.", SORU, CAGRILAR, BUGUN)
-        yeni, eski = bool(d.kimliksiz), bool(d.kaynaksiz)
-        if grup == "uydurma":
-            karar = "yeni kural" if yeni else ("eski sayı kuralı" if eski else "kaçtı")
+    result = []
+    for group, spelling, description in ROWS:
+        d = verify(f"Kaydın numarası {spelling}.", QUESTION, CALLS, TODAY)
+        new_rule, old_rule = bool(d.unknown_identifiers), bool(d.unsourced)
+        if group == "uydurma":
+            decision = "yeni kural" if new_rule else ("eski sayı kuralı" if old_rule else "kaçtı")
         else:
-            karar = "yanlış durdurma" if (yeni or eski) else "geçti"
-        sonuc.append({"grup": grup, "yazilis": yazilis, "aciklama": aciklama, "kimliksiz": d.kimliksiz,
-                      "kaynaksiz": [x.metin for x in d.kaynaksiz], "karar": karar})
-        print(f"{grup:8s} {yazilis:14s} {karar:18s} {aciklama}")
-    CIKTI.write_text(json.dumps({"aciklama": __doc__.split("\n\n")[1].replace("\n", " "), "satirlar": sonuc},
+            decision = "yanlış durdurma" if (new_rule or old_rule) else "geçti"
+        result.append({"grup": group, "yazilis": spelling, "aciklama": description, "kimliksiz": d.unknown_identifiers,
+                      "kaynaksiz": [x.metin for x in d.unsourced], "karar": decision})
+        print(f"{group:8s} {spelling:14s} {decision:18s} {description}")
+    OUTPUT.write_text(json.dumps({"aciklama": __doc__.split("\n\n")[1].replace("\n", " "), "satirlar": result},
                                 ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
 

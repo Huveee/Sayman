@@ -1,24 +1,26 @@
-"""Faz 9: Faz 8b "yeni" setinin 86 araç sorusunu otomatik araçlara (sahte API) göre sınıflandırır ve dondurur.
+"""Phase 9: classifies the 86 tool questions of the Phase 8b "yeni" set against the generated tools (fake API) and freezes the classes.
 
-Ölçüt "cevabın değeri ulaşılabilir bir API cevabında aynen geçiyor mu?"dur, çağrı sayısı değil: sistem istemi modelin
-kendi toplama ya da oran hesaplamasını yasaklar, doğrulayıcı da araç sonucunda olmayan her sayıyı (doğru olsa bile)
-durdurur. Sınıflar:
-- tek_cagri: tek bir çağrının sonucunda değer aynen var (argüman bir tarih hesabı isteyebilir: "en az 120 gün geçmiş"
-  -> vade_bitis = bugün - 120).
-- zincir: değer aynen var ama birden çok çağrı gerekir (ad -> kimlik -> kart) ya da iki sonucun karşılaştırılması
-  (portföydeki ve tahsildeki çeklerin ilk vadelisi).
-- toplama: değer hiçbir cevapta yok; kayıtları toplamak, ortalamak, kurla çevirmek ya da bütün sayfaları taramak
-  gerekir (tutara göre sıralama yok).
-- yok: gereken tanım ya da yöntem API'de yok (nakit akışı tahmini, döviz pozisyonu) ya da API'nin değeri soru setinin
-  tanımından farklı.
-- engelli: değer aynen var, plan doğru çalışıyor, ama kâhinin cevabı gerçek doğrulayıcıdan geçmiyor (ör. doğrulayıcının
-  müşteri sahipliği kuralı elle araçların alan adlarına bağlı). Alan adları bu yüzden değiştirilmez; sonuç raporlanır.
+The criterion is "does the value of the answer appear verbatim in a reachable API response?", not the number of calls:
+the system prompt forbids the model's own summing or ratio computation, and the verifier also stops every number that is not
+in a tool result (even if it is correct). Classes:
+- tek_cagri: the value is verbatim in the result of a single call (an argument may require a date computation: "at least
+  120 days overdue" -> vade_bitis = today - 120).
+- zincir: the value is verbatim but several calls are needed (name -> identifier -> card) or two results must be compared
+  (the first due of the cheques in the portfolio and in collection).
+- toplama: the value is in no response; one has to sum or average the records, convert with a rate or scan all the pages
+  (there is no sorting by amount).
+- yok: the required definition or method is not in the API (cash flow forecast, fx position) or the API's value differs from
+  the definition of the question set.
+- engelli: the value is verbatim and the plan works correctly, but the oracle's answer does not pass the real verifier (e.g.
+  the verifier's customer ownership rule depends on the field names of the hand-written tools). The field names are
+  therefore not changed; the result is reported.
 
-Her doğrudan (tek_cagri, zincir) soru için plan gerçek kapıdan (OtomatikSunucu), sorunun kullanıcısıyla çalıştırılır;
-API'nin verdiği değer soru setindeki beklenen değerle karşılaştırılır. Sonra otomatik kâhin (sayman.deney.kahin)
-gerçek orkestratör ve doğrulayıcıyla sorulur; puanlayıcı cevabı doğru saymazsa soru "engelli" olur.
+For every direct (tek_cagri, zincir) question the plan is run through the real gate (the generated-tools server) with the
+question's user; the value the API gives is compared with the expected value in the question set. Then the automatic oracle
+(sayman.experiment.oracle) is asked with the real orchestrator and verifier; if the scorer does not count the answer correct
+the question becomes "engelli".
 
-Çıktı: reports/faz9_siniflar.json (özetleriyle: soru seti, API tanımı, planlar). Ölçümden önce bir kez üretilir.
+Output: reports/faz9_siniflar.json (with their digests: question set, API definition, plans). It is produced once before the measurement.
 
     .venv\\Scripts\\python -I -u scripts\\phase09_classify.py
 """
@@ -35,32 +37,32 @@ from collections import Counter
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-from sayman.tools.audit_log import DenetimKaydi  # noqa: E402
-from sayman.tools.identity import kart_uret  # noqa: E402
-from sayman.tools.permissions import yetki_oku  # noqa: E402
-from sayman.assistant.orchestrator import Asistan, Ayar  # noqa: E402
-from sayman.experiment.oracle import DOGRUDAN, OtomatikKahin, cozumle  # noqa: E402
-from sayman.experiment.generated_tools import OtomatikSunucu  # noqa: E402
-from sayman.evaluation.scoring import alternatif_geciyor_mu, esdeger_kimlikler, kaynak_fatura_nolari, yol_al  # noqa: E402
-from sayman.data.clock import saat_oku  # noqa: E402
+from sayman.tools.audit_log import AuditLog  # noqa: E402
+from sayman.tools.identity import generate_card  # noqa: E402
+from sayman.tools.permissions import read_permissions  # noqa: E402
+from sayman.assistant.orchestrator import Assistant, Settings  # noqa: E402
+from sayman.experiment.oracle import DIRECT, GeneratedOracle, resolve  # noqa: E402
+from sayman.experiment.generated_tools import GeneratedServer  # noqa: E402
+from sayman.evaluation.scoring import alternative_occurs, add_equivalent_identifiers, source_invoice_numbers, get_path  # noqa: E402
+from sayman.data.clock import read_clock  # noqa: E402
 
-SORU_SETI = KOK / "reports" / "faz8b_soru_seti.json"
-CIKTI = KOK / "reports" / "faz9_siniflar.json"
-AMBAR = KOK / "data" / "ambar" / "sayman.duckdb"
-# Otomatik araç listesi Ollama'da 2209 token ölçüldü (reports/faz9_boyut.json); elle araçlarda ölçülen 2336'ya
-# varsayılan 2400 ile verilen pay kadar eklendi. Yalnızca ilk model çağrısının tahmininde kullanılır.
-OTOMATIK_LISTE_TOKEN = 2300
+QUESTION_SET = ROOT / "reports" / "faz8b_soru_seti.json"
+OUTPUT = ROOT / "reports" / "faz9_siniflar.json"
+WAREHOUSE = ROOT / "data" / "ambar" / "sayman.duckdb"
+# The generated tool list was measured at 2209 tokens in Ollama (reports/faz9_boyut.json); to the 2336 measured for the
+# hand-written tools, the margin given by the default 2400 was added. Used only in the estimate for the first model call.
+AUTO_TOOL_LIST_TOKENS = 2300
 
-F, FTEK, T, C = ("faturalar_api_v1_faturalar_get", "fatura_api_v1_faturalar", "tahsilatlar_api_v1_tahsilatlar_get",
+INVOICES, INVOICE, COLLECTIONS, CHEQUES = ("faturalar_api_v1_faturalar_get", "fatura_api_v1_faturalar", "tahsilatlar_api_v1_tahsilatlar_get",
                  "cekler_api_v1_cekler_get")
-MLISTE, MKART, KUR = "musteriler_api_v1_musteriler_get", "musteri_api_v1_musteriler", "kurlar_api_v1_kurlar_get"
-HESAP, HAREKET = "hesaplar_api_v1_banka_hesaplar_get", "hareketler_api_v1_banka_hesaplar"
-BEKLEYEN = ("portfoyde", "tahsilde")
+CUSTOMERS_LIST, CUSTOMER_CARD, RATES = "musteriler_api_v1_musteriler_get", "musteri_api_v1_musteriler", "kurlar_api_v1_kurlar_get"
+ACCOUNTS, TRANSACTIONS = "hesaplar_api_v1_banka_hesaplar_get", "hareketler_api_v1_banka_hesaplar"
+PENDING = ("portfoyde", "tahsilde")
 
-TOPLAMA = {
+AGGREGATION = {
     "oz_gecikme": "Ortalama gecikme için kapanan her faturanın gecikme gününü bulup ortalamak gerekir.",
     "yas_toplam": "Kapsamdaki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir (binlerce kayıt).",
     "cek_bekleyen": "Sayı iki durumun (portföyde, tahsilde) toplamı; tutar bütün bekleyen çeklerin toplamı.",
@@ -72,216 +74,216 @@ TOPLAMA = {
     "ode_toplam": "Vadesi yaklaşan alış faturalarının kalanlarını toplamak gerekir.",
     "yas_dilim": "Dilimdeki bütün açık faturaların kalanlarını TL'ye çevirip toplamak gerekir.",
 }
-YOK = {
+UNSUPPORTED = {
     "akis_ilk_hafta": "Nakit akışı tahmininin yöntemi (hangi alacağın, çekin, borcun hangi hafta sayılacağı) API'de yok.",
     "kur_poz": "Döviz pozisyonunun tanımı (hangi varlık ve borç kalemlerinin netleşeceği) API'de yok.",
 }
 
 
-def adim(arac: str, **argumanlar) -> dict:
-    return {"arac": arac, "argumanlar": argumanlar}
+def plan_step(tool: str, **arguments) -> dict:
+    return {"arac": tool, "argumanlar": arguments}
 
 
-def cvp(anahtar: int, cagri: int, *yol) -> dict:
-    return {"anahtar": anahtar, "cagri": cagri, "yol": list(yol)}
+def answer_path(anahtar: int, call_index: int, *path) -> dict:
+    return {"anahtar": anahtar, "cagri": call_index, "yol": list(path)}
 
 
-def esit(api, beklenen) -> bool:
+def values_equal(api, expected) -> bool:
     try:
-        return Decimal(str(api)) == Decimal(str(beklenen))
+        return Decimal(str(api)) == Decimal(str(expected))
     except (InvalidOperation, ValueError):
-        return str(api) == str(beklenen)
+        return str(api) == str(expected)
 
 
-def dilim_sinirlari(ad: str) -> tuple[int, int | None]:
+def band_limits(name: str) -> tuple[int, int | None]:
     """"gecikme_61_90" -> (61, 90); "gecikme_180_ustu" -> (181, None)."""
-    p = ad.split("_")
+    p = name.split("_")
     return (int(p[1]) + 1, None) if p[2] == "ustu" else (int(p[1]), int(p[2]))
 
 
-class Planlayici:
-    def __init__(self, sunucu: OtomatikSunucu, anahtar: bytes, bugun: dt.date):
-        self.sunucu, self.anahtar, self.bugun = sunucu, anahtar, bugun
+class Planner:
+    def __init__(self, server: GeneratedServer, anahtar: bytes, today: dt.date):
+        self.server, self.key, self.today = server, anahtar, today
 
-    def calistir(self, s: dict, plan: list[dict]) -> list[dict]:
-        """Planı sorunun kullanıcısıyla çalıştırır; her adımın "sonuc"u (hata olursa RuntimeError)."""
-        kart = kart_uret(s["kullanici"], self.anahtar, 900)
-        sonuclar = []
+    def run(self, s: dict, plan: list[dict]) -> list[dict]:
+        """Runs the plan with the question's user; the "sonuc" of every step (RuntimeError on an error)."""
+        card = generate_card(s["kullanici"], self.key, 900)
+        results = []
         for a in plan:
-            yanit, hata = self.sunucu.kapi(a["arac"], cozumle(a["argumanlar"], sonuclar), kart)
-            if hata:
-                raise RuntimeError(f"{s['soru_id']}: {a['arac']} -> {yanit}")
-            sonuclar.append(yanit)
-        return sonuclar
+            response, error = self.server.gate(a["arac"], resolve(a["argumanlar"], results), card)
+            if error:
+                raise RuntimeError(f"{s['soru_id']}: {a['arac']} -> {response}")
+            results.append(response)
+        return results
 
     def gun(self, n: int) -> str:
-        return (self.bugun - dt.timedelta(days=n)).isoformat()
+        return (self.today - dt.timedelta(days=n)).isoformat()
 
     def plan(self, s: dict) -> dict:
-        n, alt0 = s["sablon"].removeprefix("y_"), s["alternatifler"][0]
-        x = alt0["argumanlar"].get("musteri_adi")
-        if n in TOPLAMA:
-            return {"sinif": "toplama", "gerekce": TOPLAMA[n]}
-        if n in YOK:
-            return {"sinif": "yok", "gerekce": YOK[n]}
+        n, first_alternative = s["sablon"].removeprefix("y_"), s["alternatifler"][0]
+        x = first_alternative["argumanlar"].get("musteri_adi")
+        if n in AGGREGATION:
+            return {"sinif": "toplama", "gerekce": AGGREGATION[n]}
+        if n in UNSUPPORTED:
+            return {"sinif": "yok", "gerekce": UNSUPPORTED[n]}
         if n == "oz_son_tahsilat":
-            return {"sinif": "tek_cagri", "plan": [adim(T, musteri_adi=x, sayfa_boyutu=1)],
-                    "cevap": [cvp(0, 0, "kayitlar", 0, "tarih"), cvp(1, 0, "kayitlar", 0, "tutar")]}
+            return {"sinif": "tek_cagri", "plan": [plan_step(COLLECTIONS, musteri_adi=x, sayfa_boyutu=1)],
+                    "cevap": [answer_path(0, 0, "kayitlar", 0, "tarih"), answer_path(1, 0, "kayitlar", 0, "tutar")]}
         if n == "oz_eski_vade":
             return {"sinif": "tek_cagri",
-                    "plan": [adim(F, musteri_adi=x, durum="acik", siralama="vade_artan", sayfa_boyutu=1)],
-                    "cevap": [cvp(0, 0, "kayitlar", 0, "vade_tarihi")]}
+                    "plan": [plan_step(INVOICES, musteri_adi=x, durum="acik", siralama="vade_artan", sayfa_boyutu=1)],
+                    "cevap": [answer_path(0, 0, "kayitlar", 0, "vade_tarihi")]}
         if n == "oz_acik":
             return {"sinif": "zincir", "gerekce": "Müşteri adından kimliğe, kimlikten müşteri kartına (cari bakiye).",
-                    "plan": [adim(MLISTE, ad=x, sayfa_boyutu=1),
-                             adim(MKART, musteri_id={"$": [0, "kayitlar", 0, "musteri_id"]})],
-                    "cevap": [cvp(0, 1, "cari_bakiye_tl")]}
+                    "plan": [plan_step(CUSTOMERS_LIST, ad=x, sayfa_boyutu=1),
+                             plan_step(CUSTOMER_CARD, musteri_id={"$": [0, "kayitlar", 0, "musteri_id"]})],
+                    "cevap": [answer_path(0, 1, "cari_bakiye_tl")]}
         if n == "gec_adet":
             return {"sinif": "tek_cagri", "gerekce": "Sayı toplam_kayit alanında; vade_bitis = bugün - gün.",
-                    "plan": [adim(F, durum="acik", vade_bitis=self.gun(alt0["argumanlar"]["min_gun"]), sayfa_boyutu=1)],
-                    "cevap": [cvp(0, 0, "toplam_kayit")]}
+                    "plan": [plan_step(INVOICES, durum="acik", vade_bitis=self.gun(first_alternative["argumanlar"]["min_gun"]), sayfa_boyutu=1)],
+                    "cevap": [answer_path(0, 0, "toplam_kayit")]}
         if n == "fat_son":
-            return {"sinif": "tek_cagri", "plan": [adim(F, musteri_adi=x, sayfa_boyutu=1)],
-                    "cevap": [cvp(0, 0, "kayitlar", 0, "fatura_id")]}
+            return {"sinif": "tek_cagri", "plan": [plan_step(INVOICES, musteri_adi=x, sayfa_boyutu=1)],
+                    "cevap": [answer_path(0, 0, "kayitlar", 0, "fatura_id")]}
         if n == "kur_bugun":
-            return {"sinif": "tek_cagri", "plan": [adim(KUR, para_birimi=alt0["argumanlar"]["para_birimi"])],
-                    "cevap": [cvp(0, 0, "alis")]}
+            return {"sinif": "tek_cagri", "plan": [plan_step(RATES, para_birimi=first_alternative["argumanlar"]["para_birimi"])],
+                    "cevap": [answer_path(0, 0, "alis")]}
         if n == "fat_tutar":
-            return {"sinif": "tek_cagri", "plan": [adim(FTEK, fatura_id=alt0["argumanlar"]["fatura_no"])],
-                    "cevap": [cvp(0, 0, "tutar")]}
+            return {"sinif": "tek_cagri", "plan": [plan_step(INVOICE, fatura_id=first_alternative["argumanlar"]["fatura_no"])],
+                    "cevap": [answer_path(0, 0, "tutar")]}
         if n == "cek_en_erken_no":
-            plan = [adim(C, durum="portfoyde", sayfa_boyutu=1), adim(C, durum="tahsilde", sayfa_boyutu=1)]
-            ilk = [(r["sonuc"]["kayitlar"][0]["vade_tarihi"], i) for i, r in enumerate(self.calistir(s, plan))
+            plan = [plan_step(CHEQUES, durum="portfoyde", sayfa_boyutu=1), plan_step(CHEQUES, durum="tahsilde", sayfa_boyutu=1)]
+            earliest = [(r["sonuc"]["kayitlar"][0]["vade_tarihi"], i) for i, r in enumerate(self.run(s, plan))
                    if r["sonuc"]["kayitlar"]]
-            i = min(ilk)[1]
+            i = min(earliest)[1]
             return {"sinif": "zincir", "gerekce": "Portföydeki ve tahsildeki çeklerin ilk vadelisi karşılaştırılır.",
-                    "plan": plan, "cevap": [cvp(0, i, "kayitlar", 0, "cek_id"), cvp(1, i, "kayitlar", 0, "musteri")]}
+                    "plan": plan, "cevap": [answer_path(0, i, "kayitlar", 0, "cek_id"), answer_path(1, i, "kayitlar", 0, "musteri")]}
         if n == "oz_cek_tutar":
-            plan = [adim(C, musteri_adi=x)]
-            sonuc = self.calistir(s, plan)[0]["sonuc"]
-            bekleyen = [i for i, r in enumerate(sonuc["kayitlar"]) if r["durum"] in BEKLEYEN]
-            if sonuc["toplam_kayit"] <= len(sonuc["kayitlar"]):
-                if len(bekleyen) == 1:
+            plan = [plan_step(CHEQUES, musteri_adi=x)]
+            result = self.run(s, plan)[0]["sonuc"]
+            pending = [i for i, r in enumerate(result["kayitlar"]) if r["durum"] in PENDING]
+            if result["toplam_kayit"] <= len(result["kayitlar"]):
+                if len(pending) == 1:
                     return {"sinif": "tek_cagri", "gerekce": "Müşterinin bekleyen tek bir çeki var.", "plan": plan,
-                            "cevap": [cvp(0, 0, "kayitlar", bekleyen[0], "tutar")]}
-                return {"sinif": "toplama", "gerekce": f"Bekleyen {len(bekleyen)} çek var; tutarları toplamak gerekir."}
-            # Çekler bir sayfaya sığmıyor: bekleyenler durum süzgeciyle iki çağrıda bulunur.
-            plan = [adim(C, musteri_adi=x, durum=d) for d in BEKLEYEN]
-            sayilar = [r["sonuc"]["toplam_kayit"] for r in self.calistir(s, plan)]
-            if sum(sayilar) == 1:
+                            "cevap": [answer_path(0, 0, "kayitlar", pending[0], "tutar")]}
+                return {"sinif": "toplama", "gerekce": f"Bekleyen {len(pending)} çek var; tutarları toplamak gerekir."}
+            # The cheques do not fit on one page: the pending ones are found in two calls with the status filter.
+            plan = [plan_step(CHEQUES, musteri_adi=x, durum=d) for d in PENDING]
+            counts = [r["sonuc"]["toplam_kayit"] for r in self.run(s, plan)]
+            if sum(counts) == 1:
                 return {"sinif": "zincir", "gerekce": "Bekleyen tek çek, durum süzgeciyle iki çağrıda bulunur.",
-                        "plan": plan, "cevap": [cvp(0, sayilar.index(1), "kayitlar", 0, "tutar")]}
-            return {"sinif": "toplama", "gerekce": f"Müşterinin {sonuc['toplam_kayit']} çeki var, {sum(sayilar)} tanesi "
+                        "plan": plan, "cevap": [answer_path(0, counts.index(1), "kayitlar", 0, "tutar")]}
+            return {"sinif": "toplama", "gerekce": f"Müşterinin {result['toplam_kayit']} çeki var, {sum(counts)} tanesi "
                                                    "bekliyor; tutarları toplamak gerekir."}
         if n == "oz_dilim":
-            a, b = dilim_sinirlari(alt0["anahtarlar"][0]["yol"][-1])
+            a, b = band_limits(first_alternative["anahtarlar"][0]["yol"][-1])
             arg = {"musteri_adi": x, "durum": "acik", "vade_bitis": self.gun(a)}
             if b is not None:
                 arg["vade_baslangic"] = self.gun(b)
-            plan = [adim(F, **arg)]
-            sonuc = self.calistir(s, plan)[0]["sonuc"]
-            if sonuc["toplam_kayit"] != 1:
-                return {"sinif": "toplama", "gerekce": f"Dilimde {sonuc['toplam_kayit']} fatura var; kalanlarını "
+            plan = [plan_step(INVOICES, **arg)]
+            result = self.run(s, plan)[0]["sonuc"]
+            if result["toplam_kayit"] != 1:
+                return {"sinif": "toplama", "gerekce": f"Dilimde {result['toplam_kayit']} fatura var; kalanlarını "
                                                        "toplamak gerekir."}
-            r = sonuc["kayitlar"][0]
+            r = result["kayitlar"][0]
             if r["para_birimi"] == "TRY":
                 return {"sinif": "tek_cagri", "gerekce": "Dilimde tek bir TL faturası var (kalan tutar).", "plan": plan,
-                        "cevap": [cvp(0, 0, "kayitlar", 0, "kalan_tutar")]}
+                        "cevap": [answer_path(0, 0, "kayitlar", 0, "kalan_tutar")]}
             if r["kalan_tutar"] == r["tutar"]:
                 return {"sinif": "tek_cagri", "gerekce": "Dilimde tek bir döviz faturası var, hiç ödenmemiş (TL karşılığı).",
-                        "plan": plan, "cevap": [cvp(0, 0, "kayitlar", 0, "tutar_tl")]}
+                        "plan": plan, "cevap": [answer_path(0, 0, "kayitlar", 0, "tutar_tl")]}
             return {"sinif": "toplama", "gerekce": "Dilimdeki tek döviz faturası kısmen ödenmiş; kalanın TL karşılığı "
                                                    "için kur çarpımı gerekir."}
         if n == "banka_adet":
-            arg = dict(alt0["argumanlar"])
-            hesaplar = self.calistir(s, [adim(HESAP)])[0]["sonuc"]["hesaplar"]
-            plan = [adim(HESAP)] + [adim(HAREKET, hesap_id={"$": [0, "hesaplar", i, "hesap_id"]}, sayfa_boyutu=1, **arg)
-                                    for i in range(len(hesaplar))]
-            sayilar = [r["sonuc"]["toplam_kayit"] for r in self.calistir(s, plan)[1:]]
-            dolu = [i for i, k in enumerate(sayilar) if k]
-            if len(dolu) == 1:
+            arg = dict(first_alternative["argumanlar"])
+            accounts = self.run(s, [plan_step(ACCOUNTS)])[0]["sonuc"]["hesaplar"]
+            plan = [plan_step(ACCOUNTS)] + [plan_step(TRANSACTIONS, hesap_id={"$": [0, "hesaplar", i, "hesap_id"]}, sayfa_boyutu=1, **arg)
+                                    for i in range(len(accounts))]
+            counts = [r["sonuc"]["toplam_kayit"] for r in self.run(s, plan)[1:]]
+            nonempty = [i for i, k in enumerate(counts) if k]
+            if len(nonempty) == 1:
                 return {"sinif": "zincir", "gerekce": "Yalnızca bir hesapta hareket var.", "plan": plan,
-                        "cevap": [cvp(0, 1 + dolu[0], "toplam_kayit")]}
-            return {"sinif": "toplama", "gerekce": f"{len(dolu)} hesapta hareket var ({sayilar}); sayıları toplamak "
+                        "cevap": [answer_path(0, 1 + nonempty[0], "toplam_kayit")]}
+            return {"sinif": "toplama", "gerekce": f"{len(nonempty)} hesapta hareket var ({counts}); sayıları toplamak "
                                                    "gerekir."}
         raise ValueError(f"sınıflandırılmamış niyet: {n}")
 
 
-def ozet(x) -> str:
+def digest(x) -> str:
     return hashlib.sha256(json.dumps(x, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    veri = json.loads(SORU_SETI.read_text(encoding="utf-8"))
-    sorular = [s for s in veri["sorular"] if s["set"] == "yeni" and s["bolum"] == "arac"]
-    saat = saat_oku(KOK / "data" / "saat.json")
-    bugun = saat.simdi
+    data = json.loads(QUESTION_SET.read_text(encoding="utf-8"))
+    questions = [s for s in data["sorular"] if s["set"] == "yeni" and s["bolum"] == "arac"]
+    clock = read_clock(ROOT / "data" / "saat.json")
+    today = clock.simdi
     anahtar = secrets.token_bytes(32)
-    kayitlar = []
+    records = []
     with tempfile.TemporaryDirectory() as g:
-        sunucu = OtomatikSunucu(AMBAR, lambda: saat, anahtar, yetki_oku(), DenetimKaydi(Path(g) / "d.jsonl"),
+        server = GeneratedServer(WAREHOUSE, lambda: clock, anahtar, read_permissions(), AuditLog(Path(g) / "d.jsonl"),
                                 Path(g) / "kapsam")
         try:
-            p = Planlayici(sunucu, anahtar, bugun)
-            planlar = {}
-            for s in sorular:
+            p = Planner(server, anahtar, today)
+            plans = {}
+            for s in questions:
                 k = {"soru_id": s["soru_id"], "niyet": s["sablon"].removeprefix("y_"), "rol": s["rol"], "alternatif": 0, **p.plan(s)}
-                if k["sinif"] in DOGRUDAN:
-                    sonuclar = p.calistir(s, k["plan"])
-                    # Beklenen değeri veren seçenek (eşit sıralı çekler gibi birden çok doğru cevap olabilir).
-                    api = [yol_al(sonuclar[c["cagri"]]["sonuc"], c["yol"]) for c in k["cevap"]]
-                    uyan = [i for i, alt in enumerate(s["alternatifler"])
-                            if len(alt["anahtarlar"]) >= len(k["cevap"])
-                            and all(esit(v, alt["anahtarlar"][c["anahtar"]]["deger"]) for v, c in zip(api, k["cevap"]))]
+                if k["sinif"] in DIRECT:
+                    results = p.run(s, k["plan"])
+                    # The alternative that gives the expected value (there can be several correct answers, such as cheques with equal rank).
+                    api = [get_path(results[c["cagri"]]["sonuc"], c["yol"]) for c in k["cevap"]]
+                    matching = [i for i, alternative in enumerate(s["alternatifler"])
+                            if len(alternative["anahtarlar"]) >= len(k["cevap"])
+                            and all(values_equal(v, alternative["anahtarlar"][c["anahtar"]]["deger"]) for v, c in zip(api, k["cevap"]))]
                     k["api_degerleri"] = api
-                    if uyan:
-                        k["alternatif"] = uyan[0]
+                    if matching:
+                        k["alternatif"] = matching[0]
                     else:
                         k.update(sinif="yok", gerekce="API değeri soru setindeki tanımdan farklı: " + ", ".join(
                             f"{v} ≠ {s['alternatifler'][0]['anahtarlar'][c['anahtar']]['deger']}"
                             for v, c in zip(api, k["cevap"])), eski_sinif=k["sinif"])
-                planlar[s["soru_id"]] = k
-                kayitlar.append(k)
+                plans[s["soru_id"]] = k
+                records.append(k)
 
-            # Kâhin gerçek orkestratör ve doğrulayıcıyla: puanlayıcı doğru saymazsa "engelli".
-            kahin = OtomatikKahin(planlar)
-            asistan = Asistan(sunucu, kahin, Ayar(arac_listesi_token=OTOMATIK_LISTE_TOKEN))
-            asistan.araclar = sunucu.arac_tanimlari()
-            for s in sorular:
-                k = planlar[s["soru_id"]]
-                if k["sinif"] not in DOGRUDAN:
+            # The oracle with the real orchestrator and verifier: "engelli" if the scorer does not count it correct.
+            oracle = GeneratedOracle(plans)
+            assistant = Assistant(server, oracle, Settings(arac_listesi_token=AUTO_TOOL_LIST_TOKENS))
+            assistant.tools = server.tool_definitions()
+            for s in questions:
+                k = plans[s["soru_id"]]
+                if k["sinif"] not in DIRECT:
                     continue
-                kahin.soru = s
-                tur = asistan.sor(s["soru"], kart_uret(s["kullanici"], anahtar, 900))
-                basarili = [{"hata": c["yanit"].get("hata"), "yanit": c["yanit"]} for c in tur.cagrilar
+                oracle.soru = s
+                turn = assistant.ask(s["soru"], generate_card(s["kullanici"], anahtar, 900))
+                successful = [{"hata": c["yanit"].get("hata"), "yanit": c["yanit"]} for c in turn.calls
                             if not c["hata_mi"]]
-                kabul = esdeger_kimlikler(s["alternatifler"], kaynak_fatura_nolari(basarili))
-                dogru = tur.durum == "tamam" and alternatif_geciyor_mu(tur.cevap, kabul, bugun.year)
-                k["kahin"] = {"durum": tur.durum, "dogru": dogru, "cevap": tur.cevap,
-                              "dogrulama": [{"gecerli": d.gecerli, "kaynaksiz": [x.metin for x in d.kaynaksiz],
-                                             "kimliksiz": d.kimliksiz, "sahipsiz": d.sahipsiz} for d in tur.dogrulamalar]}
-                if not dogru:
+                accepted_ids = add_equivalent_identifiers(s["alternatifler"], source_invoice_numbers(successful))
+                correct = turn.status == "tamam" and alternative_occurs(turn.answer, accepted_ids, today.year)
+                k["kahin"] = {"durum": turn.status, "dogru": correct, "cevap": turn.answer,
+                              "dogrulama": [{"gecerli": d.gecerli, "kaynaksiz": [x.metin for x in d.unsourced],
+                                             "kimliksiz": d.unknown_identifiers, "sahipsiz": d.ownerless} for d in turn.verifications]}
+                if not correct:
                     k.update(sinif="engelli", eski_sinif=k["sinif"],
                              gerekce=(k.get("gerekce", "") + " Kâhinin cevabı doğrulayıcıdan geçmedi.").strip())
         finally:
-            sunucu.kapat()
-        api_ozeti = sunucu.ozet()
+            server.close()
+        api_digest = server.digest()
 
-    sayilar = Counter(k["sinif"] for k in kayitlar)
-    sonuc = {
+    counts = Counter(k["sinif"] for k in records)
+    result = {
         "aciklama": "Faz 9 sınıflandırması: değer ulaşılabilir bir API cevabında aynen geçiyor mu (scripts/phase09_classify.py).",
-        "bugun": bugun.isoformat(), "soru_seti": SORU_SETI.name, "soru_seti_ozeti": veri["ozet"],
-        "api_ozeti": api_ozeti, "otomatik_liste_token": OTOMATIK_LISTE_TOKEN,
-        "sayilar": dict(sorted(sayilar.items())),
-        "niyetler": {n: dict(Counter(k["sinif"] for k in kayitlar if k["niyet"] == n))
-                     for n in sorted({k["niyet"] for k in kayitlar})},
-        "sorular": kayitlar,
+        "bugun": today.isoformat(), "soru_seti": QUESTION_SET.name, "soru_seti_ozeti": data["ozet"],
+        "api_ozeti": api_digest, "otomatik_liste_token": AUTO_TOOL_LIST_TOKENS,
+        "sayilar": dict(sorted(counts.items())),
+        "niyetler": {n: dict(Counter(k["sinif"] for k in records if k["niyet"] == n))
+                     for n in sorted({k["niyet"] for k in records})},
+        "sorular": records,
     }
-    sonuc["ozet"] = ozet(sonuc["sorular"])
-    CIKTI.write_text(json.dumps(sonuc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(json.dumps({k: sonuc[k] for k in ("sayilar", "niyetler", "api_ozeti", "ozet")}, ensure_ascii=False, indent=1))
-    for k in kayitlar:
+    result["ozet"] = digest(result["sorular"])
+    OUTPUT.write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(json.dumps({k: result[k] for k in ("sayilar", "niyetler", "api_ozeti", "ozet")}, ensure_ascii=False, indent=1))
+    for k in records:
         if k["sinif"] in ("engelli", "yok") and "eski_sinif" in k:
             print(k["soru_id"], k["sinif"], k["gerekce"], json.dumps(k.get("kahin"), ensure_ascii=False)[:400])
 

@@ -1,11 +1,11 @@
-"""Faz 5 kabul ölçütü: alıntı kontrolü birim testleri.
+"""Phase 5 acceptance criterion: unit tests for the citation check.
 
-Model belgede olmayan bir alıntı yaparsa, alıntıyı yanlış parçaya bağlarsa ya da bir rakamı değiştirirse yakalanır.
+If the model cites text that is not in the document, attaches a citation to the wrong chunk or alters a digit, it is caught.
 """
 
-from sayman.documents.citation import atiflar, cevabi_kontrol_et, kontrol_et, normalle
+from sayman.documents.citation import citations, check_answer, check_citation, normalize_text
 
-METINLER = {
+CHUNK_TEXTS = {
     "SOZ-S001#m3": "ŞİRKET, TEDARİKÇİ'nin düzenlediği faturaları fatura tarihinden itibaren 30 gün içinde banka "
                    "havalesiyle öder. Ödeme günü hafta sonuna denk gelirse izleyen ilk iş günü ödeme yapılır.",
     "SOZ-S001#m5": "ŞİRKET, vadesinde ödemediği tutarlara vade tarihinden fiili ödeme tarihine kadar aylık %2,25 "
@@ -16,101 +16,101 @@ METINLER = {
 }
 
 
-def test_birebir_alinti_gecer():
-    s = kontrol_et("faturaları fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder", "SOZ-S001#m3",
-                   METINLER)
-    assert s.gecerli and s.neden == "tamam"
+def test_verbatim_citation_passes():
+    s = check_citation("faturaları fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder", "SOZ-S001#m3",
+                   CHUNK_TEXTS)
+    assert s.gecerli and s.reason == "tamam"
 
 
-def test_buyuk_kucuk_harf_turkce_kurala_gore_esitlenir():
-    assert kontrol_et("şirket, tedarikçi'nin düzenlediği faturaları", "SOZ-S001#m3", METINLER).gecerli
-    assert kontrol_et("TOPLAM NAKDİN %40 ORANINDAN FAZLASI", "POL-NAKIT#m3", METINLER).gecerli
-    assert normalle("IŞIK İLE") == "ışık ile"
+def test_case_is_folded_by_turkish_rules():
+    assert check_citation("şirket, tedarikçi'nin düzenlediği faturaları", "SOZ-S001#m3", CHUNK_TEXTS).gecerli
+    assert check_citation("TOPLAM NAKDİN %40 ORANINDAN FAZLASI", "POL-NAKIT#m3", CHUNK_TEXTS).gecerli
+    assert normalize_text("IŞIK İLE") == "ışık ile"
 
 
-def test_kesme_ve_tirnak_isaretleri_esitlenir():
-    assert kontrol_et("ŞİRKET, TEDARİKÇİ’nin düzenlediği faturaları", "SOZ-S001#m3", METINLER).gecerli
+def test_apostrophes_and_quotation_marks_are_normalised():
+    assert check_citation("ŞİRKET, TEDARİKÇİ’nin düzenlediği faturaları", "SOZ-S001#m3", CHUNK_TEXTS).gecerli
 
 
-def test_bosluk_ve_satir_sonu_esitlenir():
-    assert kontrol_et("30 gün  içinde\nbanka   havalesiyle öder", "SOZ-S001#m3", METINLER).gecerli
+def test_whitespace_and_line_breaks_are_normalised():
+    assert check_citation("30 gün  içinde\nbanka   havalesiyle öder", "SOZ-S001#m3", CHUNK_TEXTS).gecerli
 
 
-def test_uydurma_alinti_yakalanir():
-    s = kontrol_et("fatura tarihinden itibaren 45 gün içinde çekle öder", "SOZ-S001#m3", METINLER)
-    assert not s.gecerli and s.neden == "metinde_yok" and s.bulundugu == ()
+def test_fabricated_citation_is_caught():
+    s = check_citation("fatura tarihinden itibaren 45 gün içinde çekle öder", "SOZ-S001#m3", CHUNK_TEXTS)
+    assert not s.gecerli and s.reason == "metinde_yok" and s.found_in == ()
 
 
-def test_degistirilmis_rakam_yakalanir():
-    assert not kontrol_et("aylık %2,5 oranında temerrüt faizi", "SOZ-S001#m5", METINLER).gecerli
-    assert not kontrol_et("aylık %1,2 oranında temerrüt faizi", "SOZ-S002#m5", METINLER).gecerli
-    assert not kontrol_et("aylık %12 oranında temerrüt faizi", "SOZ-S001#m5", METINLER).gecerli
-    assert not kontrol_et("otuz gün içinde banka havalesiyle öder", "SOZ-S001#m3", METINLER).gecerli
+def test_altered_digit_is_caught():
+    assert not check_citation("aylık %2,5 oranında temerrüt faizi", "SOZ-S001#m5", CHUNK_TEXTS).gecerli
+    assert not check_citation("aylık %1,2 oranında temerrüt faizi", "SOZ-S002#m5", CHUNK_TEXTS).gecerli
+    assert not check_citation("aylık %12 oranında temerrüt faizi", "SOZ-S001#m5", CHUNK_TEXTS).gecerli
+    assert not check_citation("otuz gün içinde banka havalesiyle öder", "SOZ-S001#m3", CHUNK_TEXTS).gecerli
 
 
-def test_sayinin_ortasindan_baslayan_ya_da_biten_alinti_yakalanir():
-    metinler = {**METINLER,
+def test_citation_starting_or_ending_mid_number_is_caught():
+    texts = {**CHUNK_TEXTS,
                 "POL-CEK#m2": "Vadesi düzenleme tarihinden itibaren 120 günü aşan çek kabul edilmez.",
                 "POL-ONAY#m2": "50.000 TL'ye kadar olan ödemeleri finans uzmanı, 250.000 TL'ye kadar olanları finans "
                                "müdürü, 1.000.000 TL'ye kadar olanları CFO onaylar."}
-    assert kontrol_et("20 günü aşan çek kabul edilmez", "POL-CEK#m2", metinler).neden == "metinde_yok"
-    assert kontrol_et("50.000 TL'ye kadar olanları finans müdürü", "POL-ONAY#m2", metinler).neden == "metinde_yok"
-    assert kontrol_et("fiili ödeme tarihine kadar aylık %2", "SOZ-S001#m5", metinler).neden == "metinde_yok"
-    assert kontrol_et("ödeme tarihine kadar aylık %2,", "SOZ-S001#m5", metinler).neden == "metinde_yok"
-    assert kontrol_et("şirket, vadesinde ödemediği tutarlar", "SOZ-S001#m5", metinler).neden == "metinde_yok"
-    # sınırda olan aynı ifadeler geçer; cümle sonundaki nokta alıntıya dahil olsa da olmasa da
-    assert kontrol_et("120 günü aşan çek kabul edilmez.", "POL-CEK#m2", metinler).gecerli
-    assert kontrol_et("120 günü aşan çek kabul edilmez", "POL-CEK#m2", metinler).gecerli
-    assert kontrol_et("250.000 TL'ye kadar olanları finans müdürü", "POL-ONAY#m2", metinler).gecerli
-    assert kontrol_et("aylık %2,25 oranında", "SOZ-S001#m5", metinler).gecerli
+    assert check_citation("20 günü aşan çek kabul edilmez", "POL-CEK#m2", texts).reason == "metinde_yok"
+    assert check_citation("50.000 TL'ye kadar olanları finans müdürü", "POL-ONAY#m2", texts).reason == "metinde_yok"
+    assert check_citation("fiili ödeme tarihine kadar aylık %2", "SOZ-S001#m5", texts).reason == "metinde_yok"
+    assert check_citation("ödeme tarihine kadar aylık %2,", "SOZ-S001#m5", texts).reason == "metinde_yok"
+    assert check_citation("şirket, vadesinde ödemediği tutarlar", "SOZ-S001#m5", texts).reason == "metinde_yok"
+    # identical expressions at the boundary pass; whether or not the sentence-final full stop is part of the citation
+    assert check_citation("120 günü aşan çek kabul edilmez.", "POL-CEK#m2", texts).gecerli
+    assert check_citation("120 günü aşan çek kabul edilmez", "POL-CEK#m2", texts).gecerli
+    assert check_citation("250.000 TL'ye kadar olanları finans müdürü", "POL-ONAY#m2", texts).gecerli
+    assert check_citation("aylık %2,25 oranında", "SOZ-S001#m5", texts).gecerli
 
 
-def test_gercek_alinti_yanlis_parcaya_baglanirsa_yakalanir():
-    s = kontrol_et("aylık %2,25 oranında temerrüt faizi", "SOZ-S002#m5", METINLER)
-    assert not s.gecerli and s.neden == "baska_parcada" and s.bulundugu == ("SOZ-S001#m5",)
+def test_real_citation_attached_to_wrong_chunk_is_caught():
+    s = check_citation("aylık %2,25 oranında temerrüt faizi", "SOZ-S002#m5", CHUNK_TEXTS)
+    assert not s.gecerli and s.reason == "baska_parcada" and s.found_in == ("SOZ-S001#m5",)
 
 
-def test_bilinmeyen_parca_yakalanir():
-    s = kontrol_et("aylık %2,25 oranında temerrüt faizi", "SOZ-S999#m5", METINLER)
-    assert not s.gecerli and s.neden == "bilinmeyen_parca"
+def test_unknown_chunk_is_caught():
+    s = check_citation("aylık %2,25 oranında temerrüt faizi", "SOZ-S999#m5", CHUNK_TEXTS)
+    assert not s.gecerli and s.reason == "bilinmeyen_parca"
 
 
-def test_cok_kisa_alinti_kabul_edilmez():
-    assert kontrol_et("30 gün", "SOZ-S001#m3", METINLER).neden == "cok_kisa"
+def test_too_short_citation_is_rejected():
+    assert check_citation("30 gün", "SOZ-S001#m3", CHUNK_TEXTS).reason == "cok_kisa"
 
 
-def test_atlamali_alinti_parcalari_sirayla_aranir():
-    assert kontrol_et("faturaları ... 30 gün içinde … öder", "SOZ-S001#m3", METINLER).gecerli
-    assert not kontrol_et("30 gün içinde ... faturaları ... öder", "SOZ-S001#m3", METINLER).gecerli
+def test_elided_citation_parts_are_searched_in_order():
+    assert check_citation("faturaları ... 30 gün içinde … öder", "SOZ-S001#m3", CHUNK_TEXTS).gecerli
+    assert not check_citation("30 gün içinde ... faturaları ... öder", "SOZ-S001#m3", CHUNK_TEXTS).gecerli
 
 
-def test_cevaptaki_atiflar_ayiklanir_ve_kontrol_edilir():
-    cevap = ('Vade 30 gündür: "fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder" [SOZ-S001#m3]. '
+def test_references_in_answer_are_extracted_and_checked():
+    answer = ('Vade 30 gündür: "fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder" [SOZ-S001#m3]. '
              'Gecikmede “aylık %2,5 oranında temerrüt faizi” [SOZ-S001#m5] işler.')
-    assert atiflar(cevap) == [("fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder", "SOZ-S001#m3"),
+    assert citations(answer) == [("fatura tarihinden itibaren 30 gün içinde banka havalesiyle öder", "SOZ-S001#m3"),
                               ("aylık %2,5 oranında temerrüt faizi", "SOZ-S001#m5")]
-    assert [s.gecerli for s in cevabi_kontrol_et(cevap, METINLER)] == [True, False]
+    assert [s.gecerli for s in check_answer(answer, CHUNK_TEXTS)] == [True, False]
 
 
-def test_alintisiz_kimlik_yakalanir():
-    s = cevabi_kontrol_et("Vade 45 gündür [SOZ-S001#m3].", METINLER)
-    assert [(x.gecerli, x.neden, x.parca_id) for x in s] == [(False, "alintisiz_atif", "SOZ-S001#m3")]
+def test_identifier_without_citation_is_caught():
+    s = check_answer("Vade 45 gündür [SOZ-S001#m3].", CHUNK_TEXTS)
+    assert [(x.gecerli, x.reason, x.parca_id) for x in s] == [(False, "alintisiz_atif", "SOZ-S001#m3")]
 
 
-def test_tek_tirnakli_uydurma_alinti_gecemez():
-    s = cevabi_kontrol_et("Vade: '45 gün içinde çekle öder' [SOZ-S001#m3]", METINLER)
-    assert [(x.gecerli, x.neden) for x in s] == [(False, "alintisiz_atif")]
+def test_fabricated_single_quoted_citation_fails():
+    s = check_answer("Vade: '45 gün içinde çekle öder' [SOZ-S001#m3]", CHUNK_TEXTS)
+    assert [(x.gecerli, x.reason) for x in s] == [(False, "alintisiz_atif")]
 
 
-def test_kimliksiz_tirnakli_alinti_yakalanir():
-    s = cevabi_kontrol_et('Sözleşme "45 gün içinde çekle öder" diyor; ayrıca "aylık %2,25 oranında temerrüt '
-                          'faizi" [SOZ-S001#m5] işler.', METINLER)
-    assert [(x.gecerli, x.neden) for x in s] == [(False, "kimliksiz_alinti"), (True, "tamam")]
+def test_quoted_citation_without_identifier_is_caught():
+    s = check_answer('Sözleşme "45 gün içinde çekle öder" diyor; ayrıca "aylık %2,25 oranında temerrüt '
+                          'faizi" [SOZ-S001#m5] işler.', CHUNK_TEXTS)
+    assert [(x.gecerli, x.reason) for x in s] == [(False, "kimliksiz_alinti"), (True, "tamam")]
 
 
-def test_sinir_gercek_ama_ilgisiz_alinti_gecer():
-    """Bilinen sınır: kontrol alıntının metinde geçtiğini doğrular, iddiayı desteklediğini doğrulamaz.
+def test_known_limit_real_but_irrelevant_citation_passes():
+    """Known limit: the check verifies that the citation occurs in the text, it does not verify that it supports the claim.
 
-    "Vade 90 gündür" iddiasına gerçek ama ilgisiz bir alıntı eklenirse kontrol bunu geçirir."""
-    cevap = 'Vade 90 gündür: "Ödeme günü hafta sonuna denk gelirse izleyen ilk iş günü" [SOZ-S001#m3]'
-    assert [s.gecerli for s in cevabi_kontrol_et(cevap, METINLER)] == [True]
+    If a real but irrelevant citation is attached to the claim "Vade 90 gündür", the check lets it pass."""
+    answer = 'Vade 90 gündür: "Ödeme günü hafta sonuna denk gelirse izleyen ilk iş günü" [SOZ-S001#m3]'
+    assert [s.gecerli for s in check_answer(answer, CHUNK_TEXTS)] == [True]

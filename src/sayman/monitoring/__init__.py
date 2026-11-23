@@ -1,1 +1,1 @@
-"""Faz 4: izleme motoru ve zamanlayıcı. Uyarıyı kurallar verir; model (Faz 6) yalnızca uyarıyı açıklar."""
+"""Phase 4: monitoring engine and scheduler. The rules raise the alert; the model (Phase 6) only explains it."""

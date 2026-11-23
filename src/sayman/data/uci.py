@@ -1,10 +1,10 @@
-"""UCI Online Retail II verisinin okunması ve temizlenmesi.
+"""Reading and cleaning the UCI Online Retail II data.
 
-Kaynak: Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
-https://doi.org/10.24432/C5CG6D. Lisans: CC BY 4.0.
+Source: Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository.
+https://doi.org/10.24432/C5CG6D. License: CC BY 4.0.
 
-Her satır ya tutulur (bir kategoriyle) ya da adı konmuş bir kuralla atılır. Böylece
-"girdi satırı = tutulan + atılan" mutabakatı test edilebilir.
+Every row is either kept (with a category) or dropped by a named rule. That way the reconciliation
+"input rows = kept + dropped" can be tested.
 """
 
 from __future__ import annotations
@@ -19,9 +19,9 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable, Iterator
 
-from sayman.data.money import ondalik
+from sayman.data.money import to_decimal
 
-HAM_SUTUNLAR = [
+RAW_COLUMNS = [
     "sayfa",
     "Invoice",
     "StockCode",
@@ -33,10 +33,10 @@ HAM_SUTUNLAR = [
     "Country",
 ]
 
-# Ürün kodu (5 rakamla başlayan) olmayan stok kodları için tek tek verilen karar.
-# Gerçek dosyanın profiline göre (reports/faz1_uci_profil.json, 13 Kasım 2026) yazıldı.
-# Burada adı geçmeyen kodlar (DCGS..., GIFT_0001_..., SP1002 gibi web mağazası ürünleri) satış olarak kalır.
-STOK_KODU_KARARLARI = {
+# Decision made one by one for stock codes that are not product codes (starting with 5 digits).
+# Written from the profile of the real file (reports/faz1_uci_profil.json, 13 November 2026).
+# Codes not named here (web-shop products such as DCGS..., GIFT_0001_..., SP1002) stay as sales.
+STOCK_CODE_DECISIONS = {
     "POST": ("tut", "Müşteriye faturalanan posta ücreti: satışın parçası"),
     "DOT": ("tut", "Web mağazası posta ücreti: perakende satışın parçası"),
     "C2": ("tut", "Müşteriye faturalanan taşıma ücreti"),
@@ -56,9 +56,9 @@ STOK_KODU_KARARLARI = {
     "TEST001": ("at", "Deneme ürünü"),
     "TEST002": ("at", "Deneme ürünü"),
 }
-SATIS_DISI_KODLAR = frozenset(k for k, (karar, _) in STOK_KODU_KARARLARI.items() if karar == "at")
+NON_SALE_CODES = frozenset(k for k, (decision, _) in STOCK_CODE_DECISIONS.items() if decision == "at")
 
-ATILMA_KURALLARI = {
+DROP_RULES = {
     "sayfa_tekrari": "İki Excel sayfasının çakışan tarihlerinde birebir aynı satır (ikinci sayfadaki kopya atılır)",
     "duzeltme_faturasi": "Fatura numarası A ile başlıyor: şüpheli alacak düzeltmesi, satış değil",
     "satis_disi_kod": "Stok kodu satış dışı bir gider ya da düzeltme (STOK_KODU_KARARLARI'nda 'at' olanlar)",
@@ -69,7 +69,7 @@ ATILMA_KURALLARI = {
     "okunamayan_satir": "Tarih, miktar ya da fiyat okunamadı",
 }
 
-TUTULMA_KATEGORILERI = {
+KEPT_CATEGORIES = {
     "satis": "Müşterili satış satırı",
     "iade": "Müşterili iptal/iade satırı (C ile başlayan fatura, eksi miktar)",
     "perakende": "Müşteri numarası olmayan satış: perakende/POS satışı olarak işlenir",
@@ -78,126 +78,126 @@ TUTULMA_KATEGORILERI = {
 
 
 @dataclass(frozen=True, slots=True)
-class Kalem:
-    fatura_no: str
-    stok_kodu: str
-    miktar: int
+class LineItem:
+    invoice_no: str
+    stock_code: str
+    quantity: int
     tarih: dt.datetime
-    fiyat: Decimal
-    musteri_no: str | None
-    ulke: str
-    kategori: str
+    price: Decimal
+    customer_no: str | None
+    country: str
+    category: str
 
     @property
-    def tutar(self) -> Decimal:
-        return self.fiyat * self.miktar
+    def amount(self) -> Decimal:
+        return self.price * self.quantity
 
 
 @dataclass
-class TemizlemeSonucu:
-    kalemler: list[Kalem]
-    girdi: int
-    tutulan: Counter = field(default_factory=Counter)
-    atilan: Counter = field(default_factory=Counter)
+class CleaningResult:
+    line_items: list[LineItem]
+    input_rows: int
+    kept: Counter = field(default_factory=Counter)
+    dropped: Counter = field(default_factory=Counter)
 
-    def mutabakat_tutuyor_mu(self) -> bool:
-        return self.girdi == sum(self.tutulan.values()) + sum(self.atilan.values())
+    def reconciles(self) -> bool:
+        return self.input_rows == sum(self.kept.values()) + sum(self.dropped.values())
 
 
-def _musteri_no(deger: str) -> str | None:
-    deger = (deger or "").strip()
-    if not deger or deger.lower() == "nan":
+def _customer_no(value: str) -> str | None:
+    value = (value or "").strip()
+    if not value or value.lower() == "nan":
         return None
-    if deger.endswith(".0"):
-        deger = deger[:-2]
-    return deger
+    if value.endswith(".0"):
+        value = value[:-2]
+    return value
 
 
-def _satir_anahtari(s: dict) -> tuple:
-    return tuple(s.get(k, "") for k in HAM_SUTUNLAR[1:])
+def _row_key(s: dict) -> tuple:
+    return tuple(s.get(k, "") for k in RAW_COLUMNS[1:])
 
 
-def _sayfa_tekrarlarini_bul(satirlar: list[dict]) -> set[int]:
-    """İkinci sayfada, ilk sayfada birebir karşılığı olan satırların sırasını döner (çoklu küme)."""
-    sayfalar = sorted({s["sayfa"] for s in satirlar})
-    if len(sayfalar) < 2:
+def _find_sheet_duplicates(rows: list[dict]) -> set[int]:
+    """In the second sheet, returns the positions of the rows that have an exact counterpart in the first sheet (multiset)."""
+    sheets = sorted({s["sayfa"] for s in rows})
+    if len(sheets) < 2:
         return set()
-    ilk = Counter(_satir_anahtari(s) for s in satirlar if s["sayfa"] == sayfalar[0])
-    tekrarlar = set()
-    for i, s in enumerate(satirlar):
-        if s["sayfa"] == sayfalar[0]:
+    first = Counter(_row_key(s) for s in rows if s["sayfa"] == sheets[0])
+    duplicates = set()
+    for i, s in enumerate(rows):
+        if s["sayfa"] == sheets[0]:
             continue
-        anahtar = _satir_anahtari(s)
-        if ilk[anahtar] > 0:
-            ilk[anahtar] -= 1
-            tekrarlar.add(i)
-    return tekrarlar
+        key = _row_key(s)
+        if first[key] > 0:
+            first[key] -= 1
+            duplicates.add(i)
+    return duplicates
 
 
-def temizle(satirlar: Iterable[dict], satis_disi_kodlar: frozenset = SATIS_DISI_KODLAR) -> TemizlemeSonucu:
-    satirlar = list(satirlar)
-    tekrarlar = _sayfa_tekrarlarini_bul(satirlar)
-    sonuc = TemizlemeSonucu(kalemler=[], girdi=len(satirlar))
-    for i, s in enumerate(satirlar):
-        if i in tekrarlar:
-            sonuc.atilan["sayfa_tekrari"] += 1
+def clean(rows: Iterable[dict], non_sale_codes: frozenset = NON_SALE_CODES) -> CleaningResult:
+    rows = list(rows)
+    duplicates = _find_sheet_duplicates(rows)
+    result = CleaningResult(line_items=[], input_rows=len(rows))
+    for i, s in enumerate(rows):
+        if i in duplicates:
+            result.dropped["sayfa_tekrari"] += 1
             continue
-        fatura_no = s["Invoice"].strip()
-        stok_kodu = s["StockCode"].strip()
-        iptal = fatura_no.upper().startswith("C")
-        if fatura_no.upper().startswith("A"):
-            sonuc.atilan["duzeltme_faturasi"] += 1
+        invoice_no = s["Invoice"].strip()
+        stock_code = s["StockCode"].strip()
+        cancelled = invoice_no.upper().startswith("C")
+        if invoice_no.upper().startswith("A"):
+            result.dropped["duzeltme_faturasi"] += 1
             continue
-        if stok_kodu.upper() in satis_disi_kodlar:
-            sonuc.atilan["satis_disi_kod"] += 1
+        if stock_code.upper() in non_sale_codes:
+            result.dropped["satis_disi_kod"] += 1
             continue
         try:
-            miktar = int(Decimal(s["Quantity"]))
-            fiyat = ondalik(s["Price"])
-            tarih = dt.datetime.fromisoformat(s["InvoiceDate"])
+            quantity = int(Decimal(s["Quantity"]))
+            price = to_decimal(s["Price"])
+            date = dt.datetime.fromisoformat(s["InvoiceDate"])
         except (InvalidOperation, ValueError):
-            sonuc.atilan["okunamayan_satir"] += 1
+            result.dropped["okunamayan_satir"] += 1
             continue
-        if fiyat <= 0:
-            sonuc.atilan["gecersiz_fiyat"] += 1
+        if price <= 0:
+            result.dropped["gecersiz_fiyat"] += 1
             continue
-        if not iptal and miktar <= 0:
-            sonuc.atilan["stok_duzeltmesi"] += 1
+        if not cancelled and quantity <= 0:
+            result.dropped["stok_duzeltmesi"] += 1
             continue
-        if iptal and miktar > 0:
-            sonuc.atilan["tutarsiz_iade"] += 1
+        if cancelled and quantity > 0:
+            result.dropped["tutarsiz_iade"] += 1
             continue
-        musteri = _musteri_no(s.get("Customer ID", ""))
-        if musteri:
-            kategori = "iade" if iptal else "satis"
+        customer = _customer_no(s.get("Customer ID", ""))
+        if customer:
+            category = "iade" if cancelled else "satis"
         else:
-            kategori = "perakende_iade" if iptal else "perakende"
-        sonuc.tutulan[kategori] += 1
-        sonuc.kalemler.append(
-            Kalem(fatura_no, stok_kodu, miktar, tarih, fiyat, musteri, s["Country"].strip(), kategori)
+            category = "perakende_iade" if cancelled else "perakende"
+        result.kept[category] += 1
+        result.line_items.append(
+            LineItem(invoice_no, stock_code, quantity, date, price, customer, s["Country"].strip(), category)
         )
-    return sonuc
+    return result
 
 
-def ham_csv_oku(yol: Path) -> Iterator[dict]:
-    """Önbelleğe alınmış ham satırları okur (.csv ya da .csv.gz, UTF-8)."""
-    acici = gzip.open if str(yol).endswith(".gz") else open
-    with acici(yol, "rt", encoding="utf-8", newline="") as f:
+def read_raw_csv(path: Path) -> Iterator[dict]:
+    """Reads the cached raw rows (.csv or .csv.gz, UTF-8)."""
+    opener = gzip.open if str(path).endswith(".gz") else open
+    with opener(path, "rt", encoding="utf-8", newline="") as f:
         yield from csv.DictReader(f)
 
 
-def ham_csv_yaz(satirlar: Iterable[dict], yol: Path) -> int:
-    """.gz uzantılıysa sıkıştırarak yazar; gzip başlığına zaman ve dosya adı yazılmaz,
-    böylece aynı içerik her seferinde aynı baytları (aynı SHA-256 özetini) verir."""
-    yol.parent.mkdir(parents=True, exist_ok=True)
+def write_raw_csv(rows: Iterable[dict], path: Path) -> int:
+    """Writes compressed if the path ends in .gz; no time or file name goes into the gzip header,
+    so the same content always gives the same bytes (the same SHA-256 digest)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     n = 0
-    with open(yol, "wb") as ham:
-        gz = gzip.GzipFile(filename="", mode="wb", fileobj=ham, mtime=0) if str(yol).endswith(".gz") else None
-        f = io.TextIOWrapper(gz or ham, encoding="utf-8", newline="")
-        yazici = csv.DictWriter(f, fieldnames=HAM_SUTUNLAR, lineterminator="\n")
-        yazici.writeheader()
-        for s in satirlar:
-            yazici.writerow(s)
+    with open(path, "wb") as raw_file:
+        gz = gzip.GzipFile(filename="", mode="wb", fileobj=raw_file, mtime=0) if str(path).endswith(".gz") else None
+        f = io.TextIOWrapper(gz or raw_file, encoding="utf-8", newline="")
+        writer = csv.DictWriter(f, fieldnames=RAW_COLUMNS, lineterminator="\n")
+        writer.writeheader()
+        for s in rows:
+            writer.writerow(s)
             n += 1
         f.flush()
         f.detach()
@@ -206,33 +206,33 @@ def ham_csv_yaz(satirlar: Iterable[dict], yol: Path) -> int:
     return n
 
 
-def _hucre_metni(deger) -> str:
-    if deger is None:
+def _cell_text(value) -> str:
+    if value is None:
         return ""
-    if isinstance(deger, dt.datetime):
-        return deger.isoformat(sep=" ", timespec="seconds")
-    if isinstance(deger, float):
-        if deger.is_integer():
-            return str(int(deger))
-        return repr(deger)
-    return str(deger)
+    if isinstance(value, dt.datetime):
+        return value.isoformat(sep=" ", timespec="seconds")
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return repr(value)
+    return str(value)
 
 
-def xlsx_oku(yol: Path) -> Iterator[dict]:
-    """Orijinal Excel dosyasını sayfa sayfa okur. openpyxl yalnızca burada gerekir."""
+def read_xlsx(path: Path) -> Iterator[dict]:
+    """Reads the original Excel file sheet by sheet. openpyxl is needed only here."""
     import openpyxl
 
-    kitap = openpyxl.load_workbook(yol, read_only=True, data_only=True)
+    workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
     try:
-        for sayfa in kitap.sheetnames:
-            satirlar = kitap[sayfa].iter_rows(values_only=True)
-            baslik = [str(h).strip() for h in next(satirlar)]
-            for degerler in satirlar:
-                if degerler is None or all(v is None for v in degerler):
+        for sheet in workbook.sheetnames:
+            rows = workbook[sheet].iter_rows(values_only=True)
+            header = [str(h).strip() for h in next(rows)]
+            for values in rows:
+                if values is None or all(v is None for v in values):
                     continue
-                s = {"sayfa": sayfa}
-                for ad, deger in zip(baslik, degerler):
-                    s[ad] = _hucre_metni(deger)
-                yield {k: s.get(k, "") for k in HAM_SUTUNLAR}
+                s = {"sayfa": sheet}
+                for name, value in zip(header, values):
+                    s[name] = _cell_text(value)
+                yield {k: s.get(k, "") for k in RAW_COLUMNS}
     finally:
-        kitap.close()
+        workbook.close()

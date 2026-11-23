@@ -1,1 +1,1 @@
-"""Faz 7: değerlendirme düzeneği (soru seti puanlayıcısı, kâhin model, sistem parmak izi)."""
+"""Phase 7: evaluation setup (question set scorer, oracle model, system fingerprint)."""

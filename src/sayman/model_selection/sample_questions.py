@@ -1,15 +1,14 @@
-"""Faz 0 ölçümünde kullanılan 5 örnek soru.
+"""The 5 sample questions used in the Phase 0 measurement.
 
-Her soru için hangi aracın çağrılması beklendiği ve (varsa) hangi argümanların
-gelmesi gerektiği yazılıdır. Beşten dördü argüman ister; böylece "geçerli araç
-çağrısı" ölçütü sadece araç adını değil argümanları da sınar.
+For every question it is written which tool is expected to be called and (if any) which arguments should come. Four of
+the five require arguments; so the "valid tool call" criterion tests not only the tool name but also the arguments.
 """
 
 from __future__ import annotations
 
-ISINMA_SORUSU = "Merhaba, bana hangi konularda yardımcı olabilirsin?"
+WARMUP_QUESTION = "Merhaba, bana hangi konularda yardımcı olabilirsin?"
 
-ORNEK_SORULAR: list[dict] = [
+SAMPLE_QUESTIONS: list[dict] = [
     {
         "kimlik": "s1_nakit",
         "soru": "Şu an bankalarda toplam ne kadar nakitimiz var?",

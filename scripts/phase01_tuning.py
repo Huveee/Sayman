@@ -1,15 +1,19 @@
 """Kalibrasyon ayar denemesi: üretici ayarlarından yalnızca izin verilenleri değiştirip bantlara bakar.
 
-Kurallar (gerçek veriyle ilk çalıştırmadan önce yazıldı):
-- Değişebilir: vade karışımı (vade_yurtici, vade_ihracat), ödeme profilleri (profiller), batık müşteri payı.
-- Değişmez: kalibrasyon bantları ve hesap tanımları (data/kaynak/kalibrasyon.json), DSO formülü
-  (2025 yıl sonu alacağı, POS paydada), Atradius gecikme dilimleri (gecikme_dilimleri).
-- Her deneme reports/faz1_ayar_denemeleri.json dosyasına eklenir; seçilen ayar 42 dışında en az iki
-  tohumla da bantların içinde kalmalıdır.
+Calibration tuning trial: changes only the permitted generator settings and checks the bands.
+(The first line above feeds the argparse description through `__doc__.splitlines()[0]`, so it stays as is.)
 
-Kullanım (proje kökünden):
-    .venv\\Scripts\\python -I scripts\\faz1_ayar.py --not "ilk ölçüm"
-    .venv\\Scripts\\python -I scripts\\faz1_ayar.py --ayar "{\\"batik_musteri_payi\\": 0.03}" --tohumlar 42,43,44 --not "..."
+Rules (written before the first run on the real data):
+- May change: the due-date mix (`vade_yurtici`, `vade_ihracat`), the payment profiles (`profiller`), the bad-debt
+  customer share.
+- May not change: the calibration bands and metric definitions (data/kaynak/kalibrasyon.json), the DSO formula
+  (2025 year-end receivables, POS in the denominator), the Atradius delay buckets (`gecikme_dilimleri`).
+- Every trial is appended to reports/faz1_ayar_denemeleri.json; the chosen setting must also stay inside the
+  bands with at least two seeds other than 42.
+
+Usage (from the project root):
+    .venv\\Scripts\\python -I scripts\\phase01_tuning.py --not "ilk ölçüm"
+    .venv\\Scripts\\python -I scripts\\phase01_tuning.py --ayar "{\\"batik_musteri_payi\\": 0.03}" --tohumlar 42,43,44 --not "..."
 """
 
 from __future__ import annotations
@@ -22,59 +26,59 @@ import sys
 import time
 from pathlib import Path
 
-KOK = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(KOK / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from sayman.data import calibration  # noqa: E402
-from sayman.data.table_io import veri_hash  # noqa: E402
-from sayman.data.exchange_rates import kurlar_oku  # noqa: E402
-from sayman.data.uci import ham_csv_oku, temizle  # noqa: E402
-from sayman.data.generator import Ayarlar, uret  # noqa: E402
+from sayman.data.table_io import data_digest  # noqa: E402
+from sayman.data.exchange_rates import read_rates  # noqa: E402
+from sayman.data.uci import read_raw_csv, clean  # noqa: E402
+from sayman.data.generator import GeneratorSettings, generate  # noqa: E402
 
-AYARLANABILIR = {"vade_yurtici", "vade_ihracat", "profiller", "batik_musteri_payi"}
-KAYIT = KOK / "reports" / "faz1_ayar_denemeleri.json"
+TUNABLE = {"vade_yurtici", "vade_ihracat", "profiller", "batik_musteri_payi"}
+TRIAL_LOG = ROOT / "reports" / "faz1_ayar_denemeleri.json"
 
 
-def _demet(deger):
-    return tuple(_demet(v) for v in deger) if isinstance(deger, list) else deger
+def _to_tuple(value):
+    return tuple(_to_tuple(v) for v in value) if isinstance(value, list) else value
 
 
 def main() -> int:
-    for akis in (sys.stdout, sys.stderr):
-        akis.reconfigure(encoding="utf-8", errors="replace")
-    ayri = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ayri.add_argument("--ayar", default="{}", help="JSON: değiştirilecek ayarlar")
-    ayri.add_argument("--tohumlar", default="42")
-    ayri.add_argument("--not", dest="aciklama", default="")
-    arg = ayri.parse_args()
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--ayar", default="{}", help="JSON: değiştirilecek ayarlar")
+    parser.add_argument("--tohumlar", default="42")
+    parser.add_argument("--not", dest="aciklama", default="")
+    args = parser.parse_args()
 
-    degisiklik = json.loads(arg.ayar)
-    yasak = set(degisiklik) - AYARLANABILIR
-    if yasak:
-        print(f"Bu ayarlar kalibrasyonda değiştirilemez: {sorted(yasak)}", file=sys.stderr)
+    changes = json.loads(args.ayar)
+    forbidden = set(changes) - TUNABLE
+    if forbidden:
+        print(f"Bu ayarlar kalibrasyonda değiştirilemez: {sorted(forbidden)}", file=sys.stderr)
         return 2
-    degisiklik = {k: _demet(v) for k, v in degisiklik.items()}
-    kaynak = json.loads((KOK / "data" / "kaynak" / "kalibrasyon.json").read_text(encoding="utf-8"))
+    changes = {k: _to_tuple(v) for k, v in changes.items()}
+    source = json.loads((ROOT / "data" / "kaynak" / "kalibrasyon.json").read_text(encoding="utf-8"))
 
-    bas = time.time()
-    kalemler = temizle(ham_csv_oku(KOK / "data" / "ara" / "uci_ham.csv.gz")).kalemler
-    kurlar = kurlar_oku(KOK / "data" / "kaynak" / "tcmb_kurlar.csv")
-    sonuclar = []
-    for tohum in (int(t) for t in arg.tohumlar.split(",")):
-        ayarlar = dataclasses.replace(Ayarlar(), tohum=tohum, **degisiklik)
-        T = uret(kalemler, kurlar, ayarlar).tablolar
-        olcum = calibration.olc(T, ayarlar.veri_bitis, 2025)
-        bantlar = calibration.bantlarla_karsilastir(olcum, kaynak)
-        sonuclar.append({"tohum": tohum, "veri_hash": veri_hash(T)[0], "olcum": olcum, "bantlar": bantlar,
-                         "hepsi_bantta": all(b["tamam"] for b in bantlar)})
-        print(f"tohum {tohum}: " + ", ".join(f"{b['ad']}={b['deger']}{'' if b['tamam'] else ' (BANT DIŞI)'}" for b in bantlar))
+    start = time.time()
+    line_items = clean(read_raw_csv(ROOT / "data" / "ara" / "uci_ham.csv.gz")).line_items
+    rates = read_rates(ROOT / "data" / "kaynak" / "tcmb_kurlar.csv")
+    results = []
+    for seed in (int(t) for t in args.tohumlar.split(",")):
+        settings = dataclasses.replace(GeneratorSettings(), tohum=seed, **changes)
+        T = generate(line_items, rates, settings).tables
+        measurement = calibration.measure(T, settings.veri_bitis, 2025)
+        bands = calibration.compare_with_bands(measurement, source)
+        results.append({"tohum": seed, "veri_hash": data_digest(T)[0], "olcum": measurement, "bantlar": bands,
+                         "hepsi_bantta": all(b["tamam"] for b in bands)})
+        print(f"tohum {seed}: " + ", ".join(f"{b['ad']}={b['deger']}{'' if b['tamam'] else ' (BANT DIŞI)'}" for b in bands))
 
-    kayitlar = json.loads(KAYIT.read_text(encoding="utf-8")) if KAYIT.exists() else []
-    kayitlar.append({"sira": len(kayitlar) + 1, "zaman": dt.datetime.now().isoformat(timespec="seconds"),
-                     "not": arg.aciklama, "degisiklik": degisiklik, "sonuclar": sonuclar,
-                     "sure_s": round(time.time() - bas, 1)})
-    KAYIT.write_text(json.dumps(kayitlar, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"Deneme {len(kayitlar)} kaydedildi: {KAYIT}")
+    records = json.loads(TRIAL_LOG.read_text(encoding="utf-8")) if TRIAL_LOG.exists() else []
+    records.append({"sira": len(records) + 1, "zaman": dt.datetime.now().isoformat(timespec="seconds"),
+                     "not": args.aciklama, "degisiklik": changes, "sonuclar": results,
+                     "sure_s": round(time.time() - start, 1)})
+    TRIAL_LOG.write_text(json.dumps(records, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"Deneme {len(records)} kaydedildi: {TRIAL_LOG}")
     return 0
 
 

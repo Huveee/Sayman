@@ -1,1 +1,1 @@
-"""Faz 8: ince ayar (fine-tune) için eğitim verisi."""
+"""Phase 8: training data for fine-tuning."""

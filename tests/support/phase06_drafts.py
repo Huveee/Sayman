@@ -1,16 +1,21 @@
-"""Faz 6 taslak seti: doğrulayıcının geçirmesi ve yakalaması gereken cevap taslakları.
+"""Phase 6 draft set: answer drafts that the verifier must let through and must catch.
 
-Bu dosya doğrulayıcıdan önce yazıldı ve doğrulayıcı yazılırken değiştirilmedi. Araç sonuçları gerçek araçların
-gerçek ambardaki çıktılarıdır (tests/phase06_tool_results.json, scripts/faz6_arac_ornekleri.py); belge araması
-sonucu Faz 5 kütüphanesindeki maddelerin metniyle elle yazıldı (belge arama aracı henüz yoktu).
+This file was written before the verifier and was not changed while the verifier was written. The tool results are
+the outputs of the real tools on the real warehouse (tests/support/phase06_tool_results.json,
+scripts/phase06_tool_examples.py); the document search result was written by hand with the text of the Phase 5
+library's articles (the document search tool did not exist yet).
 
-Her taslak: soru, bu turda yapılan çağrılar, model cevabı taslağı, beklenen karar ve yakalanması beklenen sayılar.
-- "dogru" taslaklar geçmelidir: aynı sayının farklı yazılışları (tam, yuvarlanmış, kesilmiş, "milyon"), eksi
-  işaretsiz çıkış, anahtar adından gelen dönem ("son 12 ay", "kur %10"), tarih, numaralı liste, fatura numarası.
-- "yanlis" taslaklar yakalanmalıdır. "kaynaksiz": cevapta kaynağı bulunamaması beklenen sayıların metni.
-- Bilinen kör nokta: doğru sayı yanlış müşteriye yazılırsa doğrulayıcı geçirir (KOR_NOKTA).
-- Yorum kuralı: cevap Türkçe biçimde okunur. "55.865" gibi noktanın ardından tam üç rakam gelen yazılış binlik
-  ayırıcı sayılır (55865); araçların "48.1745" biçimi (noktadan sonra üç rakam değil) ondalık sayılır.
+Each draft: question, the calls made in this turn, the model's draft answer, the expected decision and the numbers
+expected to be caught.
+- `PASSING_DRAFTS` must pass: different spellings of the same number (exact, rounded, truncated, "milyon"), an outflow
+  without a minus sign, a period coming from the key name ("son 12 ay", "kur %10"), a date, a numbered list, an invoice
+  number.
+- `FAILING_DRAFTS` must be caught. "kaynaksiz": the text of the numbers that are expected to have no source in the answer.
+- Known blind spot: if a correct number is written against the wrong customer, the verifier lets it through
+  (`BLIND_SPOT`).
+- Interpretation rule: the answer is read in Turkish format. A spelling like "55.865" where exactly three digits follow
+  the dot counts as a thousands separator (55865); the tools' "48.1745" format (not three digits after the dot) is a
+  decimal number.
 """
 
 from __future__ import annotations
@@ -18,9 +23,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-ARAC_SONUCLARI = Path(__file__).with_name("phase06_tool_results.json")
+TOOL_RESULTS_PATH = Path(__file__).with_name("phase06_tool_results.json")
 
-BELGE_CAGRILARI = {
+DOCUMENT_CALLS = {
     "belge_bereket": {
         "kullanici": "selin.aydin", "arac": "belge_ara", "argumanlar": {"sorgu": "Bereket İmalat ödeme vadesi"},
         "hata_mi": False,
@@ -35,7 +40,7 @@ BELGE_CAGRILARI = {
             "kaynak": {"belge_parcalari": ["SOZ-S001#m3"]}}},
 }
 
-DOGRU = [
+PASSING_DRAFTS = [
     ("nakit_tam", "Bankalarda toplam ne kadar nakitimiz var?", ["nakit"],
      "Bankalardaki toplam nakit 75.826.754,65 TL. En büyük hesap Banka A'daki TL hesabı: 74.205.083,37 TL."),
     ("nakit_yuvarlak", "Bankalarda toplam ne kadar nakitimiz var?", ["nakit"],
@@ -85,7 +90,7 @@ DOGRU = [
      'havalesiyle öder" [SOZ-S001#m3]'),
 ]
 
-YANLIS = [
+FAILING_DRAFTS = [
     ("yazim_hatasi", "Green Home Store Ltd'nin geciken faturaları?", ["geciken"],
      "Green Home Store Ltd'nin F013945 numaralı faturası 347 gün gecikmiş; açık tutar 698.272,20 TL.",
      ["698.272,20"]),
@@ -115,15 +120,15 @@ YANLIS = [
     ("getirilmeyen_parca", "Bereket İmalat'a geç ödersek ne olur?", ["belge_bereket"],
      'Gecikirsek aylık %2,25 faiz işler: "aylık %2,25 oranında temerrüt faizi" [SOZ-S001#m5]', ["%2,25"]),
 ]
-# Alıntısı geçersiz olması beklenen taslaklar (sayılara ek olarak)
-ALINTISI_GECERSIZ = {"yanlis_alinti", "getirilmeyen_parca"}
+# Drafts whose citation is expected to be invalid (in addition to the numbers)
+INVALID_CITATION_DRAFTS = {"yanlis_alinti", "getirilmeyen_parca"}
 
-# Bilinen kör nokta: Green Home Store Ltd'nin açık alacağı Prime Design House Ltd'ye yazıldı. Sayı bu turdaki
-# bir sonuçta (musteri_a, acik_alacak_tl) geçtiği için doğrulayıcı geçirir.
-KOR_NOKTA = ("Prime Design House Ltd'nin açık alacağı ne kadar?", ["musteri_a", "musteri_b"],
+# Known blind spot: Green Home Store Ltd's open receivable was written against Prime Design House Ltd. The number appears
+# in a result of this turn (musteri_a, acik_alacak_tl), so the verifier lets it through.
+BLIND_SPOT = ("Prime Design House Ltd'nin açık alacağı ne kadar?", ["musteri_a", "musteri_b"],
              "Prime Design House Ltd'nin açık alacağı 7.775.050,92 TL.", ("musteri_a", "acik_alacak_tl"))
 
 
-def arac_sonuclari() -> dict:
-    veri = json.loads(ARAC_SONUCLARI.read_text(encoding="utf-8"))
-    return {"bugun": veri["bugun"], "cagrilar": {**veri["cagrilar"], **BELGE_CAGRILARI}}
+def tool_results() -> dict:
+    data = json.loads(TOOL_RESULTS_PATH.read_text(encoding="utf-8"))
+    return {"bugun": data["bugun"], "cagrilar": {**data["cagrilar"], **DOCUMENT_CALLS}}
