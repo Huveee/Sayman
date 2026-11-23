@@ -1,0 +1,3213 @@
+{
+ "api": {
+  "GET /api/durum": {
+   "adim_gun": 7,
+   "bugun": "2025-03-31",
+   "mesgul": false,
+   "model": "sahte",
+   "model_hazir": true,
+   "veri_bitis": "2025-06-30"
+  },
+  "GET /api/kullanicilar": {
+   "kullanicilar": [
+    {
+     "ad": "Selin Aydın",
+     "kapsam_adi": "tüm şirket",
+     "kullanici": "selin.aydin",
+     "rol": "cfo",
+     "rol_adi": "CFO"
+    },
+    {
+     "ad": "Murat Kaya",
+     "kapsam_adi": "yalnızca yurtiçi müşteriler",
+     "kullanici": "murat.kaya",
+     "rol": "satis_yurtici",
+     "rol_adi": "Yurtiçi satış müdürü"
+    },
+    {
+     "ad": "Deniz Arslan",
+     "kapsam_adi": "yalnızca yurt dışı müşteriler",
+     "kullanici": "deniz.arslan",
+     "rol": "satis_ihracat",
+     "rol_adi": "İhracat satış müdürü"
+    }
+   ]
+  },
+  "cfo": {
+   "GET /api/ben": {
+    "ad": "Selin Aydın",
+    "kapsam_adi": "tüm şirket",
+    "kullanici": "selin.aydin",
+    "rol": "cfo",
+    "rol_adi": "CFO"
+   },
+   "GET /api/ornek_sorular": {
+    "sorular": [
+     "Bankalarda toplam ne kadar nakit var?",
+     "Önümüzdeki 7 günde tedarikçilere ne kadar ödeme yapacağız?",
+     "Vadesi geçmiş alacaklarımızın toplamı ne kadar?",
+     "Çek kabul politikamıza göre en fazla kaç gün vadeli çek alabiliriz?",
+     "Çeki karşılıksız çıkan bir müşteriyle politikamıza göre nasıl çalışmalıyız?",
+     "Nakit politikamıza göre asgari nakit eşiği nedir?"
+    ]
+   },
+   "GET /api/rapor": {
+    "ad": "Selin Aydın",
+    "bolumler": [
+     {
+      "baslik": "Nakit pozisyonu",
+      "ozet": "12.396,40 TL",
+      "satirlar": [
+       [
+        "Banka A · TRY",
+        "10.169,00 TL"
+       ],
+       [
+        "Banka B · EUR",
+        "2.227,40 TL"
+       ]
+      ]
+     },
+     {
+      "baslik": "Önümüzdeki 7 günün ödemeleri",
+      "ozet": "280,00 TL",
+      "satirlar": [
+       [
+        "Fatura sayısı",
+        "2"
+       ],
+       [
+        "İçinde vadesi geçmiş",
+        "30,00 TL"
+       ]
+      ]
+     },
+     {
+      "baslik": "Açık alacaklar",
+      "ozet": "6.745,00 TL",
+      "satirlar": [
+       [
+        "Vadesi geçmiş",
+        "6.375,00 TL"
+       ],
+       [
+        "Müşteri sayısı",
+        "3"
+       ],
+       [
+        "Beta GmbH",
+        "5.475,00 TL"
+       ],
+       [
+        "Alfa Ltd.",
+        "1.120,00 TL"
+       ],
+       [
+        "Delta Ltd.",
+        "150,00 TL"
+       ]
+      ]
+     },
+     {
+      "baslik": "7 gün içinde vadesi gelen çekler",
+      "ozet": "0,00 TL",
+      "satirlar": [
+       [
+        "Çek sayısı",
+        "0"
+       ]
+      ]
+     }
+    ],
+    "kapsam_adi": "tüm şirket",
+    "kullanici": "selin.aydin",
+    "rol": "cfo",
+    "rol_adi": "CFO",
+    "tarih": "2025-03-31"
+   },
+   "GET /api/uyarilar": {
+    "bugun": "2025-03-31",
+    "uyarilar": [
+     {
+      "aciklama": "A_TRY hesabının gün içi en düşük bakiyesi 0,00 TL; güvenlik eşiği 143,24 TL (son 7 ayın ortalama aylık satışı 1.432,45 TL'nin %10'u).",
+      "baslik": "Ana hesapta nakit güvenlik eşiğinin altına indi",
+      "gun": "2025-03-28",
+      "musteri_id": null,
+      "onem": "uyari",
+      "uyari_id": "U21141e18969f"
+     },
+     {
+      "aciklama": "A_TRY hesabının gün içi en düşük bakiyesi 0,00 TL; güvenlik eşiği 149,70 TL (son 7 ayın ortalama aylık satışı 1.497,04 TL'nin %10'u).",
+      "baslik": "Ana hesapta nakit güvenlik eşiğinin altına indi",
+      "gun": "2025-03-20",
+      "musteri_id": null,
+      "onem": "uyari",
+      "uyari_id": "U7bca519a8352"
+     },
+     {
+      "aciklama": "Alfa Ltd. müşterisinin Banka Y çeki (99,99 TL, vade 2025-03-03) karşılıksız çıktı; karşılaştıracak yeterli çek yok.",
+      "baslik": "Müşteri çeki karşılıksız çıktı",
+      "gun": "2025-03-03",
+      "musteri_id": "M1",
+      "onem": "uyari",
+      "uyari_id": "U16cec47270ee"
+     },
+     {
+      "aciklama": "A_TRY hesabının gün içi en düşük bakiyesi 0,00 TL; güvenlik eşiği 162,78 TL (son 6 ayın ortalama aylık satışı 1.627,80 TL'nin %10'u).",
+      "baslik": "Ana hesapta nakit güvenlik eşiğinin altına indi",
+      "gun": "2025-02-24",
+      "musteri_id": null,
+      "onem": "uyari",
+      "uyari_id": "U805f14bb3d73"
+     },
+     {
+      "aciklama": "Delta Kağıt tedarikçisinin A6 numaralı 40,00 TL tutarındaki faturasına toplam 80,00 TL ödendi (2 ödeme); fazla ödenen 40,00 TL.",
+      "baslik": "Tedarikçi faturasına fazla ödeme",
+      "gun": "2025-02-05",
+      "musteri_id": null,
+      "onem": "uyari",
+      "uyari_id": "Ub33dcbd0a6e3"
+     },
+     {
+      "aciklama": "A_TRY hesabının gün içi en düşük bakiyesi 0,00 TL; güvenlik eşiği 173,82 TL (son 5 ayın ortalama aylık satışı 1.738,23 TL'nin %10'u).",
+      "baslik": "Ana hesapta nakit güvenlik eşiğinin altına indi",
+      "gun": "2025-02-04",
+      "musteri_id": null,
+      "onem": "uyari",
+      "uyari_id": "Uec423ec5211c"
+     }
+    ]
+   },
+   "POST /api/cikis": {
+    "tamam": true
+   },
+   "POST /api/giris": {
+    "ad": "Selin Aydın",
+    "kapsam_adi": "tüm şirket",
+    "kullanici": "selin.aydin",
+    "rol": "cfo",
+    "rol_adi": "CFO"
+   }
+  },
+  "ihracat": {
+   "GET /api/ben": {
+    "ad": "Deniz Arslan",
+    "kapsam_adi": "yalnızca yurt dışı müşteriler",
+    "kullanici": "deniz.arslan",
+    "rol": "satis_ihracat",
+    "rol_adi": "İhracat satış müdürü"
+   },
+   "GET /api/ornek_sorular": {
+    "sorular": [
+     "Vadesi geçmiş alacaklarımızın toplamı ne kadar?",
+     "Bekleyen çeklerimizin toplamı ne kadar?",
+     "Bankalarda toplam ne kadar nakit var?"
+    ]
+   },
+   "GET /api/rapor": {
+    "ad": "Deniz Arslan",
+    "bolumler": [
+     {
+      "baslik": "Açık alacaklar",
+      "ozet": "5.475,00 TL",
+      "satirlar": [
+       [
+        "Vadesi geçmiş",
+        "5.475,00 TL"
+       ],
+       [
+        "Müşteri sayısı",
+        "1"
+       ],
+       [
+        "Beta GmbH",
+        "5.475,00 TL"
+       ]
+      ]
+     },
+     {
+      "baslik": "7 gün içinde vadesi gelen çekler",
+      "ozet": "0,00 TL",
+      "satirlar": [
+       [
+        "Çek sayısı",
+        "0"
+       ]
+      ]
+     }
+    ],
+    "kapsam_adi": "yalnızca yurt dışı müşteriler",
+    "kullanici": "deniz.arslan",
+    "rol": "satis_ihracat",
+    "rol_adi": "İhracat satış müdürü",
+    "tarih": "2025-03-31"
+   },
+   "GET /api/uyarilar": {
+    "bugun": "2025-03-31",
+    "uyarilar": []
+   },
+   "POST /api/cikis": {
+    "tamam": true
+   },
+   "POST /api/giris": {
+    "ad": "Deniz Arslan",
+    "kapsam_adi": "yalnızca yurt dışı müşteriler",
+    "kullanici": "deniz.arslan",
+    "rol": "satis_ihracat",
+    "rol_adi": "İhracat satış müdürü"
+   }
+  },
+  "yurtici": {
+   "GET /api/ben": {
+    "ad": "Murat Kaya",
+    "kapsam_adi": "yalnızca yurtiçi müşteriler",
+    "kullanici": "murat.kaya",
+    "rol": "satis_yurtici",
+    "rol_adi": "Yurtiçi satış müdürü"
+   },
+   "GET /api/ornek_sorular": {
+    "sorular": [
+     "Vadesi geçmiş alacaklarımızın toplamı ne kadar?",
+     "Bekleyen çeklerimizin toplamı ne kadar?",
+     "Bankalarda toplam ne kadar nakit var?"
+    ]
+   },
+   "GET /api/rapor": {
+    "ad": "Murat Kaya",
+    "bolumler": [
+     {
+      "baslik": "Açık alacaklar",
+      "ozet": "1.270,00 TL",
+      "satirlar": [
+       [
+        "Vadesi geçmiş",
+        "900,00 TL"
+       ],
+       [
+        "Müşteri sayısı",
+        "2"
+       ],
+       [
+        "Alfa Ltd.",
+        "1.120,00 TL"
+       ],
+       [
+        "Delta Ltd.",
+        "150,00 TL"
+       ]
+      ]
+     },
+     {
+      "baslik": "7 gün içinde vadesi gelen çekler",
+      "ozet": "0,00 TL",
+      "satirlar": [
+       [
+        "Çek sayısı",
+        "0"
+       ]
+      ]
+     }
+    ],
+    "kapsam_adi": "yalnızca yurtiçi müşteriler",
+    "kullanici": "murat.kaya",
+    "rol": "satis_yurtici",
+    "rol_adi": "Yurtiçi satış müdürü",
+    "tarih": "2025-03-31"
+   },
+   "GET /api/uyarilar": {
+    "bugun": "2025-03-31",
+    "uyarilar": [
+     {
+      "aciklama": "Alfa Ltd. müşterisinin Banka Y çeki (99,99 TL, vade 2025-03-03) karşılıksız çıktı.",
+      "baslik": "Müşteri çeki karşılıksız çıktı",
+      "gun": "2025-03-03",
+      "musteri_id": "M1",
+      "onem": "uyari",
+      "uyari_id": "U16cec47270ee"
+     }
+    ]
+   },
+   "POST /api/cikis": {
+    "tamam": true
+   },
+   "POST /api/giris": {
+    "ad": "Murat Kaya",
+    "kapsam_adi": "yalnızca yurtiçi müşteriler",
+    "kullanici": "murat.kaya",
+    "rol": "satis_yurtici",
+    "rol_adi": "Yurtiçi satış müdürü"
+   }
+  }
+ },
+ "distinct": {
+  "system#0": {
+   "content": "Sen Sayman'sın: bir şirketin yapay zekâ destekli finans asistanısın. Bugünün tarihi 2025-03-31.\nKurallar:\n1. Sorulara yalnızca araçların bu konuşmada döndürdüğü verilerle cevap ver. Gereken veriyi her zaman araçlardan al; rakam uydurma.\n2. Sayıları araç sonucundan aynen al. Türkçe biçimde yazabilirsin (75826754.65 → 75.826.754,65 TL) ya da yuvarlayabilirsin (75,8 milyon TL).\n3. Kendin toplama, çıkarma, yüzde ya da oran hesaplaması yapma; araç sonucunda olmayan bir sayı yazma.\n4. Sözleşme, şirket politikası ya da kanun sorularında belge_ara aracını kullan. belge_ara kullandığında cevabında en az bir alıntı olmalı: maddeden en az üç kelimelik bir bölümü çift tırnak içinde aynen yaz ve hemen ardından parça kimliğini köşeli parantezle ver. Örnek: \"fatura tarihinden itibaren 30 gün içinde\" [SOZ-S001#m3]\n5. Çift tırnağı yalnızca belge alıntısı için kullan; müşteri ya da şirket adlarını tırnak içine alma.\n6. Bir araç \"yetki_yok\" derse bu bilgiyi veremeyeceğini söyle; başka araçla bulmaya çalışma.\n7. Sayman salt okunurdur: ödeme, transfer ya da kayıt değişikliği yapamaz.\nKısa ve net Türkçe cevap ver: en çok 120 kelime; listelerde en çok 5 kalem; tablo kullanma.",
+   "role": "system"
+  },
+  "tools#1": [
+   {
+    "function": {
+     "description": "Bankalardaki nakit: her hesabın bakiyesi ve toplamın TL karşılığı.",
+     "name": "nakit_pozisyonu",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Bir tarih aralığındaki banka hareketlerini listeler; para birimine göre giriş ve çıkış toplamlarını verir.",
+     "name": "banka_hareketleri",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "baslangic": {
+        "description": "Aralığın ilk günü, YYYY-MM-DD",
+        "format": "date",
+        "type": "string"
+       },
+       "bitis": {
+        "description": "Aralığın son günü, YYYY-MM-DD",
+        "format": "date",
+        "type": "string"
+       },
+       "en_fazla": {
+        "description": "En fazla kaç satır listelensin (varsayılan 5)",
+        "maximum": 10,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "hesap_id": {
+        "description": "Tek bir hesap için hesap kimliği",
+        "maxLength": 40,
+        "type": "string"
+       },
+       "yon": {
+        "description": "Para girişi mi çıkışı mı",
+        "enum": [
+         "giris",
+         "cikis",
+         "hepsi"
+        ],
+        "type": "string"
+       }
+      },
+      "required": [
+       "baslangic",
+       "bitis"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Açık alacakları vadeden bu yana geçen güne göre dilimlere ayırır (vadesi gelmemiş, 1-30, 31-60, 61-90, 91-180, 180 gün üstü); en büyük alacaklı müşterileri listeler.",
+     "name": "alacak_yaslandirma",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "en_fazla": {
+        "description": "En fazla kaç satır listelensin (varsayılan 5)",
+        "maximum": 10,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "musteri_adi": {
+        "description": "Yalnızca bir müşteri için müşteri adı",
+        "maxLength": 100,
+        "type": "string"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Vadesini en az min_gun gün geçmiş açık faturaları, tutarı büyükten küçüğe listeler.",
+     "name": "geciken_alacaklar",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "en_fazla": {
+        "description": "En fazla kaç satır listelensin (varsayılan 5)",
+        "maximum": 10,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "min_gun": {
+        "description": "En az kaç gün gecikmiş olanlar",
+        "maximum": 3650,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [
+       "min_gun"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Bir müşterinin açık alacağını, son tahsilatlarını, bekleyen çeklerini ve son 12 aydaki ödeme alışkanlığını özetler.",
+     "name": "musteri_ozeti",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "musteri_adi": {
+        "description": "Müşteri adı (en az 3 harf)",
+        "maxLength": 100,
+        "type": "string"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [
+       "musteri_adi"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Alacakların ortalama kaç günde tahsil edildiğini (DSO) seçilen dönem için hesaplar.",
+     "name": "dso_hesapla",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "donem": {
+        "description": "Hesaplama dönemi",
+        "enum": [
+         "son_30_gun",
+         "son_90_gun",
+         "son_12_ay"
+        ],
+        "type": "string"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [
+       "donem"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Önümüzdeki günlerde vadesi gelen ve vadesi geçmiş ödenmemiş tedarikçi faturalarını listeler.",
+     "name": "yaklasan_odemeler",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "en_fazla": {
+        "description": "En fazla kaç satır listelensin (varsayılan 5)",
+        "maximum": 10,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "gun_sayisi": {
+        "description": "Bugünden itibaren kaç günlük ödemeler",
+        "maximum": 90,
+        "minimum": 1,
+        "type": "integer"
+       }
+      },
+      "required": [
+       "gun_sayisi"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Önümüzdeki haftaların bilinen nakit giriş ve çıkışlarını haftalık verir.",
+     "name": "nakit_akis_tahmini",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "hafta_sayisi": {
+        "description": "Kaç haftalık (1-13)",
+        "maximum": 13,
+        "minimum": 1,
+        "type": "integer"
+       }
+      },
+      "required": [
+       "hafta_sayisi"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Döviz cinsinden alacak ve banka bakiyelerinin açık pozisyonunu ve kur %10 değişirse TL etkisini gösterir.",
+     "name": "kur_riski",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "para_birimi": {
+        "description": "Yalnızca bir para birimi",
+        "enum": [
+         "EUR",
+         "USD"
+        ],
+        "type": "string"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "TCMB döviz alış kurunu verir.",
+     "name": "doviz_kuru",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "para_birimi": {
+        "description": "Para birimi",
+        "enum": [
+         "USD",
+         "EUR",
+         "GBP"
+        ],
+        "type": "string"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [
+       "para_birimi"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Müşterilerden alınan çekleri durumuna, vadesine ya da müşteriye göre listeler.",
+     "name": "cek_portfoyu",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "durum": {
+        "description": "Çekin durumu; bekleyen = portföyde ya da tahsilde (varsayılan)",
+        "enum": [
+         "bekleyen",
+         "portfoyde",
+         "tahsilde",
+         "karsiliksiz",
+         "tahsil_edildi",
+         "hepsi"
+        ],
+        "type": "string"
+       },
+       "en_fazla": {
+        "description": "En fazla kaç satır listelensin (varsayılan 5)",
+        "maximum": 10,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "musteri_adi": {
+        "description": "Yalnızca bu müşterinin çekleri",
+        "maxLength": 100,
+        "type": "string"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       },
+       "vade_gun": {
+        "description": "Vadesine en fazla kaç gün kalanlar",
+        "maximum": 365,
+        "minimum": 0,
+        "type": "integer"
+       }
+      },
+      "required": [],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Bir tarih aralığındaki POS satışlarını, iadeleri ve komisyonu özetler.",
+     "name": "pos_tahsilatlari",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "baslangic": {
+        "description": "Aralığın ilk günü, YYYY-MM-DD",
+        "format": "date",
+        "type": "string"
+       },
+       "bitis": {
+        "description": "Aralığın son günü, YYYY-MM-DD",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [
+       "baslangic",
+       "bitis"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Satış ve iade faturalarını fatura numarasına, müşteriye ya da duruma göre arar.",
+     "name": "fatura_ara",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "durum": {
+        "description": "Faturanın durumu",
+        "enum": [
+         "acik",
+         "kapali",
+         "iade",
+         "hepsi"
+        ],
+        "type": "string"
+       },
+       "en_fazla": {
+        "description": "En fazla kaç satır listelensin (varsayılan 5)",
+        "maximum": 10,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "fatura_no": {
+        "description": "Fatura numarası",
+        "maxLength": 40,
+        "type": "string"
+       },
+       "musteri_adi": {
+        "description": "Müşteri adı",
+        "maxLength": 100,
+        "type": "string"
+       },
+       "tarih": {
+        "description": "Hangi gün itibarıyla, YYYY-MM-DD. Verilmezse bugün.",
+        "format": "date",
+        "type": "string"
+       }
+      },
+      "required": [],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   },
+   {
+    "function": {
+     "description": "Sözleşmelerde, şirket politikalarında ve ilgili kanun maddelerinde arar; en ilgili maddelerin metnini parça kimliğiyle döndürür. Rolün göremediği belgeler aranmaz.",
+     "name": "belge_ara",
+     "parameters": {
+      "additionalProperties": false,
+      "properties": {
+       "en_fazla": {
+        "description": "En fazla kaç madde (varsayılan 3)",
+        "maximum": 3,
+        "minimum": 1,
+        "type": "integer"
+       },
+       "sorgu": {
+        "description": "Ne aranıyor; ör. 'Bereket İmalat ödeme vadesi'",
+        "maxLength": 300,
+        "minLength": 3,
+        "type": "string"
+       }
+      },
+      "required": [
+       "sorgu"
+      ],
+      "type": "object"
+     }
+    },
+    "type": "function"
+   }
+  ]
+ },
+ "tool_turns": {
+  "cfo": [
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "nakit_pozisyonu",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "nakit_pozisyonu",
+     {}
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_pozisyonu sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_pozisyonu sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {},
+           "name": "nakit_pozisyonu"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"nakit_pozisyonu\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"hesaplar\": [{\"hesap_id\": \"A_TRY\", \"banka\": \"Banka A\", \"para_birimi\": \"TRY\", \"bakiye\": \"10169.00\", \"kur\": \"1\", \"bakiye_tl\": \"10169.00\"}, {\"hesap_id\": \"B_EUR\", \"banka\": \"Banka B\", \"para_birimi\": \"EUR\", \"bakiye\": \"60.00\", \"kur\": \"37.1234\", \"bakiye_tl\": \"2227.40\"}], \"toplam_tl\": \"12396.40\"}, \"kaynak\": {\"banka_hesaplari\": [\"A_TRY\", \"B_EUR\"]}}",
+        "role": "tool",
+        "tool_name": "nakit_pozisyonu"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "banka_hareketleri",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "banka_hareketleri",
+     {
+      "baslangic": "2024-01-01",
+      "bitis": "2025-03-31",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "banka_hareketleri sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "banka_hareketleri sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "baslangic": "2024-01-01",
+            "bitis": "2025-03-31",
+            "en_fazla": 10
+           },
+           "name": "banka_hareketleri"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"banka_hareketleri\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"baslangic\": \"2024-01-01\", \"bitis\": \"2025-03-31\", \"hareket_sayisi\": 11, \"toplamlar\": [{\"para_birimi\": \"EUR\", \"adet\": 2, \"giris\": \"60.00\", \"cikis\": \"0.00\"}, {\"para_birimi\": \"TRY\", \"adet\": 9, \"giris\": \"899.00\", \"cikis\": \"-730.00\"}], \"gosterilen\": 10, \"hareketler\": [{\"hareket_id\": \"H09\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-03-31\", \"tutar\": \"49.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H09\"}, {\"hareket_id\": \"H08\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-03-28\", \"tutar\": \"-500.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H08\"}, {\"hareket_id\": \"H07\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-03-28\", \"tutar\": \"50.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H07\"}, {\"hareket_id\": \"H13\", \"hesap_id\": \"B_EUR\", \"tarih\": \"2025-03-21\", \"tutar\": \"10.00\", \"para_birimi\": \"EUR\", \"aciklama\": \"H13\"}, {\"hareket_id\": \"H06\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-03-20\", \"tutar\": \"-120.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H06\"}, {\"hareket_id\": \"H12\", \"hesap_id\": \"B_EUR\", \"tarih\": \"2025-03-15\", \"tutar\": \"50.00\", \"para_birimi\": \"EUR\", \"aciklama\": \"H12\"}, {\"hareket_id\": \"H05\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-03-03\", \"tutar\": \"-30.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H05\"}, {\"hareket_id\": \"H04\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-02-24\", \"tutar\": \"200.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H04\"}, {\"hareket_id\": \"H03\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-02-05\", \"tutar\": \"-40.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H03\"}, {\"hareket_id\": \"H02\", \"hesap_id\": \"A_TRY\", \"tarih\": \"2025-02-05\", \"tutar\": \"600.00\", \"para_birimi\": \"TRY\", \"aciklama\": \"H02\"}]}, \"kaynak\": {\"banka_hareketleri\": [\"H09\", \"H08\", \"H07\", \"H13\", \"H06\", \"H12\", \"H05\", \"H04\", \"H03\", \"H02\"]}}",
+        "role": "tool",
+        "tool_name": "banka_hareketleri"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "alacak_yaslandirma",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "alacak_yaslandirma",
+     {
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "alacak_yaslandirma sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "alacak_yaslandirma sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "en_fazla": 10
+           },
+           "name": "alacak_yaslandirma"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"alacak_yaslandirma\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"dilimler\": {\"vadesi_gelmemis\": \"420.00\", \"gecikme_1_30\": \"5875.00\", \"gecikme_31_60\": \"400.00\", \"gecikme_61_90\": \"0.00\", \"gecikme_91_180\": \"30.00\", \"gecikme_180_ustu\": \"70.00\", \"eslesmemis_tahsilat\": \"-50.00\"}, \"toplam_tl\": \"6745.00\", \"vadesi_gecmis_tl\": \"6375.00\", \"musteri_sayisi\": 3, \"en_buyuk_alacaklar\": [{\"musteri_id\": \"M2\", \"musteri\": \"Beta GmbH\", \"toplam_tl\": \"5475.00\", \"vadesi_gecmis_tl\": \"5475.00\"}, {\"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"toplam_tl\": \"1120.00\", \"vadesi_gecmis_tl\": \"870.00\"}, {\"musteri_id\": \"M4\", \"musteri\": \"Delta Ltd.\", \"toplam_tl\": \"150.00\", \"vadesi_gecmis_tl\": \"30.00\"}], \"not\": \"TL tutarlar fatura günündeki kurla; eşleşmemiş tahsilatlar alacaktan düşülmüştür.\"}, \"kaynak\": {\"musteriler\": [\"M2\", \"M1\", \"M4\"]}}",
+        "role": "tool",
+        "tool_name": "alacak_yaslandirma"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "geciken_alacaklar",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "geciken_alacaklar",
+     {
+      "en_fazla": 10,
+      "min_gun": 1
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "geciken_alacaklar sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "geciken_alacaklar sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "en_fazla": 10,
+            "min_gun": 1
+           },
+           "name": "geciken_alacaklar"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"geciken_alacaklar\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"min_gun\": 1, \"fatura_sayisi\": 5, \"toplam_tl\": \"6375.00\", \"faturalar\": [{\"fatura_id\": \"F07\", \"musteri_id\": \"M2\", \"musteri\": \"Beta GmbH\", \"vade_tarihi\": \"2025-03-11\", \"gecikme_gun\": 20, \"acik_tutar\": \"150.00\", \"para_birimi\": \"EUR\", \"acik_tutar_tl\": \"5475.00\"}, {\"fatura_id\": \"F02\", \"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"vade_tarihi\": \"2025-02-01\", \"gecikme_gun\": 58, \"acik_tutar\": \"400.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"400.00\"}, {\"fatura_id\": \"F04\", \"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"vade_tarihi\": \"2025-03-12\", \"gecikme_gun\": 19, \"acik_tutar\": \"400.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"400.00\"}, {\"fatura_id\": \"F01\", \"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"vade_tarihi\": \"2024-10-01\", \"gecikme_gun\": 181, \"acik_tutar\": \"70.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"70.00\"}, {\"fatura_id\": \"F09\", \"musteri_id\": \"M4\", \"musteri\": \"Delta Ltd.\", \"vade_tarihi\": \"2024-12-01\", \"gecikme_gun\": 120, \"acik_tutar\": \"30.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"30.00\"}]}, \"kaynak\": {\"faturalar\": [\"F07\", \"F02\", \"F04\", \"F01\", \"F09\"]}}",
+        "role": "tool",
+        "tool_name": "geciken_alacaklar"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "musteri_ozeti",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "musteri_ozeti",
+     {
+      "musteri_adi": "Alfa Ltd."
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "musteri_ozeti sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "musteri_ozeti sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "musteri_adi": "Alfa Ltd."
+           },
+           "name": "musteri_ozeti"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"musteri_ozeti\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"ulke\": \"Türkiye\", \"para_birimi\": \"TRY\", \"vade_gun\": 30, \"acik_alacak_tl\": \"1120.00\", \"dilimler\": {\"vadesi_gelmemis\": \"300.00\", \"gecikme_1_30\": \"400.00\", \"gecikme_31_60\": \"400.00\", \"gecikme_61_90\": \"0.00\", \"gecikme_91_180\": \"0.00\", \"gecikme_180_ustu\": \"70.00\", \"eslesmemis_tahsilat\": \"-50.00\"}, \"acik_fatura_sayisi\": 4, \"en_eski_acik_vade\": \"2024-10-01\", \"son_tahsilatlar\": [{\"tahsilat_id\": \"T5\", \"tarih\": \"2025-03-28\", \"tutar\": \"50.00\", \"para_birimi\": \"TRY\", \"yontem\": \"havale\", \"fatura_id\": null}, {\"tahsilat_id\": \"T2\", \"tarih\": \"2025-02-24\", \"tutar\": \"200.00\", \"para_birimi\": \"TRY\", \"yontem\": \"havale\", \"fatura_id\": \"F03\"}, {\"tahsilat_id\": \"T1\", \"tarih\": \"2025-02-05\", \"tutar\": \"600.00\", \"para_birimi\": \"TRY\", \"yontem\": \"havale\", \"fatura_id\": \"F02\"}], \"bekleyen_cek_sayisi\": 1, \"bekleyen_cek_tutari\": \"200.00\", \"son_12_ay_kapanan_fatura\": 1, \"son_12_ay_gec_kapanan_fatura\": 1, \"son_12_ay_ortalama_gecikme_gun\": 10}, \"kaynak\": {\"musteriler\": [\"M1\"], \"tahsilatlar\": [\"T5\", \"T2\", \"T1\"]}}",
+        "role": "tool",
+        "tool_name": "musteri_ozeti"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "dso_hesapla",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "dso_hesapla",
+     {
+      "donem": "son_12_ay"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "dso_hesapla sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "dso_hesapla sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "donem": "son_12_ay"
+           },
+           "name": "dso_hesapla"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"dso_hesapla\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"donem\": \"son_12_ay\", \"gun\": 365, \"pencere_baslangic\": \"2024-04-01\", \"pencere_bitis\": \"2025-03-31\", \"dso_gun\": \"247.78\", \"acik_alacak_tl\": \"6745.00\", \"donem_satisi_tl\": \"9936.00\", \"formul\": \"DSO = gün sayısı x açık alacak / dönemdeki net satış (iadeler düşülmüş). Kapsam tüm şirketse POS satışları da dahildir.\"}, \"kaynak\": {}}",
+        "role": "tool",
+        "tool_name": "dso_hesapla"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "yaklasan_odemeler",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "yaklasan_odemeler",
+     {
+      "en_fazla": 10,
+      "gun_sayisi": 90
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "yaklasan_odemeler sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "yaklasan_odemeler sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "en_fazla": 10,
+            "gun_sayisi": 90
+           },
+           "name": "yaklasan_odemeler"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"yaklasan_odemeler\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"gun_sayisi\": 90, \"fatura_sayisi\": 4, \"toplam_tl\": \"450.00\", \"vadesi_gecmis_tl\": \"30.00\", \"odemeler\": [{\"alis_fatura_id\": \"A4\", \"tedarikci\": \"Delta Kağıt\", \"kategori\": \"mal\", \"vade_tarihi\": \"2025-03-03\", \"kalan_gun\": -28, \"tutar_tl\": \"30.00\"}, {\"alis_fatura_id\": \"A1\", \"tedarikci\": \"Delta Kağıt\", \"kategori\": \"mal\", \"vade_tarihi\": \"2025-03-31\", \"kalan_gun\": 0, \"tutar_tl\": \"250.00\"}, {\"alis_fatura_id\": \"A3\", \"tedarikci\": \"Kira AŞ\", \"kategori\": \"kira\", \"vade_tarihi\": \"2025-04-24\", \"kalan_gun\": 24, \"tutar_tl\": \"80.00\"}, {\"alis_fatura_id\": \"A5\", \"tedarikci\": \"Delta Kağıt\", \"kategori\": \"mal\", \"vade_tarihi\": \"2025-06-28\", \"kalan_gun\": 89, \"tutar_tl\": \"90.00\"}], \"not\": \"Ödenmemiş tedarikçi (alış) faturalarıdır; maaş, SGK ve vergi ödemeleri dahil değildir.\"}, \"kaynak\": {\"alis_faturalari\": [\"A4\", \"A1\", \"A3\", \"A5\"]}}",
+        "role": "tool",
+        "tool_name": "yaklasan_odemeler"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "nakit_akis_tahmini",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "nakit_akis_tahmini",
+     {
+      "hafta_sayisi": 13
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_akis_tahmini sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_akis_tahmini sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "hafta_sayisi": 13
+           },
+           "name": "nakit_akis_tahmini"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"nakit_akis_tahmini\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"acilis_tl\": \"12396.40\", \"haftalar\": [{\"hafta\": 1, \"bas\": \"2025-04-01\", \"bit\": \"2025-04-07\", \"giris_tl\": \"6286.51\", \"cikis_tl\": \"280.00\", \"net_tl\": \"6006.51\", \"bilinen_kalemlerle_bakiye_tl\": \"18402.91\"}, {\"hafta\": 2, \"bas\": \"2025-04-08\", \"bit\": \"2025-04-14\", \"giris_tl\": \"120.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"120.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18522.91\"}, {\"hafta\": 3, \"bas\": \"2025-04-15\", \"bit\": \"2025-04-21\", \"giris_tl\": \"200.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"200.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18722.91\"}, {\"hafta\": 4, \"bas\": \"2025-04-22\", \"bit\": \"2025-04-28\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"80.00\", \"net_tl\": \"-80.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18642.91\"}, {\"hafta\": 5, \"bas\": \"2025-04-29\", \"bit\": \"2025-05-05\", \"giris_tl\": \"300.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"300.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 6, \"bas\": \"2025-05-06\", \"bit\": \"2025-05-12\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"0.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 7, \"bas\": \"2025-05-13\", \"bit\": \"2025-05-19\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"0.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 8, \"bas\": \"2025-05-20\", \"bit\": \"2025-05-26\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"0.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 9, \"bas\": \"2025-05-27\", \"bit\": \"2025-06-02\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"0.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 10, \"bas\": \"2025-06-03\", \"bit\": \"2025-06-09\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"0.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 11, \"bas\": \"2025-06-10\", \"bit\": \"2025-06-16\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"0.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 12, \"bas\": \"2025-06-17\", \"bit\": \"2025-06-23\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"0.00\", \"net_tl\": \"0.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18942.91\"}, {\"hafta\": 13, \"bas\": \"2025-06-24\", \"bit\": \"2025-06-30\", \"giris_tl\": \"0.00\", \"cikis_tl\": \"90.00\", \"net_tl\": \"-90.00\", \"bilinen_kalemlerle_bakiye_tl\": \"18852.91\"}], \"supheli_alacak_tl\": \"30.00\", \"ufuk_disi_giris_tl\": \"0.00\", \"ufuk_disi_cikis_tl\": \"0.00\", \"dahil_olmayanlar\": [\"Henüz kesilmemiş satışlar ve onlardan gelecek tahsilatlar (peşin satışlar ve POS dahil)\", \"Maaş, SGK ve vergi ödemeleri ile alış faturası olmayan diğer ödemeler\", \"Müşterilere yapılacak iade ödemeleri ve banka masrafları\", \"Hesaplar arası virman ve döviz bozdurma (şirketin toplam nakdini değiştirmez)\"], \"not\": \"Bu bir bakiye tahmini değildir: yalnızca bilinen kalemler (açık alacaklar, çekler, POS valörleri, ödenmemiş alış faturaları) vardır. Vadesi geçmiş alacaklar 1. haftaya yazılır; vadesini 90 günden fazla geçmiş alacaklar şüpheli sayılıp dışarıda bırakılır.\"}, \"kaynak\": {}}",
+        "role": "tool",
+        "tool_name": "nakit_akis_tahmini"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "kur_riski",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "kur_riski",
+     {}
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "kur_riski sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "kur_riski sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {},
+           "name": "kur_riski"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"kur_riski\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"dovizler\": [{\"para_birimi\": \"EUR\", \"alacak\": \"150.00\", \"banka\": \"60.00\", \"toplam\": \"210.00\", \"kur\": \"37.1234\", \"toplam_tl\": \"7795.91\", \"kur_yuzde_10_degisirse_etki_tl\": \"779.59\", \"alacak_kur_farki_tl\": \"93.51\"}], \"not\": \"Alacak ve banka tutarları döviz cinsindendir; TL karşılığı o günün TCMB alış kuruyla.\"}, \"kaynak\": {}}",
+        "role": "tool",
+        "tool_name": "kur_riski"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "doviz_kuru",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "doviz_kuru",
+     {
+      "para_birimi": "EUR"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "doviz_kuru sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "doviz_kuru sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "para_birimi": "EUR"
+           },
+           "name": "doviz_kuru"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"doviz_kuru\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"para_birimi\": \"EUR\", \"kur_tarihi\": \"2025-03-31\", \"alis\": \"37.1234\", \"not\": \"TCMB döviz alış kuru; hafta sonu ve tatilde son iş gününün kuru.\"}, \"kaynak\": {\"doviz_kurlari\": [\"2025-03-31-EUR\"]}}",
+        "role": "tool",
+        "tool_name": "doviz_kuru"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "cek_portfoyu",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "cek_portfoyu",
+     {
+      "durum": "hepsi",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "cek_portfoyu sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "cek_portfoyu sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi",
+            "en_fazla": 10
+           },
+           "name": "cek_portfoyu"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"cek_portfoyu\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"durum\": \"hepsi\", \"cek_sayisi\": 2, \"toplam_tl\": \"299.99\", \"durumlara_gore\": [{\"durum\": \"karsiliksiz\", \"adet\": 1, \"toplam_tl\": \"99.99\"}, {\"durum\": \"portfoyde\", \"adet\": 1, \"toplam_tl\": \"200.00\"}], \"cekler\": [{\"cek_id\": \"C2\", \"musteri\": \"Alfa Ltd.\", \"kesideci_banka\": \"Banka Y\", \"vade_tarihi\": \"2025-03-03\", \"tutar_tl\": \"99.99\", \"durum\": \"karsiliksiz\"}, {\"cek_id\": \"C1\", \"musteri\": \"Alfa Ltd.\", \"kesideci_banka\": \"Banka X\", \"vade_tarihi\": \"2025-04-20\", \"tutar_tl\": \"200.00\", \"durum\": \"portfoyde\"}]}, \"kaynak\": {\"cekler\": [\"C2\", \"C1\"]}}",
+        "role": "tool",
+        "tool_name": "cek_portfoyu"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "pos_tahsilatlari",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "pos_tahsilatlari",
+     {
+      "baslangic": "2024-01-01",
+      "bitis": "2025-03-31"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "pos_tahsilatlari sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "pos_tahsilatlari sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "baslangic": "2024-01-01",
+            "bitis": "2025-03-31"
+           },
+           "name": "pos_tahsilatlari"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"pos_tahsilatlari\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"baslangic\": \"2024-01-01\", \"bitis\": \"2025-03-31\", \"islem_sayisi\": 2, \"iade_sayisi\": 0, \"satis_tl\": \"150.00\", \"iade_tl\": \"0.00\", \"komisyon_tl\": \"3.00\", \"net_tl\": \"147.00\", \"valoru_gelmemis_net_tl\": \"98.00\"}, \"kaynak\": {}}",
+        "role": "tool",
+        "tool_name": "pos_tahsilatlari"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "fatura_ara",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "fatura_ara",
+     {
+      "durum": "hepsi",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi",
+            "en_fazla": 10
+           },
+           "name": "fatura_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"fatura_ara\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"bulunan\": 10, \"gosterilen\": 10, \"faturalar\": [{\"fatura_id\": \"F06\", \"kaynak_fatura_no\": \"F06\", \"tur\": \"iade\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-25\", \"vade_tarihi\": \"2025-03-25\", \"tutar\": \"-100.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"-100.00\", \"durum\": \"iade\", \"iliskili_fatura_id\": \"F04\"}, {\"fatura_id\": \"F05\", \"kaynak_fatura_no\": \"F05\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-20\", \"vade_tarihi\": \"2025-04-19\", \"tutar\": \"300.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"300.00\", \"durum\": \"acik\", \"acik_tutar\": \"300.00\"}, {\"fatura_id\": \"F10\", \"kaynak_fatura_no\": \"F10\", \"tur\": \"satis\", \"musteri\": \"Delta Ltd.\", \"fatura_tarihi\": \"2025-03-05\", \"vade_tarihi\": \"2025-04-04\", \"tutar\": \"120.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"120.00\", \"durum\": \"acik\", \"acik_tutar\": \"120.00\"}, {\"fatura_id\": \"F04\", \"kaynak_fatura_no\": \"F04\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-02-10\", \"vade_tarihi\": \"2025-03-12\", \"tutar\": \"500.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"500.00\", \"durum\": \"acik\", \"acik_tutar\": \"400.00\"}, {\"fatura_id\": \"F08\", \"kaynak_fatura_no\": \"F08\", \"tur\": \"satis\", \"musteri\": \"Beta GmbH\", \"fatura_tarihi\": \"2025-01-20\", \"vade_tarihi\": \"2025-03-21\", \"tutar\": \"10.00\", \"para_birimi\": \"EUR\", \"tutar_tl\": \"366.00\", \"durum\": \"kapali\", \"acik_tutar\": \"0.00\"}, {\"fatura_id\": \"F03\", \"kaynak_fatura_no\": \"F03\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-01-15\", \"vade_tarihi\": \"2025-02-14\", \"tutar\": \"200.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"200.00\", \"durum\": \"kapali\", \"acik_tutar\": \"0.00\"}, {\"fatura_id\": \"F07\", \"kaynak_fatura_no\": \"F07\", \"tur\": \"satis\", \"musteri\": \"Beta GmbH\", \"fatura_tarihi\": \"2025-01-10\", \"vade_tarihi\": \"2025-03-11\", \"tutar\": \"200.00\", \"para_birimi\": \"EUR\", \"tutar_tl\": \"7300.00\", \"durum\": \"acik\", \"acik_tutar\": \"150.00\"}, {\"fatura_id\": \"F02\", \"kaynak_fatura_no\": \"F02\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-01-02\", \"vade_tarihi\": \"2025-02-01\", \"tutar\": \"1000.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"1000.00\", \"durum\": \"acik\", \"acik_tutar\": \"400.00\"}, {\"fatura_id\": \"F09\", \"kaynak_fatura_no\": \"F09\", \"tur\": \"satis\", \"musteri\": \"Delta Ltd.\", \"fatura_tarihi\": \"2024-11-01\", \"vade_tarihi\": \"2024-12-01\", \"tutar\": \"30.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"30.00\", \"durum\": \"acik\", \"acik_tutar\": \"30.00\"}, {\"fatura_id\": \"F01\", \"kaynak_fatura_no\": \"F01\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2024-09-01\", \"vade_tarihi\": \"2024-10-01\", \"tutar\": \"70.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"70.00\", \"durum\": \"acik\", \"acik_tutar\": \"70.00\"}]}, \"kaynak\": {\"faturalar\": [\"F06\", \"F05\", \"F10\", \"F04\", \"F08\", \"F03\", \"F07\", \"F02\", \"F09\", \"F01\"]}}",
+        "role": "tool",
+        "tool_name": "fatura_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "fatura_ara",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "fatura_ara",
+     {
+      "durum": "hepsi"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi"
+           },
+           "name": "fatura_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"fatura_ara\", \"tarih\": \"2025-03-31\", \"kapsam\": \"tüm şirket\", \"sonuc\": {\"bulunan\": 10, \"gosterilen\": 5, \"faturalar\": [{\"fatura_id\": \"F06\", \"kaynak_fatura_no\": \"F06\", \"tur\": \"iade\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-25\", \"vade_tarihi\": \"2025-03-25\", \"tutar\": \"-100.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"-100.00\", \"durum\": \"iade\", \"iliskili_fatura_id\": \"F04\"}, {\"fatura_id\": \"F05\", \"kaynak_fatura_no\": \"F05\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-20\", \"vade_tarihi\": \"2025-04-19\", \"tutar\": \"300.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"300.00\", \"durum\": \"acik\", \"acik_tutar\": \"300.00\"}, {\"fatura_id\": \"F10\", \"kaynak_fatura_no\": \"F10\", \"tur\": \"satis\", \"musteri\": \"Delta Ltd.\", \"fatura_tarihi\": \"2025-03-05\", \"vade_tarihi\": \"2025-04-04\", \"tutar\": \"120.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"120.00\", \"durum\": \"acik\", \"acik_tutar\": \"120.00\"}, {\"fatura_id\": \"F04\", \"kaynak_fatura_no\": \"F04\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-02-10\", \"vade_tarihi\": \"2025-03-12\", \"tutar\": \"500.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"500.00\", \"durum\": \"acik\", \"acik_tutar\": \"400.00\"}, {\"fatura_id\": \"F08\", \"kaynak_fatura_no\": \"F08\", \"tur\": \"satis\", \"musteri\": \"Beta GmbH\", \"fatura_tarihi\": \"2025-01-20\", \"vade_tarihi\": \"2025-03-21\", \"tutar\": \"10.00\", \"para_birimi\": \"EUR\", \"tutar_tl\": \"366.00\", \"durum\": \"kapali\", \"acik_tutar\": \"0.00\"}]}, \"kaynak\": {\"faturalar\": [\"F06\", \"F05\", \"F10\", \"F04\", \"F08\"]}}",
+        "role": "tool",
+        "tool_name": "fatura_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "belge_ara",
+       "hata": "kullanilamaz"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "belge_ara",
+     {
+      "sorgu": "erken ödeme iskontosu"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "belge_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "belge_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "sorgu": "erken ödeme iskontosu"
+           },
+           "name": "belge_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"hata\": \"kullanilamaz\", \"mesaj\": \"Belge araması şu an kullanılamıyor.\"}",
+        "role": "tool",
+        "tool_name": "belge_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   }
+  ],
+  "ihracat": [
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "nakit_pozisyonu",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "nakit_pozisyonu",
+     {}
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_pozisyonu sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "banka_hareketleri",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "banka_hareketleri",
+     {
+      "baslangic": "2024-01-01",
+      "bitis": "2025-03-31",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "banka_hareketleri sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "alacak_yaslandirma",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "alacak_yaslandirma",
+     {
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "alacak_yaslandirma sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "alacak_yaslandirma sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "en_fazla": 10
+           },
+           "name": "alacak_yaslandirma"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"alacak_yaslandirma\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"dilimler\": {\"vadesi_gelmemis\": \"0.00\", \"gecikme_1_30\": \"5475.00\", \"gecikme_31_60\": \"0.00\", \"gecikme_61_90\": \"0.00\", \"gecikme_91_180\": \"0.00\", \"gecikme_180_ustu\": \"0.00\", \"eslesmemis_tahsilat\": \"0.00\"}, \"toplam_tl\": \"5475.00\", \"vadesi_gecmis_tl\": \"5475.00\", \"musteri_sayisi\": 1, \"en_buyuk_alacaklar\": [{\"musteri_id\": \"M2\", \"musteri\": \"Beta GmbH\", \"toplam_tl\": \"5475.00\", \"vadesi_gecmis_tl\": \"5475.00\"}], \"not\": \"TL tutarlar fatura günündeki kurla; eşleşmemiş tahsilatlar alacaktan düşülmüştür.\"}, \"kaynak\": {\"musteriler\": [\"M2\"]}}",
+        "role": "tool",
+        "tool_name": "alacak_yaslandirma"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "geciken_alacaklar",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "geciken_alacaklar",
+     {
+      "en_fazla": 10,
+      "min_gun": 1
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "geciken_alacaklar sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "geciken_alacaklar sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "en_fazla": 10,
+            "min_gun": 1
+           },
+           "name": "geciken_alacaklar"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"geciken_alacaklar\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"min_gun\": 1, \"fatura_sayisi\": 1, \"toplam_tl\": \"5475.00\", \"faturalar\": [{\"fatura_id\": \"F07\", \"musteri_id\": \"M2\", \"musteri\": \"Beta GmbH\", \"vade_tarihi\": \"2025-03-11\", \"gecikme_gun\": 20, \"acik_tutar\": \"150.00\", \"para_birimi\": \"EUR\", \"acik_tutar_tl\": \"5475.00\"}]}, \"kaynak\": {\"faturalar\": [\"F07\"]}}",
+        "role": "tool",
+        "tool_name": "geciken_alacaklar"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "musteri_ozeti",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "musteri_ozeti",
+     {
+      "musteri_adi": "Alfa Ltd."
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "musteri_ozeti sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "musteri_ozeti sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "musteri_adi": "Alfa Ltd."
+           },
+           "name": "musteri_ozeti"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"musteri_ozeti\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"bulunamadi\": true, \"mesaj\": \"Bu adla bir müşteri bulunamadı.\"}, \"kaynak\": {}}",
+        "role": "tool",
+        "tool_name": "musteri_ozeti"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "dso_hesapla",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "dso_hesapla",
+     {
+      "donem": "son_12_ay"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "dso_hesapla sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "dso_hesapla sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "donem": "son_12_ay"
+           },
+           "name": "dso_hesapla"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"dso_hesapla\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"donem\": \"son_12_ay\", \"gun\": 365, \"pencere_baslangic\": \"2024-04-01\", \"pencere_bitis\": \"2025-03-31\", \"dso_gun\": \"260.68\", \"acik_alacak_tl\": \"5475.00\", \"donem_satisi_tl\": \"7666.00\", \"formul\": \"DSO = gün sayısı x açık alacak / dönemdeki net satış (iadeler düşülmüş). Kapsam tüm şirketse POS satışları da dahildir.\"}, \"kaynak\": {}}",
+        "role": "tool",
+        "tool_name": "dso_hesapla"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "yaklasan_odemeler",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "yaklasan_odemeler",
+     {
+      "en_fazla": 10,
+      "gun_sayisi": 90
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "yaklasan_odemeler sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "nakit_akis_tahmini",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "nakit_akis_tahmini",
+     {
+      "hafta_sayisi": 13
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_akis_tahmini sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "kur_riski",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "kur_riski",
+     {}
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "kur_riski sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "doviz_kuru",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "doviz_kuru",
+     {
+      "para_birimi": "EUR"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "doviz_kuru sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "doviz_kuru sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "para_birimi": "EUR"
+           },
+           "name": "doviz_kuru"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"doviz_kuru\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"para_birimi\": \"EUR\", \"kur_tarihi\": \"2025-03-31\", \"alis\": \"37.1234\", \"not\": \"TCMB döviz alış kuru; hafta sonu ve tatilde son iş gününün kuru.\"}, \"kaynak\": {\"doviz_kurlari\": [\"2025-03-31-EUR\"]}}",
+        "role": "tool",
+        "tool_name": "doviz_kuru"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "cek_portfoyu",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "cek_portfoyu",
+     {
+      "durum": "hepsi",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "cek_portfoyu sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "cek_portfoyu sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi",
+            "en_fazla": 10
+           },
+           "name": "cek_portfoyu"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"cek_portfoyu\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"durum\": \"hepsi\", \"cek_sayisi\": 0, \"toplam_tl\": \"0.00\", \"durumlara_gore\": [], \"cekler\": []}, \"kaynak\": {\"cekler\": []}}",
+        "role": "tool",
+        "tool_name": "cek_portfoyu"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "pos_tahsilatlari",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "pos_tahsilatlari",
+     {
+      "baslangic": "2024-01-01",
+      "bitis": "2025-03-31"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "pos_tahsilatlari sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "fatura_ara",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "fatura_ara",
+     {
+      "durum": "hepsi",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi",
+            "en_fazla": 10
+           },
+           "name": "fatura_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"fatura_ara\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"bulunan\": 2, \"gosterilen\": 2, \"faturalar\": [{\"fatura_id\": \"F08\", \"kaynak_fatura_no\": \"F08\", \"tur\": \"satis\", \"musteri\": \"Beta GmbH\", \"fatura_tarihi\": \"2025-01-20\", \"vade_tarihi\": \"2025-03-21\", \"tutar\": \"10.00\", \"para_birimi\": \"EUR\", \"tutar_tl\": \"366.00\", \"durum\": \"kapali\", \"acik_tutar\": \"0.00\"}, {\"fatura_id\": \"F07\", \"kaynak_fatura_no\": \"F07\", \"tur\": \"satis\", \"musteri\": \"Beta GmbH\", \"fatura_tarihi\": \"2025-01-10\", \"vade_tarihi\": \"2025-03-11\", \"tutar\": \"200.00\", \"para_birimi\": \"EUR\", \"tutar_tl\": \"7300.00\", \"durum\": \"acik\", \"acik_tutar\": \"150.00\"}]}, \"kaynak\": {\"faturalar\": [\"F08\", \"F07\"]}}",
+        "role": "tool",
+        "tool_name": "fatura_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "fatura_ara",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "fatura_ara",
+     {
+      "durum": "hepsi"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi"
+           },
+           "name": "fatura_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"fatura_ara\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurt dışı müşteriler\", \"sonuc\": {\"bulunan\": 2, \"gosterilen\": 2, \"faturalar\": [{\"fatura_id\": \"F08\", \"kaynak_fatura_no\": \"F08\", \"tur\": \"satis\", \"musteri\": \"Beta GmbH\", \"fatura_tarihi\": \"2025-01-20\", \"vade_tarihi\": \"2025-03-21\", \"tutar\": \"10.00\", \"para_birimi\": \"EUR\", \"tutar_tl\": \"366.00\", \"durum\": \"kapali\", \"acik_tutar\": \"0.00\"}, {\"fatura_id\": \"F07\", \"kaynak_fatura_no\": \"F07\", \"tur\": \"satis\", \"musteri\": \"Beta GmbH\", \"fatura_tarihi\": \"2025-01-10\", \"vade_tarihi\": \"2025-03-11\", \"tutar\": \"200.00\", \"para_birimi\": \"EUR\", \"tutar_tl\": \"7300.00\", \"durum\": \"acik\", \"acik_tutar\": \"150.00\"}]}, \"kaynak\": {\"faturalar\": [\"F08\", \"F07\"]}}",
+        "role": "tool",
+        "tool_name": "fatura_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "belge_ara",
+       "hata": "kullanilamaz"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "belge_ara",
+     {
+      "sorgu": "erken ödeme iskontosu"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "belge_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "belge_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "sorgu": "erken ödeme iskontosu"
+           },
+           "name": "belge_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"hata\": \"kullanilamaz\", \"mesaj\": \"Belge araması şu an kullanılamıyor.\"}",
+        "role": "tool",
+        "tool_name": "belge_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   }
+  ],
+  "yurtici": [
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "nakit_pozisyonu",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "nakit_pozisyonu",
+     {}
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_pozisyonu sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "banka_hareketleri",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "banka_hareketleri",
+     {
+      "baslangic": "2024-01-01",
+      "bitis": "2025-03-31",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "banka_hareketleri sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "alacak_yaslandirma",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "alacak_yaslandirma",
+     {
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "alacak_yaslandirma sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "alacak_yaslandirma sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "en_fazla": 10
+           },
+           "name": "alacak_yaslandirma"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"alacak_yaslandirma\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"dilimler\": {\"vadesi_gelmemis\": \"420.00\", \"gecikme_1_30\": \"400.00\", \"gecikme_31_60\": \"400.00\", \"gecikme_61_90\": \"0.00\", \"gecikme_91_180\": \"30.00\", \"gecikme_180_ustu\": \"70.00\", \"eslesmemis_tahsilat\": \"-50.00\"}, \"toplam_tl\": \"1270.00\", \"vadesi_gecmis_tl\": \"900.00\", \"musteri_sayisi\": 2, \"en_buyuk_alacaklar\": [{\"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"toplam_tl\": \"1120.00\", \"vadesi_gecmis_tl\": \"870.00\"}, {\"musteri_id\": \"M4\", \"musteri\": \"Delta Ltd.\", \"toplam_tl\": \"150.00\", \"vadesi_gecmis_tl\": \"30.00\"}], \"not\": \"TL tutarlar fatura günündeki kurla; eşleşmemiş tahsilatlar alacaktan düşülmüştür.\"}, \"kaynak\": {\"musteriler\": [\"M1\", \"M4\"]}}",
+        "role": "tool",
+        "tool_name": "alacak_yaslandirma"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "geciken_alacaklar",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "geciken_alacaklar",
+     {
+      "en_fazla": 10,
+      "min_gun": 1
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "geciken_alacaklar sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "geciken_alacaklar sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "en_fazla": 10,
+            "min_gun": 1
+           },
+           "name": "geciken_alacaklar"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"geciken_alacaklar\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"min_gun\": 1, \"fatura_sayisi\": 4, \"toplam_tl\": \"900.00\", \"faturalar\": [{\"fatura_id\": \"F02\", \"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"vade_tarihi\": \"2025-02-01\", \"gecikme_gun\": 58, \"acik_tutar\": \"400.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"400.00\"}, {\"fatura_id\": \"F04\", \"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"vade_tarihi\": \"2025-03-12\", \"gecikme_gun\": 19, \"acik_tutar\": \"400.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"400.00\"}, {\"fatura_id\": \"F01\", \"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"vade_tarihi\": \"2024-10-01\", \"gecikme_gun\": 181, \"acik_tutar\": \"70.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"70.00\"}, {\"fatura_id\": \"F09\", \"musteri_id\": \"M4\", \"musteri\": \"Delta Ltd.\", \"vade_tarihi\": \"2024-12-01\", \"gecikme_gun\": 120, \"acik_tutar\": \"30.00\", \"para_birimi\": \"TRY\", \"acik_tutar_tl\": \"30.00\"}]}, \"kaynak\": {\"faturalar\": [\"F02\", \"F04\", \"F01\", \"F09\"]}}",
+        "role": "tool",
+        "tool_name": "geciken_alacaklar"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "musteri_ozeti",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "musteri_ozeti",
+     {
+      "musteri_adi": "Alfa Ltd."
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "musteri_ozeti sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "musteri_ozeti sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "musteri_adi": "Alfa Ltd."
+           },
+           "name": "musteri_ozeti"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"musteri_ozeti\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"musteri_id\": \"M1\", \"musteri\": \"Alfa Ltd.\", \"ulke\": \"Türkiye\", \"para_birimi\": \"TRY\", \"vade_gun\": 30, \"acik_alacak_tl\": \"1120.00\", \"dilimler\": {\"vadesi_gelmemis\": \"300.00\", \"gecikme_1_30\": \"400.00\", \"gecikme_31_60\": \"400.00\", \"gecikme_61_90\": \"0.00\", \"gecikme_91_180\": \"0.00\", \"gecikme_180_ustu\": \"70.00\", \"eslesmemis_tahsilat\": \"-50.00\"}, \"acik_fatura_sayisi\": 4, \"en_eski_acik_vade\": \"2024-10-01\", \"son_tahsilatlar\": [{\"tahsilat_id\": \"T5\", \"tarih\": \"2025-03-28\", \"tutar\": \"50.00\", \"para_birimi\": \"TRY\", \"yontem\": \"havale\", \"fatura_id\": null}, {\"tahsilat_id\": \"T2\", \"tarih\": \"2025-02-24\", \"tutar\": \"200.00\", \"para_birimi\": \"TRY\", \"yontem\": \"havale\", \"fatura_id\": \"F03\"}, {\"tahsilat_id\": \"T1\", \"tarih\": \"2025-02-05\", \"tutar\": \"600.00\", \"para_birimi\": \"TRY\", \"yontem\": \"havale\", \"fatura_id\": \"F02\"}], \"bekleyen_cek_sayisi\": 1, \"bekleyen_cek_tutari\": \"200.00\", \"son_12_ay_kapanan_fatura\": 1, \"son_12_ay_gec_kapanan_fatura\": 1, \"son_12_ay_ortalama_gecikme_gun\": 10}, \"kaynak\": {\"musteriler\": [\"M1\"], \"tahsilatlar\": [\"T5\", \"T2\", \"T1\"]}}",
+        "role": "tool",
+        "tool_name": "musteri_ozeti"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "dso_hesapla",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "dso_hesapla",
+     {
+      "donem": "son_12_ay"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "dso_hesapla sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "dso_hesapla sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "donem": "son_12_ay"
+           },
+           "name": "dso_hesapla"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"dso_hesapla\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"donem\": \"son_12_ay\", \"gun\": 365, \"pencere_baslangic\": \"2024-04-01\", \"pencere_bitis\": \"2025-03-31\", \"dso_gun\": \"218.66\", \"acik_alacak_tl\": \"1270.00\", \"donem_satisi_tl\": \"2120.00\", \"formul\": \"DSO = gün sayısı x açık alacak / dönemdeki net satış (iadeler düşülmüş). Kapsam tüm şirketse POS satışları da dahildir.\"}, \"kaynak\": {}}",
+        "role": "tool",
+        "tool_name": "dso_hesapla"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "yaklasan_odemeler",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "yaklasan_odemeler",
+     {
+      "en_fazla": 10,
+      "gun_sayisi": 90
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "yaklasan_odemeler sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "nakit_akis_tahmini",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "nakit_akis_tahmini",
+     {
+      "hafta_sayisi": 13
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "nakit_akis_tahmini sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "kur_riski",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "kur_riski",
+     {}
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "kur_riski sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "doviz_kuru",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "doviz_kuru",
+     {
+      "para_birimi": "EUR"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "doviz_kuru sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "doviz_kuru sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "para_birimi": "EUR"
+           },
+           "name": "doviz_kuru"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"doviz_kuru\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"para_birimi\": \"EUR\", \"kur_tarihi\": \"2025-03-31\", \"alis\": \"37.1234\", \"not\": \"TCMB döviz alış kuru; hafta sonu ve tatilde son iş gününün kuru.\"}, \"kaynak\": {\"doviz_kurlari\": [\"2025-03-31-EUR\"]}}",
+        "role": "tool",
+        "tool_name": "doviz_kuru"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "cek_portfoyu",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "cek_portfoyu",
+     {
+      "durum": "hepsi",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "cek_portfoyu sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "cek_portfoyu sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi",
+            "en_fazla": 10
+           },
+           "name": "cek_portfoyu"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"cek_portfoyu\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"durum\": \"hepsi\", \"cek_sayisi\": 2, \"toplam_tl\": \"299.99\", \"durumlara_gore\": [{\"durum\": \"karsiliksiz\", \"adet\": 1, \"toplam_tl\": \"99.99\"}, {\"durum\": \"portfoyde\", \"adet\": 1, \"toplam_tl\": \"200.00\"}], \"cekler\": [{\"cek_id\": \"C2\", \"musteri\": \"Alfa Ltd.\", \"kesideci_banka\": \"Banka Y\", \"vade_tarihi\": \"2025-03-03\", \"tutar_tl\": \"99.99\", \"durum\": \"karsiliksiz\"}, {\"cek_id\": \"C1\", \"musteri\": \"Alfa Ltd.\", \"kesideci_banka\": \"Banka X\", \"vade_tarihi\": \"2025-04-20\", \"tutar_tl\": \"200.00\", \"durum\": \"portfoyde\"}]}, \"kaynak\": {\"cekler\": [\"C2\", \"C1\"]}}",
+        "role": "tool",
+        "tool_name": "cek_portfoyu"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "pos_tahsilatlari",
+       "hata": "yetki_yok"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bu bilgiyi görme yetkiniz yok.",
+     "durum": "ret",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "pos_tahsilatlari",
+     {
+      "baslangic": "2024-01-01",
+      "bitis": "2025-03-31"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "pos_tahsilatlari sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "fatura_ara",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "fatura_ara",
+     {
+      "durum": "hepsi",
+      "en_fazla": 10
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi",
+            "en_fazla": 10
+           },
+           "name": "fatura_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"fatura_ara\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"bulunan\": 8, \"gosterilen\": 8, \"faturalar\": [{\"fatura_id\": \"F06\", \"kaynak_fatura_no\": \"F06\", \"tur\": \"iade\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-25\", \"vade_tarihi\": \"2025-03-25\", \"tutar\": \"-100.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"-100.00\", \"durum\": \"iade\", \"iliskili_fatura_id\": \"F04\"}, {\"fatura_id\": \"F05\", \"kaynak_fatura_no\": \"F05\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-20\", \"vade_tarihi\": \"2025-04-19\", \"tutar\": \"300.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"300.00\", \"durum\": \"acik\", \"acik_tutar\": \"300.00\"}, {\"fatura_id\": \"F10\", \"kaynak_fatura_no\": \"F10\", \"tur\": \"satis\", \"musteri\": \"Delta Ltd.\", \"fatura_tarihi\": \"2025-03-05\", \"vade_tarihi\": \"2025-04-04\", \"tutar\": \"120.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"120.00\", \"durum\": \"acik\", \"acik_tutar\": \"120.00\"}, {\"fatura_id\": \"F04\", \"kaynak_fatura_no\": \"F04\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-02-10\", \"vade_tarihi\": \"2025-03-12\", \"tutar\": \"500.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"500.00\", \"durum\": \"acik\", \"acik_tutar\": \"400.00\"}, {\"fatura_id\": \"F03\", \"kaynak_fatura_no\": \"F03\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-01-15\", \"vade_tarihi\": \"2025-02-14\", \"tutar\": \"200.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"200.00\", \"durum\": \"kapali\", \"acik_tutar\": \"0.00\"}, {\"fatura_id\": \"F02\", \"kaynak_fatura_no\": \"F02\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-01-02\", \"vade_tarihi\": \"2025-02-01\", \"tutar\": \"1000.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"1000.00\", \"durum\": \"acik\", \"acik_tutar\": \"400.00\"}, {\"fatura_id\": \"F09\", \"kaynak_fatura_no\": \"F09\", \"tur\": \"satis\", \"musteri\": \"Delta Ltd.\", \"fatura_tarihi\": \"2024-11-01\", \"vade_tarihi\": \"2024-12-01\", \"tutar\": \"30.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"30.00\", \"durum\": \"acik\", \"acik_tutar\": \"30.00\"}, {\"fatura_id\": \"F01\", \"kaynak_fatura_no\": \"F01\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2024-09-01\", \"vade_tarihi\": \"2024-10-01\", \"tutar\": \"70.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"70.00\", \"durum\": \"acik\", \"acik_tutar\": \"70.00\"}]}, \"kaynak\": {\"faturalar\": [\"F06\", \"F05\", \"F10\", \"F04\", \"F03\", \"F02\", \"F09\", \"F01\"]}}",
+        "role": "tool",
+        "tool_name": "fatura_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "fatura_ara",
+       "hata": null
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "fatura_ara",
+     {
+      "durum": "hepsi"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "fatura_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "durum": "hepsi"
+           },
+           "name": "fatura_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"arac\": \"fatura_ara\", \"tarih\": \"2025-03-31\", \"kapsam\": \"yalnızca yurtiçi müşteriler\", \"sonuc\": {\"bulunan\": 8, \"gosterilen\": 5, \"faturalar\": [{\"fatura_id\": \"F06\", \"kaynak_fatura_no\": \"F06\", \"tur\": \"iade\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-25\", \"vade_tarihi\": \"2025-03-25\", \"tutar\": \"-100.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"-100.00\", \"durum\": \"iade\", \"iliskili_fatura_id\": \"F04\"}, {\"fatura_id\": \"F05\", \"kaynak_fatura_no\": \"F05\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-03-20\", \"vade_tarihi\": \"2025-04-19\", \"tutar\": \"300.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"300.00\", \"durum\": \"acik\", \"acik_tutar\": \"300.00\"}, {\"fatura_id\": \"F10\", \"kaynak_fatura_no\": \"F10\", \"tur\": \"satis\", \"musteri\": \"Delta Ltd.\", \"fatura_tarihi\": \"2025-03-05\", \"vade_tarihi\": \"2025-04-04\", \"tutar\": \"120.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"120.00\", \"durum\": \"acik\", \"acik_tutar\": \"120.00\"}, {\"fatura_id\": \"F04\", \"kaynak_fatura_no\": \"F04\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-02-10\", \"vade_tarihi\": \"2025-03-12\", \"tutar\": \"500.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"500.00\", \"durum\": \"acik\", \"acik_tutar\": \"400.00\"}, {\"fatura_id\": \"F03\", \"kaynak_fatura_no\": \"F03\", \"tur\": \"satis\", \"musteri\": \"Alfa Ltd.\", \"fatura_tarihi\": \"2025-01-15\", \"vade_tarihi\": \"2025-02-14\", \"tutar\": \"200.00\", \"para_birimi\": \"TRY\", \"tutar_tl\": \"200.00\", \"durum\": \"kapali\", \"acik_tutar\": \"0.00\"}]}, \"kaynak\": {\"faturalar\": [\"F06\", \"F05\", \"F10\", \"F04\", \"F03\"]}}",
+        "role": "tool",
+        "tool_name": "fatura_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   },
+   {
+    "api_answer": {
+     "araclar": [
+      {
+       "arac": "belge_ara",
+       "hata": "kullanilamaz"
+      }
+     ],
+     "bugun": "2025-03-31",
+     "cevap": "Bilgi verildi.",
+     "durum": "tamam",
+     "sure_s": "<volatile>"
+    },
+    "call": [
+     "belge_ara",
+     {
+      "sorgu": "erken ödeme iskontosu"
+     }
+    ],
+    "model_inputs": [
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "belge_ara sorusu",
+        "role": "user"
+       }
+      ],
+      "tools": "tools#1"
+     },
+     {
+      "messages": [
+       "system#0",
+       {
+        "content": "belge_ara sorusu",
+        "role": "user"
+       },
+       {
+        "content": "",
+        "role": "assistant",
+        "tool_calls": [
+         {
+          "function": {
+           "arguments": {
+            "sorgu": "erken ödeme iskontosu"
+           },
+           "name": "belge_ara"
+          }
+         }
+        ]
+       },
+       {
+        "content": "{\"cagri_id\": \"<call_id>\", \"hata\": \"kullanilamaz\", \"mesaj\": \"Belge araması şu an kullanılamıyor.\"}",
+        "role": "tool",
+        "tool_name": "belge_ara"
+       }
+      ],
+      "tools": "tools#1"
+     }
+    ]
+   }
+  ]
+ }
+}
