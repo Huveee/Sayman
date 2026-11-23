@@ -1926,6 +1926,19 @@ bilinen kalemleri içerir. Araç sonucu dışarıda kalanları `dahil_olmayanlar
 Model bu sonucun tam biçimiyle eğitildi. Değişiklik model sözleşmesini bozar ve yeniden ölçüm, belki yeniden eğitim
 ister. Gerçek bir kurulumda bu kalemler bordro programından ya da beyanname takviminden bir bağlayıcıyla gelebilir.
 
+### Tahmin notu köşedeki ikonda (24 Kasım 2026)
+
+Model sözleşmesine dokunmadan, tahmin cevaplarına sabit bir not eklendi. Cevap doğrulandıysa ve `nakit_akis_tahmini`
+bu turda hatasız bir sonuç döndürdüyse, cevabın köşesindeki "i" ipucunda araçlar ve sürenin altında şu not çıkar: "Bu
+tahmin yalnızca bilinen kalemleri içerir; vergi, SGK, maaş ve yeni satışlar dahil değildir; gerçek bakiye farklı
+olur." Reddedilen ya da doğrulanamayan cevaplarda tahmin gösterilmediği için not da çıkmaz.
+- Not modelin cevabına eklenmez, doğrulayıcıdan geçmez ve modele hiç gitmez. Yalnızca `static/app.js` değişti;
+  `/api` cevapları aynı.
+- İpucu kutusu artık her açılışta tam genişlikte ölçülüyor. Önceden bir önceki ipucunun yerinde ölçüldüğü için uzun
+  metinler bazen dar ve uzun bir kutuda çıkıyordu.
+- Canlı denendi (CFO, 27 Ekim): "Gelecek hafta nakit durumumuz ne olur?" cevabının ipucunda not çıktı; "Bankalarda
+  toplam ne kadar nakit var?" cevabında çıkmadı.
+
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 
 Kod tabanı uluslararası standartlara göre düzenlendi:

@@ -4,6 +4,10 @@
 const $ = (id) => document.getElementById(id);
 const AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 const DURUM_ETIKET = { ret: "Yetki yok", uretemedim: "Doğrulanamadı", sure_siniri: "Süre sınırı", baglam_siniri: "Çok uzun", adim_siniri: "Adım sınırı" };
+// The cash forecast counts only items already on record, so its balance is not the balance to come: answers built
+// on it carry this fixed note in the "i" tooltip
+const TAHMIN_ARACI = "nakit_akis_tahmini";
+const TAHMIN_NOTU = "Bu tahmin yalnızca bilinen kalemleri içerir; vergi, SGK, maaş ve yeni satışlar dahil değildir; gerçek bakiye farklı olur.";
 
 let durum = null;          // last /api/durum
 let kullanici = null;      // /api/ben
@@ -309,13 +313,14 @@ function bilgiEkle(balon, metin) {
   const b = el("button", "bilgi", "i");
   b.type = "button";
   b.dataset.ipucu = metin;
-  b.setAttribute("aria-label", metin.replace("\n", " · "));
+  b.setAttribute("aria-label", metin.replace(/\n+/g, " · "));
   balon.classList.add("bilgili");
   balon.append(b);
 }
 
 function ipucuGoster(hedef) {
   ipucu.textContent = hedef.dataset.ipucu;
+  ipucu.style.left = ipucu.style.top = "0px"; // measure at full width, not squeezed at the last tooltip's place
   ipucu.classList.remove("gizli");
   const r = hedef.getBoundingClientRect();
   const w = ipucu.offsetWidth, h = ipucu.offsetHeight;
@@ -375,7 +380,10 @@ async function gonder(metin) {
     bekle.remove();
     const b = balonEkle("sayman", v.cevap || "");
     const araclar = (v.araclar || []).map((a) => a.arac);
-    bilgiEkle(b, `Kullanılan araçlar: ${araclar.length ? araclar.join(", ") : "yok"}\nSüre: ${Math.round(v.sure_s)} sn`);
+    // Only a verified answer whose forecast call returned a result shows a forecast (refusals and fixed texts don't)
+    const tahminli = v.durum === "tamam" && (v.araclar || []).some((a) => a.arac === TAHMIN_ARACI && !a.hata);
+    bilgiEkle(b, `Kullanılan araçlar: ${araclar.length ? araclar.join(", ") : "yok"}\nSüre: ${Math.round(v.sure_s)} sn`
+      + (tahminli ? `\n\n${TAHMIN_NOTU}` : ""));
     if (v.durum && v.durum !== "tamam") { // a refused or stopped answer says so under the text
       const meta = el("div", "meta");
       meta.append(el("span", "chip durum", DURUM_ETIKET[v.durum] || v.durum));
