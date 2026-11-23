@@ -1896,6 +1896,36 @@ köşesindeki "i" ikonunda duruyor:
   cevabın altında kalır.
 - Yalnızca `static/app.js` ve `static/style.css` değişti; `/api` cevapları aynı.
 
+### Veri kapsamı: neden bordro ve vergi borcu tablosu yok (24 Kasım 2026)
+
+Demo denemesinde 20 Ekim'de "Gelecek hafta nakit durumumuz ne olur?" diye soruldu. Model bilinen kalemlerle
+71.335.414,92 TL bakiye verdi. Saat bir hafta ileri sarılınca ekrandaki nakit pozisyonu 59.562.393,12 TL oldu. Farkın
+4.959.159,18 TL'si 26 Ekim'de ödenen vergi (3.272.095,03 TL) ve SGK primidir (1.687.064,15 TL). Kalanı tedarikçi
+ödemelerinin ve tahsilatların tahminden farklı gerçekleşmesinden gelir. Vergi ve SGK tahminde yoktu, çünkü sentetik
+şirketin bordro ya da vergi borcu tablosu yok. Bu bilinçli bir kapsam kararıdır:
+- **Gerçek veri yok.** Verinin gerçek iskeleti UCI satış faturaları ve TCMB kurlarıdır. Maaş, bordro ya da vergi
+  borcu için kullanılabilecek açık bir veri bulunamadı. Sentetik şirketin çalışan listesi de yok.
+- **Araçlar bunu sormuyor.** Sayman'ın 14 aracı alacak, borç, çek, POS, kur ve nakit üzerinedir.
+- **Doğru bir vergi borcu tablosu ayrı bir iş.** KDV, muhtasar, geçici vergi ve SGK kurallarını taklit etmek
+  gerekir. Kaba bir taklit, tahmin aracında yanlış rakamları kesin bilgi gibi gösterirdi.
+
+Bu ödemeler veride yalnızca bankadan çıkan para olarak var (`odemeler` tablosunda `tur` = `maas`, `sgk`, `vergi`).
+Banka bakiyesi gerçekçi kalsın diye eklendiler. Tutarlar uydurma sabit oranlarla üretilir (`maas_orani`,
+`sgk_orani`, `vergi_orani`, `src/sayman/data/generator.py`); gerçek bir vergi hesaplaması değildir:
+
+| Ödeme | Tutar | Gün |
+| --- | --- | --- |
+| Maaş | O yılın ortalama aylık satışının %10'u | Ayın son iş günü |
+| SGK | Maaşın %37,5'i | Ertesi ayın 26'sı ya da ondan sonraki ilk iş günü |
+| Vergi | O ayın satışı eksi alışının %20'si | Ertesi ayın 26'sı ya da ondan sonraki ilk iş günü |
+
+Önceden duran bir borç kaydı olmadığı için `nakit_akis_tahmini` bu ödemeleri göremez. Faz 2'den beri tahmin yalnızca
+bilinen kalemleri içerir. Araç sonucu dışarıda kalanları `dahil_olmayanlar` listesinde verir.
+
+**Neden şimdi eklenmedi.** Tahmine maaş, SGK ve vergi eklemek `nakit_akis_tahmini` aracının sonucunu değiştirir.
+Model bu sonucun tam biçimiyle eğitildi. Değişiklik model sözleşmesini bozar ve yeniden ölçüm, belki yeniden eğitim
+ister. Gerçek bir kurulumda bu kalemler bordro programından ya da beyanname takviminden bir bağlayıcıyla gelebilir.
+
 ## Dosya adları: İngilizce kod tabanı (23 Kasım 2026)
 
 Kod tabanı uluslararası standartlara göre düzenlendi:
