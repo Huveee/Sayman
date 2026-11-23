@@ -110,7 +110,8 @@ async function kabukGoster(ben) {
   $("kullanici-bilgi").textContent = `${ben.ad} · ${ben.rol_adi}`;
   $("sohbet").classList.add("gizli");
   $("sohbet-ac").classList.remove("gizli");
-  await Promise.all([durumYenile(), raporYukle(), uyarilariYukle(), ornekleriYukle()]);
+  belgeAdlari = {};
+  await Promise.all([durumYenile(), raporYukle(), uyarilariYukle(), ornekleriYukle(), belgeAdlariniYukle()]);
   clearInterval(yoklamaZamani);
   yoklamaZamani = setInterval(durumYenile, 10000);
 }
@@ -226,17 +227,29 @@ async function ornekleriYukle() {
 // A citation "[POL-CEK#m2]": the same pattern as _CHUNK_ID in src/sayman/documents/citation.py
 const KAYNAK = /\[([A-Za-z0-9_\-]+)#(m\d+)\]/g;
 
-// Text with citations: each citation becomes a link that opens the document's PDF at the article in a new tab
+// Readable document names for citation links (only the documents this user may open)
+let belgeAdlari = {};
+
+async function belgeAdlariniYukle() {
+  try { belgeAdlari = (await api("/belge/adlar")).adlar || {}; } catch (_) { belgeAdlari = {}; }
+}
+
+// Text with citations: each citation becomes a link that opens the document's PDF at the article in a new tab.
+// The link shows the document's readable name ("Çek Kabul Politikası, Madde 2"); the raw id stays in the tooltip.
 function kaynakliCiz(hedef, metin) {
   let son = 0;
   for (const m of metin.matchAll(KAYNAK)) {
     if (m.index > son) hedef.append(document.createTextNode(metin.slice(son, m.index)));
-    const a = el("a", "kaynak", m[0]);
+    const ad = belgeAdlari[m[1]];
+    const a = el("a", "kaynak", ad ? `${ad}, Madde ${m[2].slice(1)}` : m[0]);
     a.href = `/belge/${encodeURIComponent(m[1])}/${m[2]}`;
     a.target = "_blank";
     a.rel = "noopener";
-    a.title = "Belgeyi PDF olarak yeni sekmede aç";
-    hedef.append(a);
+    a.title = `${m[0]} · Belgeyi PDF olarak yeni sekmede aç`;
+    // A readable name gets its own parentheses unless the answer already wrote them: "([POL-CEK#m2])"
+    const parantezli = metin[m.index - 1] === "(" && metin[m.index + m[0].length] === ")";
+    if (ad && !parantezli) hedef.append(document.createTextNode("("), a, document.createTextNode(")"));
+    else hedef.append(a);
     son = m.index + m[0].length;
   }
   if (son < metin.length) hedef.append(document.createTextNode(metin.slice(son)));

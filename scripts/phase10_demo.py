@@ -47,7 +47,7 @@ def start_demo(arg) -> int:
                 tables=read_csv(ROOT / "data" / "uretilen"), model=model, model_name=arg.model, belge=document_search,
                 search_method="bm25" if arg.belge == "yok" else arg.belge, step_days=arg.adim,
                 warmer=ollama_warmer(model), document_pdfs=DOCUMENT_PDFS)
-    if document_search is not None and not demo.article_pages:
+    if document_search is not None and not demo.document_index:
         print("Uyarı: belge PDF'leri yok; cevaptaki kaynak bağlantıları açılmaz. Üretmek için: "
               ".venv\\Scripts\\python -I scripts\\phase10_document_pdfs.py", flush=True)
     print(f"Hazır: http://127.0.0.1:{arg.port}  (bugün {demo.clock.simdi}; model arka planda ısınıyor)", flush=True)

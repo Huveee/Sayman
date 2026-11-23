@@ -12,8 +12,9 @@ Security:
   the alerts that have no customer (company level).
 - The report is built from tools called through the gate with the card of the session's user; the model has no
   part in the report. The section of a tool the role cannot call does not appear in the report.
-- A citation in an answer links to the document's PDF (/belge/<id>/<article> redirects to the page). The PDF is served
-  only to a session whose role passes the document tool's rule (belge_ara permission and the document's roles);
+- A citation in an answer links to the document's PDF (/belge/<id>/<article> redirects to the page); the link text is
+  the document's readable name from /belge/adlar. The PDF and the names are served only for documents whose roles
+  pass the document tool's rule (belge_ara permission and the document's roles);
   an unknown and a forbidden document get the same 404, so a link cannot reveal that a contract exists.
 - Demo state (clock copy, alert store, audit logs, scope copies) is kept in its own folder; the warehouse and
   data/saat.json do not change. The clock cannot be turned back; to start over the folder is deleted.
@@ -25,6 +26,7 @@ import datetime as dt
 import secrets
 import threading
 import time
+from urllib.parse import quote
 from decimal import Decimal
 from pathlib import Path
 from typing import Callable
@@ -41,7 +43,7 @@ from sayman.tools.permissions import PermissionTable
 from sayman.assistant.orchestrator import SYSTEM_PROMPT, Assistant, Settings, tool_definitions
 from sayman.monitoring.scheduler import AlertStore, run_scheduler
 from sayman.data.clock import Clock, read_clock, write_clock
-from sayman.documents.pdf_export import ARTICLE_KEY, DOCUMENT_ID, read_page_map
+from sayman.documents.pdf_export import ARTICLE_KEY, DOCUMENT_ID, read_index
 
 STATIC_DIR = Path(__file__).with_name("static")
 COOKIE_NAME = "sayman_oturum"
@@ -173,7 +175,7 @@ class Demo:
         # Document PDFs: the roles come from the same chunks the document tool searches.
         self.document_roles = {c.belge_id: c.roller for c in belge.chunk_by_id.values()} if belge is not None else {}
         self.document_pdfs = Path(document_pdfs) if document_pdfs is not None else None
-        self.article_pages = read_page_map(self.document_pdfs) if self.document_pdfs is not None else {}
+        self.document_index = read_index(self.document_pdfs) if self.document_pdfs is not None else {}
         self._warm_up()
 
     # -- identity ----------------------------------------------------------------------------------
@@ -194,18 +196,26 @@ class Demo:
         role = self.permissions.users[user]
         return "belge_ara" in self.permissions.roller[role].tools and role in self.document_roles.get(document_id, ())
 
-    def document_pdf(self, user: str, document_id: str) -> Path | None:
+    def document_names(self, user: str) -> dict[str, str]:
+        """Readable names of the documents the user may open (the browser shows them as citation link text)."""
+        return {i: e["ad"] for i, e in self.document_index.items() if self.can_open_document(user, i)}
+
+    def document_pdf(self, user: str, document_id: str) -> tuple[Path, str] | None:
+        """(PDF path, file name) if the user may open the document and its PDF exists."""
         if self.document_pdfs is None or not DOCUMENT_ID.fullmatch(document_id):
             return None
-        if not self.can_open_document(user, document_id):
+        entry = self.document_index.get(document_id)
+        if entry is None or not self.can_open_document(user, document_id):
             return None
-        path = self.document_pdfs / f"{document_id}.pdf"
-        return path if path.is_file() else None
+        path = self.document_pdfs / entry["dosya"]
+        if path.parent != self.document_pdfs or not path.is_file():
+            return None
+        return path, entry["dosya"]
 
     def article_page(self, user: str, document_id: str, article: str) -> int | None:
         if not ARTICLE_KEY.fullmatch(article) or self.document_pdf(user, document_id) is None:
             return None
-        return self.article_pages.get(document_id, {}).get(article)
+        return self.document_index[document_id]["sayfalar"].get(article)
 
     # -- alerts ------------------------------------------------------------------------------------
 
@@ -393,13 +403,20 @@ def build_app(demo: Demo) -> FastAPI:
     def report(request: Request):
         return demo.report(current_user(request))
 
+    @app.get("/belge/adlar")
+    def document_names(request: Request):
+        return {"adlar": demo.document_names(current_user(request))}
+
     @app.get("/belge/{document_id}.pdf")
     def document_pdf(request: Request, document_id: str):
-        path = demo.document_pdf(current_user(request), document_id)
-        if path is None:
+        found = demo.document_pdf(current_user(request), document_id)
+        if found is None:
             raise HTTPException(404, "Belge bulunamadı.")
+        path, name = found
+        # The id is the ASCII fallback; browsers save the file under the readable name (RFC 6266 filename*).
         return FileResponse(path, media_type="application/pdf", headers={
-            "Content-Disposition": f'inline; filename="{document_id}.pdf"', "Cache-Control": "no-store"})
+            "Content-Disposition": f"inline; filename=\"{document_id}.pdf\"; filename*=UTF-8''{quote(name)}",
+            "Cache-Control": "no-store"})
 
     @app.get("/belge/{document_id}/{article}")
     def document_article(request: Request, document_id: str, article: str):

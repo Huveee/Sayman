@@ -1747,20 +1747,28 @@ olarak, alıntılanan maddenin sayfasında açılır. PDF'ler bir kez üretilir:
 ```
 
 - **Kanunlar** (Çek Kanunu, Türk Borçlar Kanunu, Türk Ticaret Kanunu) zaten PDF: `data/ham/mevzuat` altındaki
-  orijinal mevzuat.gov.tr PDF'leri olduğu gibi kopyalanır. Her maddenin sayfası, kanunu maddelere bölen ayrıştırmanın
-  aynısıyla bulunur (`src/sayman/documents/legislation.py`).
+  orijinal mevzuat.gov.tr PDF'leri kopyalanır; yalnızca PDF'in başlık bilgisi eklenir, sayfalar ve metin aynı kalır.
+  Her maddenin sayfası, kanunu maddelere bölen ayrıştırmanın aynısıyla bulunur (`src/sayman/documents/legislation.py`).
 - **Politika ve sözleşmeler** PDF değil, yalnızca `belgeler.jsonl` içinde madde madde metin. Her biri HTML'e çevrilip
   bilgisayardaki Edge (ya da Chrome) ile başsız modda PDF'e basılır; internetten bir şey indirilmez. Madde başlıkları
   PDF'in yer imleri olur, her maddenin sayfası bu yer imlerinden okunur (`src/sayman/documents/pdf_export.py`).
+- **Okunaklı adlar.** Her belgenin tek bir okunaklı adı var: politika ve kanunlarda başlığı ("Çek Kabul Politikası"),
+  sözleşmelerde başlık ve karşı tarafın kısa adı ("Satış Çerçeve Sözleşmesi – Kale Hilal Kırtasiye"). Kısa adı aynı
+  olan iki şirkette (iki "Doğa Tedarik", iki "Palmiye Cam") ikisi de tam unvanı kullanır; yine aynı ada düşen belge
+  kalırsa betik durur. Bu ad üç yerde görünür: cevaptaki bağlantının metni ("(Çek Kabul Politikası, Madde 2)"), PDF
+  sekmesinin başlığı ve indirilen dosyanın adı, `data/belge/pdf` altındaki dosya adı. Ham alıntı (`[POL-CEK#m2]`)
+  bağlantının ipucunda durur. Tarayıcı adları `/belge/adlar` yolundan alır; liste yalnızca kullanıcının açabileceği
+  belgeleri içerir.
 - Betik, kaydetmeden önce 3.003 maddenin her birinin eşlenen sayfada göründüğünü denetler. Çıktı:
-  `data/belge/pdf/<belge_id>.pdf` (84 PDF, 3'ü orijinal kanun PDF'i) ve sayfa eşlemesi `sayfalar.json`.
+  `data/belge/pdf/<okunaklı ad>.pdf` (84 PDF, 3'ü orijinal kanun PDF'i) ve `belgeler.json` (her belge kimliği için ad,
+  dosya ve madde sayfaları). Betik yeniden çalışınca listede olmayan eski PDF'leri siler.
 - **Erişim** belge aracının kuralıyla aynı: rolün `belge_ara` izni olmalı ve rol belgenin rolleri arasında olmalı;
   yurtiçi satış müdürü bir ihracat müşterisinin sözleşmesini açamaz. Bilinmeyen ve yasak belge aynı 404'ü alır; böylece
   bir bağlantı, bir sözleşmenin var olduğunu açığa vurmaz. PDF tarayıcıda satır içi açılır ve saklanmaz
   (`Cache-Control: no-store`), çünkü demoda aynı tarayıcıda kullanıcı değişiyor.
 - Modelin gördüğü hiçbir şey değişmedi: alıntı biçimi aynı, bağlantıya yalnızca tarayıcıda çevriliyor. `/api` yolları
   da aynı; PDF'ler `/belge/...` altında.
-- **Testler** (`tests/test_phase10_document_pdfs.py`, 25 test; tarayıcı gerektirmez). Canlı denemede tarayıcının
+- **Testler** (`tests/test_phase10_document_pdfs.py`, 38 test; tarayıcı gerektirmez). Canlı denemede tarayıcının
   güncellenen `app.js` yerine önbellekteki eski kopyayı kullandığı görüldü; sayfa ve statik dosyalar artık
   `Cache-Control: no-cache` ile her açılışta sunucuya sorulur.
 
@@ -1991,6 +1999,6 @@ Bilerek Türkçe kalanlar:
 | `data/olcum` | Kâhin ve kontrol koşularının dosyaları, ölçümlerin denetim kayıtları (git'e girmez) |
 | `data/ham` | İndirilen kanun PDF'leri (`mevzuat`) ve Belebele Türkçe soruları (`belebele`) (git'e girmez) |
 | `data/belge` | Belge kütüphanesi, soru seti, vektör ve sıralama önbelleği, Qdrant dizini (git'e girmez) |
-| `data/belge/pdf` | Belgelerin PDF'leri ve madde sayfaları; `phase10_document_pdfs.py` üretir (git'e girmez) |
+| `data/belge/pdf` | Belgelerin okunaklı adlı PDF'leri ve `belgeler.json` (ad, dosya, madde sayfaları); `phase10_document_pdfs.py` üretir (git'e girmez) |
 | `data/modeller` | Hugging Face'ten indirilen sıralayıcı modeli (git'e girmez) |
 | `data/egitim` | Eğitim şirketi, eğitim örnekleri, Kaggle çıktıları, model dosyaları ve ölçüm kayıtları (git'e girmez) |
