@@ -109,8 +109,8 @@ göstermez. Sınırlamaların tam listesi aşağıda.
 **1. Depoyu indirin ve Python ortamını kurun.**
 
 ```powershell
-git clone https://github.com/Huveee/Sayman.git
-cd Sayman
+git clone https://github.com/Huveee/sayman-finansal-asistan.git
+cd sayman-finansal-asistan
 py -3.11 -m venv .venv
 .venv\Scripts\python -I -m pip install -r requirements.txt
 .venv\Scripts\python -I -m pip install -e . --no-deps --no-build-isolation
