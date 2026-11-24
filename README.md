@@ -54,8 +54,9 @@ flowchart LR
 - **Veri.** Gerçek bir iskelet (UCI satış faturaları, TCMB döviz kurları) üzerine tohumla birebir tekrarlanabilen
   sentetik bir Türk toptancı şirket kurulur. Tablolar tek bir DuckDB dosyasına yüklenir; metrikler SQL ile, verilen
   gün itibarıyla ve yalnızca o güne kadarki kayıtlarla hesaplanır.
-- **Model.** Temel model `qwen3.5:9b` (Ollama). Faz 8'de Kaggle'da QLoRA ile ince ayar yapıldı (`sayman-ayarli`):
-  amaç modeli veri ezberletmek değil, araç seçme, belgeye dayanma ve reddetme davranışlarını öğretmekti.
+- **Model.** Temel model `qwen3.5:9b` (Ollama). Faz 8'de Kaggle'da QLoRA ile ince ayar yapıldı
+  ([`sayman-ayarli`](https://huggingface.co/Huveyda/sayman-ayarli)): amaç modeli veri ezberletmek değil, araç seçme,
+  belgeye dayanma ve reddetme davranışlarını öğretmekti.
 - **Arayüz.** Arka uç kimliği kendisi imzalar; imza anahtarı ve kimlik kartı tarayıcıya hiç gitmez. Bir cevap
   yalnızca soruyu soran oturuma gider; oturum kapanırsa model o soruyu bırakır.
 
@@ -99,8 +100,8 @@ göstermez. Sınırlamaların tam listesi aşağıda.
 - **Python 3.11** (paket `>=3.11,<3.12` ister).
 - **[Ollama](https://ollama.com)** (0.40 ile denendi) ve `qwen3.5:9b` modeli (yaklaşık 6,6 GB).
 - **16 GB bellek.** Model ekran kartı olmadan da çalışır; cevaplar bu durumda 30–80 saniye sürer.
-- **İnternet yalnızca kurulumda:** UCI verisi (44 MB), kanun PDF'leri, Python paketleri, Ollama modelleri ve
-  ölçümde kullanılan sıralayıcı modeli (2,2 GB). Demo çalışırken internete istek atmaz.
+- **İnternet yalnızca kurulumda:** UCI verisi (44 MB), kanun PDF'leri, Python paketleri, Ollama modelleri, ince
+  ayarlı model (5,6 GB) ve ölçümde kullanılan sıralayıcı modeli (2,2 GB). Demo çalışırken internete istek atmaz.
 - İsteğe bağlı: belge PDF'leri için Edge ya da Chrome; anlam araması için `bge-m3` (1,2 GB).
 
 ## Kurulum
@@ -151,14 +152,24 @@ aynı tohum aynı tabloları verir.
 İlk betik üç kanunun PDF'ini mevzuat.gov.tr'den, ölçümde kullanılan sıralayıcı modeli de Hugging Face'ten indirir.
 İkincisi şirket verisinden sözleşme ve politikaları üretir: `data/belge/belgeler.jsonl`.
 
-**5. Modeli indirin.**
+**5. Modeli kurun.**
 
 ```powershell
 ollama pull qwen3.5:9b
 ```
 
-İnce ayarlı model (`sayman-ayarli`) depoda yok; model dosyaları git'e girmez. Kendiniz eğitmek için adımlar
-[RAPOR.md](RAPOR.md) içindeki "Faz 8" bölümünde.
+Temel model bununla hazırdır. İnce ayarlı model (`sayman-ayarli`, 5,6 GB) Hugging Face'te
+[Huveyda/sayman-ayarli](https://huggingface.co/Huveyda/sayman-ayarli) deposundadır; indirmek için hesap gerekmez.
+Ollama çalışırken:
+
+```powershell
+.venv\Scripts\hf download Huveyda/sayman-ayarli sayman-ayarli-q4_k_m.gguf --local-dir data\modeller\sayman-ayarli
+.venv\Scripts\python -I scripts\phase08_ollama_model.py kur --ad sayman-ayarli --gguf data\modeller\sayman-ayarli\sayman-ayarli-q4_k_m.gguf
+```
+
+`kur` komutu `qwen3.5:9b`'nin Ollama ayarlarını aynen alır ve yalnızca dil modelini bu dosyayla değiştirir; model
+eğitildiği istem biçimini birebir görür. Modeli kendiniz eğitmek için adımlar [RAPOR.md](RAPOR.md) içindeki "Faz 8"
+bölümünde.
 
 **İsteğe bağlı adımlar**
 
@@ -180,8 +191,11 @@ ollama serve
 Ollama'yı demodan önce başlatın, sonra ayrı bir pencerede:
 
 ```powershell
-.venv\Scripts\python -I scripts\phase10_demo.py baslat --model qwen3.5:9b --belge bm25
+.venv\Scripts\python -I scripts\phase10_demo.py baslat --belge bm25
 ```
+
+Bu komut ince ayarlı modeli (`sayman-ayarli`) kullanır. Onu kurmadıysanız temel modelle başlatın:
+`--model qwen3.5:9b --belge bm25`.
 
 Tarayıcıda http://127.0.0.1:8010 adresini açıp bir kullanıcı seçin. Sohbet başlığındaki nokta "Hazır" olunca soru
 sorun; model açılışta bugünün tarihiyle ısınır, bu birkaç dakika sürer.
