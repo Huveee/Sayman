@@ -11,7 +11,10 @@
 <!-- Login screen -->
 <section id="giris" class="gizli">
   <div class="giris-kutu">
-    <h1>Defne ERP</h1>
+    <div class="giris-marka">
+      <h1>Defne ERP</h1>
+      <span>Örnek Ticaret A.Ş.</span>
+    </div>
     <p class="soluk">Demo: bir kullanıcı seçin</p>
     <div id="kullanici-kartlari" class="kartlar"></div>
     <p id="giris-hata" class="hata"></p>
@@ -25,68 +28,112 @@
     <div class="ust-sag">
       <span id="bugun" class="tarih">Bugün: —</span>
       <span id="kullanici-bilgi" class="kullanici"></span>
-      <button id="cikis" class="btn ikincil">Çıkış</button>
+      <button id="cikis" class="btn ikincil" type="button">Çıkış</button>
     </div>
   </header>
 
   <div class="govde">
-    <nav class="sol">
-      <a class="aktif" href="#">Ana sayfa</a>
-      <a href="#" class="pasif">Satış</a>
-      <a href="#" class="pasif">Finans</a>
-      <a href="#" class="pasif">Raporlar</a>
-      <a href="#" class="pasif">Ayarlar</a>
+    <nav class="sol" aria-label="Ana menü">
+      <a class="aktif" href="#" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+        Ana sayfa</a>
+      <a href="#" class="pasif" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/></svg>
+        Satış</a>
+      <a href="#" class="pasif" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14.5h2"/></svg>
+        Finans</a>
+      <a href="#" class="pasif" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+        Raporlar</a>
+      <a href="#" class="pasif" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+        Ayarlar</a>
     </nav>
 
     <main class="ana">
-      <h2>Ana sayfa</h2>
+      <div class="sayfa-ust">
+        <div>
+          <h1>Ana sayfa</h1>
+          <p id="sayfa-alt" class="soluk"></p>
+        </div>
+        <span id="kapsam-cip" class="kapsam-cip gizli">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+          <span id="kapsam-cip-yazi"></span>
+        </span>
+      </div>
+
+      <!-- A sales manager sees only the customers in their own scope: the page says so -->
+      <div id="kapsam-not" class="kapsam-not gizli" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <div>
+          <strong id="kapsam-not-baslik"></strong>
+          <span>Bu sayfa ve Sayman yalnızca kapsamınızdaki müşterilerin verisini gösterir.</span>
+        </div>
+      </div>
 
       <div class="demo-serit">
         <span class="etiket">Demo kontrolü</span>
-        <button id="ileri" class="btn"><span id="ileri-yazi">Zamanı ileri sar</span><span id="ileri-spin" class="spin gizli"></span></button>
+        <button id="ileri" class="btn" type="button"><span id="ileri-yazi">Zamanı ileri sar</span><span id="ileri-spin" class="spin gizli"></span></button>
       </div>
 
-      <div class="izgara">
-        <section class="kart">
-          <div class="kart-baslik">
-            <h3>Günlük nakit raporu</h3>
-            <span id="rapor-ust" class="soluk"></span>
-          </div>
-          <div id="rapor"></div>
-          <p class="dipnot">Rakamlar araçlardan gelir, model hesaplamaz.</p>
-        </section>
+      <section id="gostergeler" class="gostergeler" aria-label="Günlük nakit raporu"></section>
+      <p class="dipnot">Rakamlar araçlardan gelir, model hesaplamaz.</p>
 
-        <section class="kart">
-          <div class="kart-baslik"><h3>Uyarılar</h3></div>
-          <div id="uyarilar"></div>
+      <!-- The report's detail cards on the left, the alerts on the right -->
+      <div class="izgara">
+        <div id="detaylar" class="kart-yigini"></div>
+        <section id="uyari-kart" class="kart">
+          <div class="kart-baslik">
+            <h2 class="ikonlu">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+              Uyarılar</h2>
+          </div>
+          <div id="uyarilar" class="uyari-listesi"></div>
         </section>
       </div>
     </main>
+
+    <!-- Sayman: docked beside the page on wide screens, a floating window on narrow ones -->
+    <aside id="sohbet" class="sohbet gizli" aria-label="Sayman finans asistanı">
+      <div class="sohbet-ust">
+        <div class="sohbet-kimlik">
+          <span class="monogram" aria-hidden="true">S</span>
+          <div>
+            <strong>Sayman · Finans asistanı</strong>
+            <small>Yalnızca okur, para hareketi yapmaz.</small>
+          </div>
+        </div>
+        <div class="sohbet-sag">
+          <span id="model-nokta" class="nokta"></span><span id="model-yazi" class="model-yazi"></span>
+          <button id="sohbet-kapat" class="kapat" type="button" aria-label="Kapat">×</button>
+        </div>
+      </div>
+      <div id="ornekler" class="ornekler"></div>
+      <div id="mesajlar" class="mesajlar"></div>
+      <form id="sor-form" class="sor-form">
+        <label for="soru">Sayman'a sorun</label>
+        <div class="sor-satir">
+          <textarea id="soru" rows="2" placeholder="Bir soru yazın…"></textarea>
+          <button id="gonder" class="btn gonder" type="submit" aria-label="Gönder">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12 20 4l-6 16-3-7z"/></svg>
+          </button>
+        </div>
+      </form>
+    </aside>
   </div>
 
-  <!-- Sayman chat window -->
-  <button id="sohbet-ac" class="sohbet-ac">Sayman</button>
-  <aside id="sohbet" class="sohbet gizli">
-    <div class="sohbet-ust">
-      <div>
-        <strong>Sayman · Finans asistanı</strong>
-        <small>Yalnızca okur, para hareketi yapmaz.</small>
-      </div>
-      <div class="sohbet-sag">
-        <span id="model-nokta" class="nokta"></span><span id="model-yazi" class="model-yazi"></span>
-        <button id="sohbet-kapat" class="kapat" aria-label="Kapat">×</button>
-      </div>
-    </div>
-    <div id="ornekler" class="ornekler"></div>
-    <div id="mesajlar" class="mesajlar"></div>
-    <form id="sor-form" class="sor-form">
-      <textarea id="soru" rows="2" placeholder="Bir soru yazın…"></textarea>
-      <button id="gonder" class="btn" type="submit">Gönder</button>
-    </form>
-  </aside>
+  <button id="sohbet-ac" class="sohbet-ac" type="button">Sayman</button>
 </div>
 
 <div id="toast" class="toast gizli"></div>
+
+<!-- Icons for the status chips under an answer (cloned by app.js) -->
+<template id="ikon-dogrulandi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"/><path d="m9 12 2 2 4-4"/></svg></template>
+<template id="ikon-ret"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></template>
+<template id="ikon-sure"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></template>
+<template id="ikon-dur"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5h0"/></svg></template>
+
 <script src="/static/app.js"></script>
 </body>
 </html>

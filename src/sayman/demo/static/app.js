@@ -8,6 +8,12 @@ const DURUM_ETIKET = { ret: "Yetki yok", uretemedim: "Doğrulanamadı", sure_sin
 // on it carry this fixed note in the "i" tooltip
 const TAHMIN_ARACI = "nakit_akis_tahmini";
 const TAHMIN_NOTU = "Bu tahmin yalnızca bilinen kalemleri içerir; vergi, SGK, maaş ve yeni satışlar dahil değildir; gerçek bakiye farklı olabilir.";
+// The icon of each status chip under an answer (templates in index.html); other statuses get "ikon-dur"
+const DURUM_IKON = { ret: "ikon-ret", sure_siniri: "ikon-sure" };
+// The whole company's scope label (SCOPE_LABELS["hepsi"] in src/sayman/tools/server.py): any other scope gets a note
+const TUM_SIRKET = "tüm şirket";
+// On wide screens Sayman is docked beside the page and open from the start (the same width as in style.css)
+const GENIS_EKRAN = matchMedia("(min-width: 1101px)");
 
 let durum = null;          // last /api/durum
 let kullanici = null;      // /api/ben
@@ -28,6 +34,24 @@ function uzunTarih(iso) {
   const [y, a, g] = String(iso).split("-").map(Number);
   if (!y || !a || !g) return String(iso);
   return `${g} ${AYLAR[a - 1]} ${y}`;
+}
+
+// "2026-10-26" -> "26.10.2026"
+function kisaTarih(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso));
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : String(iso);
+}
+
+// "46.484.612,86 TL" -> 4648461286n (kuruş). Exact integers, for proportions only; null if it is not an amount
+function kurusa(metin) {
+  const m = /^(-?)(\d{1,3}(?:\.\d{3})*),(\d{2}) TL$/.exec(String(metin).trim());
+  if (!m) return null;
+  const k = BigInt(m[2].replace(/\./g, "") + m[3]);
+  return m[1] ? -k : k;
+}
+
+function ikon(sablon) {
+  return $(sablon).content.firstElementChild.cloneNode(true);
 }
 
 class Yetkisiz extends Error {}
@@ -91,7 +115,8 @@ async function kullanicilariYukle() {
     for (const k of v.kullanicilar) {
       const b = el("button", "kullanici-kart");
       b.type = "button";
-      b.append(el("b", "", k.ad), el("div", "rol", k.rol_adi), el("div", "kapsam", k.kapsam_adi));
+      const bas = k.ad.split(/\s+/).map((s) => s[0] || "").join("").slice(0, 2).toLocaleUpperCase("tr");
+      b.append(el("span", "bas", bas), el("b", "", k.ad), el("div", "rol", k.rol_adi), el("div", "kapsam", k.kapsam_adi));
       b.addEventListener("click", () => girisYap(k.kullanici));
       kutu.append(b);
     }
@@ -135,8 +160,10 @@ async function kabukGoster(ben) {
   $("giris").classList.add("gizli");
   $("kabuk").classList.remove("gizli");
   $("kullanici-bilgi").textContent = `${ben.ad} · ${ben.rol_adi}`;
-  $("sohbet").classList.add("gizli");
-  $("sohbet-ac").classList.remove("gizli");
+  raporuTemizle(); // the previous user's figures must not stay on the page while the new report loads
+  kapsamGoster(ben.kapsam_adi);
+  $("sohbet").classList.toggle("gizli", !GENIS_EKRAN.matches);
+  $("sohbet-ac").classList.toggle("gizli", GENIS_EKRAN.matches);
   belgeAdlari = {};
   await Promise.all([durumYenile(), raporYukle(), uyarilariYukle(), ornekleriYukle(), belgeAdlariniYukle()]);
   if (sinyal.aborted) return; // logged out while loading
@@ -158,21 +185,95 @@ async function durumYenile() {
   $("model-yazi").textContent = !durum.model_hazir ? "Isınıyor" : durum.mesgul ? "Meşgul" : "Hazır";
 }
 
+// ---- Scope ----
+// The whole company gets a chip next to the title; a narrower scope gets a note above the report
+function kapsamGoster(kapsamAdi) {
+  const hepsi = kapsamAdi === TUM_SIRKET;
+  $("kapsam-cip-yazi").textContent = `Kapsam: ${kapsamAdi}`;
+  $("kapsam-cip").classList.toggle("gizli", !hepsi || !kapsamAdi);
+  $("kapsam-not-baslik").textContent = `Kapsamınız: ${kapsamAdi}`;
+  $("kapsam-not").classList.toggle("gizli", hepsi || !kapsamAdi);
+}
+
 // ---- Report ----
+// Every section of /api/rapor is drawn the same way, whatever the role sees:
+// - a figure card: the title, the summary and the count rows ("Çek sayısı: 61");
+// - a detail card for the other rows, next to the alerts card. A section with one other row keeps it on the figure
+//   card instead. A section that could not be read ("—" and a "Durum" row) shows its message on the figure card.
+const SAYI = /^\d+$/;
+
+function raporuTemizle() {
+  $("sayfa-alt").textContent = "";
+  $("gostergeler").replaceChildren();
+  $("detaylar").replaceChildren();
+  $("uyarilar").replaceChildren();
+}
+
 function raporCiz(r) {
-  $("rapor-ust").textContent = `${uzunTarih(r.tarih)} · ${r.kapsam_adi}`;
-  const kutu = $("rapor");
-  kutu.replaceChildren();
+  $("sayfa-alt").textContent = `${uzunTarih(r.tarih)} itibarıyla günlük finans özeti`;
+  kapsamGoster(r.kapsam_adi);
+  const gostergeler = $("gostergeler");
+  gostergeler.replaceChildren();
+  const n = Math.max(1, (r.bolumler || []).length);
+  gostergeler.style.setProperty("--sutun", n);
+  gostergeler.style.setProperty("--sutun-dar", Math.min(n, 2));
+  const detaylar = $("detaylar");
+  detaylar.replaceChildren();
   for (const b of r.bolumler || []) {
-    const d = el("div", "bolum");
-    d.append(el("div", "bolum-baslik", b.baslik), el("div", "bolum-ozet", b.ozet));
-    for (const [ad, deger] of b.satirlar || []) {
-      const s = el("div", "satir");
-      s.append(el("span", "", ad), el("span", "", deger));
-      d.append(s);
-    }
-    kutu.append(d);
+    const satirlar = b.satirlar || [];
+    const okunamadi = b.ozet === "—";
+    const sayilar = satirlar.filter(([, d]) => SAYI.test(d));
+    const digerleri = satirlar.filter(([, d]) => !SAYI.test(d));
+    const detayli = !okunamadi && digerleri.length > 1;
+    const alt = okunamadi ? satirlar.map(([, d]) => d)
+      : [...sayilar, ...(detayli ? [] : digerleri)].map(([a, d]) => `${a}: ${d}`);
+    const g = el("div", "gosterge");
+    g.append(el("span", "gosterge-ad", b.baslik), el("span", "gosterge-deger", b.ozet));
+    if (alt.length) g.append(el("span", "gosterge-alt", alt.join(" · ")));
+    gostergeler.append(g);
+    if (detayli) detaylar.append(detayKarti(b, digerleri));
   }
+}
+
+function detayKarti(b, satirlar) {
+  const kart = el("section", "kart rapor-kart");
+  const ust = el("div", "kart-baslik");
+  ust.append(el("h2", "", b.baslik), el("span", "soluk", b.ozet));
+  kart.append(ust);
+  // The overdue part of the total as a bar; the page prints no number the tools did not return
+  const gecmis = satirlar.find(([a]) => a === "Vadesi geçmiş");
+  const toplam = kurusa(b.ozet), kisim = gecmis ? kurusa(gecmis[1]) : null;
+  if (toplam !== null && kisim !== null && toplam > 0n && kisim >= 0n && kisim <= toplam) {
+    const oran = el("div", "oran");
+    oran.setAttribute("role", "img");
+    oran.setAttribute("aria-label", `${b.baslik} ${b.ozet}, içinde vadesi geçmiş ${gecmis[1]}`);
+    const dolu = el("div", "oran-gecmis");
+    dolu.style.width = `${Number((kisim * 1000n) / toplam) / 10}%`;
+    oran.append(dolu);
+    const acikla = el("div", "oran-acikla");
+    const g = el("span");
+    g.append(el("span", "renk gecmis"), document.createTextNode("Vadesi geçmiş"), el("b", "", gecmis[1]));
+    const k = el("span");
+    k.append(el("span", "renk"), document.createTextNode("Vadesi gelmemiş"));
+    acikla.append(g, k);
+    kart.append(oran, acikla);
+    satirlar = satirlar.filter((s) => s !== gecmis);
+  }
+  const tablo = el("table", "tablo");
+  const govde = el("tbody");
+  for (const [ad, deger] of satirlar) {
+    // "Banka A · TRY", "<müşteri> · 2026-10-28": the part after the last "·" goes under the name
+    const i = ad.lastIndexOf(" · ");
+    const th = el("th", "", i < 0 ? ad : ad.slice(0, i));
+    th.scope = "row";
+    if (i >= 0) th.append(el("small", "", kisaTarih(ad.slice(i + 3))));
+    const tr = el("tr");
+    tr.append(th, el("td", "", deger));
+    govde.append(tr);
+  }
+  tablo.append(govde);
+  kart.append(tablo);
+  return kart;
 }
 
 async function raporYukle() {
@@ -190,12 +291,12 @@ function uyarilariCiz(liste, yeniIdler) {
   const sirali = [...liste].sort((a, b) => String(b.gun).localeCompare(String(a.gun)));
   for (const u of sirali) {
     const yeni = yeniIdler.has(u.uyari_id);
-    const d = el("div", "uyari" + (yeni ? " yeni" : ""));
+    const d = el("article", "uyari" + (yeni ? " yeni" : ""));
     const ust = el("div", "uyari-ust");
     const uyariMi = u.onem === "uyari";
-    ust.append(el("span", "", uzunTarih(u.gun)), el("span", "chip " + (uyariMi ? "uyari" : "bilgi"), uyariMi ? "Uyarı" : "Bilgi"));
+    ust.append(el("span", "", kisaTarih(u.gun)), el("span", "chip " + (uyariMi ? "uyari" : "bilgi"), uyariMi ? "Uyarı" : "Bilgi"));
     if (yeni) ust.append(el("span", "chip yeni-rozet", "Yeni"));
-    d.append(ust, el("strong", "", u.baslik), el("p", "", u.aciklama));
+    d.append(ust, el("h3", "", u.baslik), el("p", "", u.aciklama));
     kutu.append(d);
   }
 }
@@ -384,9 +485,15 @@ async function gonder(metin) {
     const tahminli = v.durum === "tamam" && (v.araclar || []).some((a) => a.arac === TAHMIN_ARACI && !a.hata);
     bilgiEkle(b, `Kullanılan araçlar: ${araclar.length ? araclar.join(", ") : "yok"}\nSüre: ${Math.round(v.sure_s)} sn`
       + (tahminli ? `\n\n${TAHMIN_NOTU}` : ""));
-    if (v.durum && v.durum !== "tamam") { // a refused or stopped answer says so under the text
+    // Under the text: a verified answer says so, a refused or stopped one says why
+    if (v.durum) {
       const meta = el("div", "meta");
-      meta.append(el("span", "chip durum", DURUM_ETIKET[v.durum] || v.durum));
+      const dogru = v.durum === "tamam";
+      const cip = el("span", "chip " + (dogru ? "dogrulandi" : "durum"));
+      cip.append(ikon(dogru ? "ikon-dogrulandi" : DURUM_IKON[v.durum] || "ikon-dur"),
+        document.createTextNode(dogru ? "Doğrulandı" : DURUM_ETIKET[v.durum] || v.durum));
+      if (dogru) cip.title = "Cevaptaki sayılar ve alıntılar doğrulayıcıdan geçti.";
+      meta.append(cip);
       b.append(meta);
     }
   } catch (e) {
