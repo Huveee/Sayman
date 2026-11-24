@@ -3,7 +3,9 @@
 AI finance assistant for a Turkish company, built as a capstone. A local Ollama model (`sayman-ayarli`, a QLoRA
 fine-tune of qwen3.5:9b) answers questions only through read-only MCP tools over a DuckDB warehouse. A verifier
 checks that every number and quote in an answer comes from this turn's tool results. The FastAPI demo embeds the
-chat in a fake ERP page. The README (Turkish) is the project report, phase by phase.
+chat in a fake ERP page. The README (Turkish) describes the project and how to install and run it. `RAPOR.md`
+(Turkish) is the project report, phase by phase. It was `README.md` until 24 November 2026, so "README Faz N" in code,
+tests and `reports/` means that section of `RAPOR.md`.
 
 # Commands
 
@@ -39,7 +41,7 @@ Windows. Use the Python 3.11 venv with `-I` every time: `.venv/Scripts/python -I
   - `experiment`: Phase 9 generated tools.
   - `model_selection`: Phase 0.
   - `demo`: the web app.
-- Scripts are `scripts/phaseNN_<action>.py`, one per README phase. Tests are `tests/test_phaseNN_<topic>.py`.
+- Scripts are `scripts/phaseNN_<action>.py`, one per report phase. Tests are `tests/test_phaseNN_<topic>.py`.
   Shared question sets, drafts and scoring helpers live in `tests/support/`. Measurement scripts import them too.
 - `reports/` holds recorded measurement outputs and is tracked. `data/` holds generated data and is gitignored,
   except `data/kaynak/`.
@@ -76,7 +78,7 @@ Windows. Use the Python 3.11 venv with `-I` every time: `.venv/Scripts/python -I
 - The secrets in `.env` are `EVDS_API_KEY`, `SAYMAN_KIMLIK_ANAHTARI`, `KAGGLE_USERNAME` and `KAGGLE_API_TOKEN`.
   Never print them, and never put them in URLs, files or commits. Only open or synthetic data goes to Kaggle.
 - Run a held-out question set only once. Before a measurement, unload Ollama models and run no other Ollama jobs.
-- README sections written before a measurement ("Ölçümden önce yazılanlar", "Ön kayıt") are pre-registrations. Do
-  not edit them, even to update a path. Old-to-new file names are listed in the README rename table.
+- `RAPOR.md` sections written before a measurement ("Ölçümden önce yazılanlar", "Ön kayıt") are pre-registrations.
+  Do not edit them, even to update a path. Old-to-new file names are listed in the `RAPOR.md` rename table.
 - `FAZLAR.md` and `docs/ozet/` are personal planning notes. They are gitignored and never referenced from the
-  README.
+  README or `RAPOR.md`.

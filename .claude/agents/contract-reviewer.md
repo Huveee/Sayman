@@ -20,7 +20,7 @@ Check, in this order, and report each finding as `file:line`, what changed, and 
 3. **Reflection.** `getattr`, `hasattr` and `setattr` with a string name, `monkeypatch.setattr(obj, "name")`, and
    `parametrize` argnames. Each must still name an attribute that exists.
 4. **Provenance.** Look for any change under `reports/`, to frozen question sets in `tests/support/`, or to the
-   README pre-registration sections ("Ölçümden önce yazılanlar", "Ön kayıt").
+   pre-registration sections of `RAPOR.md` ("Ölçümden önce yazılanlar", "Ön kayıt").
 5. **Read-only and money.** No writing SQL in the tools or metrics. No float for amounts.
 
 End with a one-line verdict: `clean` or `N findings`. Do not report style issues.

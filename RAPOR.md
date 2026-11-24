@@ -1,31 +1,16 @@
-# Sayman
+# Sayman: proje raporu
 
 Yapay Zekâ Destekli Finans Asistanı. Entertech Yapay Zekâ Kariyer Atölyesi final projesi.
 
 Hazırlayan: Hüveyda Başyurtlu
 
-## Kurulum
+Bu dosya projenin faz faz raporudur: her fazda ne yapıldı, ne ölçüldü, sonuç ne çıktı. Kurulum ve kullanım
+[README.md](README.md) dosyasındadır.
 
-Python 3.11 gerekir.
-
-```bash
-py -3.11 -m venv .venv
-.venv/Scripts/python -I -m pip install -r requirements.txt
-.venv/Scripts/python -I -m pip install -e . --no-deps --no-build-isolation
-```
-
-Son satır `src/sayman` paketini düzenlenebilir modda kurar; `scripts/` altındaki betikler paketi buradan bulur. Kod
-değişiklikleri yeniden kurulum gerektirmez.
-
-API anahtarları gerektiğinde `.env.example` dosyası `.env` adıyla kopyalanıp doldurulur. `.env` git'e eklenmez.
-
-## Testler
-
-```bash
-.venv/Scripts/python -I -m pytest
-```
-
-Testler internete ve Ollama'ya gitmez; ölçüm betiklerinin kaydettiği dosyaları okur.
+> **Dosya adı.** Bu rapor 24 Kasım 2026'ya kadar `README.md` adını taşıyordu. Kodda, testlerde ve `reports/` altındaki
+> kayıtlı dosyalarda geçen "README Faz N" ifadeleri bu dosyanın ilgili bölümünü gösterir. Ön kayıt bölümlerinin
+> ("Ölçümden önce yazılanlar", "Ön kayıt") ne zaman yazıldığı `git log --follow RAPOR.md` ile görülür; taşımada
+> bölümlerin metni değişmedi.
 
 ## Faz 0: model hız ölçümü
 

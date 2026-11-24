@@ -8,7 +8,7 @@ paths:
 
 # Measurements and provenance
 
-The README reports each phase's numbers from files in `reports/`. Keep the trail reproducible.
+`RAPOR.md` reports each phase's numbers from files in `reports/`. Keep the trail reproducible.
 
 - Never overwrite or rename a tracked file in `reports/`. A re-run writes a new file. See
   `scripts/phase11_report.py`, whose default output is `reports/faz11_rapor_guncel.md`.
@@ -19,5 +19,5 @@ The README reports each phase's numbers from files in `reports/`. Keep the trail
 - Replays that need no model are cheap regression checks, provided their outputs go somewhere other than
   `reports/`. Examples: `scripts/verifier_blind_spots.py`, `scripts/phase08b_rescore.py`. They must reproduce
   `reports/kor_nokta_olcum.json` and `reports/faz8b_yeniden_puanlama.json` byte for byte.
-- Argparse flags and subcommands are documented in the README and the demo guide. Keep them.
+- Argparse flags and subcommands are documented in the README, `RAPOR.md` and the demo guide. Keep them.
 - Only open or synthetic data may be uploaded to Kaggle.
